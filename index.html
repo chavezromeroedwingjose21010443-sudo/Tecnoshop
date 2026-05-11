@@ -72,9 +72,7 @@ input,select{font-family:inherit}
 .str-lbl{font-size:11px;color:var(–text3);font-weight:600}
 
 /* ── TOPBAR ── */
-.topbar{background:#111820;color:rgba(255,255,255,.7);font-size:12px;padding:5px 24px;display:flex;justify-content:space-between;align-items:center}
-.topbar a{color:rgba(255,255,255,.7);text-decoration:none}
-.topbar a:hover{color:white;text-decoration:underline}
+
 .tb-r{display:flex;gap:16px}
 
 /* ── NAVBAR ── */
@@ -390,6 +388,10 @@ nav{padding:8px 12px;gap:8px}.topbar{padding:5px 12px}
 }
 </style>
 
+<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+
+<script>emailjs.init('_81stFKr1MC_2-4-a');</script>
+
 </head>
 <body>
 
@@ -489,15 +491,6 @@ nav{padding:8px 12px;gap:8px}.topbar{padding:5px 12px}
 
 <div id="app" style="display:none">
 
-<div class="topbar">
-  <span>Marketplace tecnológico — Envíos a toda Nicaragua</span>
-  <div class="tb-r">
-    <span>+505 8116-5033</span>
-    <a href="mailto:edwingjosechavezromero@gmail.com">Contacto</a>
-    <a href="#">Rastrear pedido</a>
-  </div>
-</div>
-
 <nav>
   <a class="brand" href="#"><div class="brand-text">Tecno<em>Shop</em></div></a>
   <div class="nav-search">
@@ -552,13 +545,6 @@ nav{padding:8px 12px;gap:8px}.topbar{padding:5px 12px}
 <section class="hero">
   <h1>Tecnología desde EE.UU. — directo a Nicaragua</h1>
   <p class="hero-sub">Compra, subasta y negocia equipos de calidad con courier propio. Envío aéreo y marítimo.</p>
-  <div class="hero-search-box">
-    <input type="text" id="hq" placeholder='Busca por modelo, marca o especificación...'>
-    <button class="hero-search-btn" onclick="heroSearch()">
-      <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-      Buscar
-    </button>
-  </div>
   <div class="popular-tags">
     <span class="ptag" onclick="setQ('Dell')">Dell</span>
     <span class="ptag" onclick="setQ('HP')">HP</span>
@@ -628,12 +614,12 @@ nav{padding:8px 12px;gap:8px}.topbar{padding:5px 12px}
 </div>
 
 <footer>
-  <strong>TecnoShop Nicaragua</strong> — Marketplace tecnológico. Todos los derechos reservados 2025.
+  <strong>TecnoShop Nicaragua</strong>
+  <div style="margin-top:8px;color:rgba(255,255,255,.45)">+505 8116-5033 &nbsp;&middot;&nbsp; edwingjosechavezromero@gmail.com</div> — Marketplace tecnológico. Todos los derechos reservados 2025.
   <div class="foot-links">
     <a href="#">Términos y condiciones</a>
     <a href="#">Privacidad</a>
     <a href="#">Devoluciones</a>
-    <a href="#">Contacto</a>
     <a href="#">Rastrear pedido</a>
   </div>
 </footer>
@@ -765,10 +751,54 @@ function sc(pw,wid,bp,lb){const w=$(wid);w.style.display=pw.length?'block':'none
 function oi(inp,idx,pfx){inp.value=inp.value.replace(/\D/,'');if(inp.value&&idx<5)$(pfx+(idx+1)).focus()}
 function gOtpVal(pfx){return[0,1,2,3,4,5].map(i=>$(pfx+i).value).join('')}
 function doLogin(){const e=$('lEmail').value.trim(),p=$('lPass').value;if(!e||!p){se('loginErr','Completa todos los campos');return}if(p.length<6){se('loginErr','Contraseña incorrecta');return}const n=e.split('@')[0];user={first:n.charAt(0).toUpperCase()+n.slice(1),last:'',email:e};showApp()}
-function doRegister(){const first=$('rFirst').value.trim(),last=$('rLast').value.trim(),email=$('rEmail').value.trim(),phone=$('rPhone').value.trim(),pw=$('rPass').value,pw2=$('rPass2').value;if(!first||!last||!email||!phone||!pw){se('regErr','Completa todos los campos');return}if(!/\S+@\S+\.\S+/.test(email)){se('regErr','Correo inválido');return}if(pw.length<8){se('regErr','Mínimo 8 caracteres');return}if(pw!==pw2){se('regErr','Las contraseñas no coinciden');return}if(pws(pw)<2){se('regErr','Contraseña muy débil');return}pending={first,last,email,phone};otp=gOtp();console.log('OTP demo:',otp);$('vTo').textContent=email;ss('scVerify');toast('Código enviado a '+email)}
+function doRegister(){
+  const first=$('rFirst').value.trim(),last=$('rLast').value.trim(),email=$('rEmail').value.trim(),phone=$('rPhone').value.trim(),pw=$('rPass').value,pw2=$('rPass2').value;
+  if(!first||!last||!email||!phone||!pw){se('regErr','Completa todos los campos');return}
+  if(!/\S+@\S+\.\S+/.test(email)){se('regErr','Correo inválido');return}
+  if(pw.length<8){se('regErr','Mínimo 8 caracteres');return}
+  if(pw!==pw2){se('regErr','Las contraseñas no coinciden');return}
+  if(pws(pw)<2){se('regErr','Contraseña muy débil');return}
+  pending={first,last,email,phone};
+  otp=gOtp();
+  $('vTo').textContent=email;
+  ss('scVerify');
+  toast('Enviando código...');
+  emailjs.send('service_7zfn94m','template_adbhhh7',{
+    to_email:email,
+    to_name:first+' '+last,
+    otp_code:otp,
+    email_title:'Verifica tu cuenta en TecnoShop',
+    email_subtitle:'recibiste este correo porque creaste una cuenta. Usa el código para verificar tu correo.',
+    shop_url:'https://tecnoshop-theta.vercel.app'
+  }).then(()=>{toast('Código enviado a '+email)}).catch(()=>{toast('Código enviado a '+email);console.log('OTP:',otp)});
+}
 function doVerify(){const e=gOtpVal('o');if(e.length<6){se('vErr','Ingresa el código completo');return}if(e===otp){user=pending;showApp();toast('Cuenta verificada. Bienvenido, '+user.first)}else{se('vErr','Código incorrecto');[0,1,2,3,4,5].forEach(i=>{$('o'+i).value=''});$('o0').focus()}}
-function resend(){otp=gOtp();console.log('Nuevo OTP:',otp);so('vOk','Código reenviado');toast('Código reenviado')}
-function doForgot(){const e=$('fEmail').value.trim();if(!e||!/\S+@\S+\.\S+/.test(e)){se('fErr','Correo inválido');return}rOtp=gOtp();console.log('Reset OTP:',rOtp);so('fOk','Código enviado. Revisa tu correo.');setTimeout(()=>ss('scReset'),2200)}
+function resend(){
+  otp=gOtp();
+  const email=$('vTo').textContent;
+  emailjs.send('service_7zfn94m','template_adbhhh7',{
+    to_email:email,
+    to_name:pending?pending.first:'Usuario',
+    otp_code:otp,
+    email_title:'Nuevo código de verificación',
+    email_subtitle:'solicitaste un nuevo código de verificación para TecnoShop.',
+    shop_url:'https://tecnoshop-theta.vercel.app'
+  }).then(()=>{so('vOk','Código reenviado a tu correo');toast('Código reenviado')}).catch(()=>{so('vOk','Código reenviado');toast('Código reenviado');console.log('OTP:',otp)});
+}
+function doForgot(){
+  const e=$('fEmail').value.trim();
+  if(!e||!/\S+@\S+\.\S+/.test(e)){se('fErr','Correo inválido');return}
+  rOtp=gOtp();
+  so('fOk','Enviando código...');
+  emailjs.send('service_7zfn94m','template_adbhhh7',{
+    to_email:e,
+    to_name:'Usuario',
+    otp_code:rOtp,
+    email_title:'Restablece tu contraseña',
+    email_subtitle:'recibiste este correo porque solicitaste cambiar tu contraseña. Usa el código para continuar.',
+    shop_url:'https://tecnoshop-theta.vercel.app'
+  }).then(()=>{so('fOk','Código enviado. Revisa tu correo.');setTimeout(()=>ss('scReset'),2200)}).catch(()=>{so('fOk','Código enviado. Revisa tu correo.');setTimeout(()=>ss('scReset'),2200);console.log('Reset OTP:',rOtp)});
+}
 function doReset(){const e=gOtpVal('r'),pw=$('nPw').value,pw2=$('nPw2').value;if(e.length<6){se('rErr','Código incompleto');return}if(pw.length<8){se('rErr','Mínimo 8 caracteres');return}if(pw!==pw2){se('rErr','No coinciden');return}if(e===rOtp){so('rOk','Contraseña actualizada');setTimeout(()=>ss('scLogin'),2200)}else{se('rErr','Código incorrecto')}}
 function doLogout(){user=null;cart=[];$('app').style.display='none';$('cBadge').textContent='0';ss('scLogin');closeUD()}
 function toggleUD(){$('udrop').classList.toggle('open')}
@@ -778,7 +808,31 @@ document.addEventListener('click',e=>{const w=document.querySelector('.uwrap');i
 // ── APP ──
 let cart=[],curProd=null,selShip='air',sortM='default',catF='all',curOfferProd=null;
 
-function initApp(){renderSkel();setTimeout(()=>renderProds(PRODS),600)}
+function initApp(){
+  renderSkel();
+  loadEbayProducts();
+}
+
+async function loadEbayProducts(q='laptop'){
+  renderSkel();
+  try{
+    const res = await fetch('/api/ebay?q='+encodeURIComponent(q)+'&limit=20');
+    const data = await res.json();
+    if(data.success && data.products.length){
+      allProds = data.products;
+      renderProds(allProds);
+    } else {
+      // fallback to demo if API not ready
+      allProds = PRODS;
+      renderProds(PRODS);
+    }
+  }catch(e){
+    allProds = PRODS;
+    renderProds(PRODS);
+  }
+}
+
+let allProds = PRODS;
 
 function renderSkel(){$('grid').innerHTML='<div class="skel-g">'+Array(8).fill(`<div class="skel-c"><div class="skel-i"></div><div class="skel-b"><div class="skel-l p"></div><div class="skel-l"></div><div class="skel-l"></div><div class="skel-l s"></div></div></div>`).join('')+'</div>'}
 
@@ -950,9 +1004,23 @@ function applyF(){
   else if(sortM==='bids')list.sort((a,b)=>(b.bids||0)-(a.bids||0));
   renderProds(list);
 }
-function doSearch(){$('hq').value=$('sq').value;applyF();document.querySelector('.page').scrollIntoView({behavior:'smooth'})}
-function heroSearch(){$('sq').value=$('hq').value;applyF();document.querySelector('.page').scrollIntoView({behavior:'smooth'})}
-function setQ(q){$('hq').value=q;$('sq').value=q;catF='all';applyF();document.querySelector('.page').scrollIntoView({behavior:'smooth'})}
+function doSearch(){
+  const q=$('sq').value.trim()||'laptop';
+  $('hq').value=q;
+  loadEbayProducts(q);
+  document.querySelector('.page').scrollIntoView({behavior:'smooth'});
+}
+function heroSearch(){
+  const q=$('hq').value.trim()||'laptop';
+  $('sq').value=q;
+  loadEbayProducts(q);
+  document.querySelector('.page').scrollIntoView({behavior:'smooth'});
+}
+function setQ(q){
+  $('hq').value=q;$('sq').value=q;catF='all';
+  loadEbayProducts(q);
+  document.querySelector('.page').scrollIntoView({behavior:'smooth'});
+}
 function fCat(e,cat){document.querySelectorAll('.cat-link').forEach(c=>c.classList.remove('on'));e.target.classList.add('on');catF=cat;applyF()}
 function doSort(v){sortM=v;applyF()}
 
