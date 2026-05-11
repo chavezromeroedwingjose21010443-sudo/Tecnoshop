@@ -1,2 +1,0 @@
-# Tecnoshop
-Marketplace tecnológico Nicaragua 
