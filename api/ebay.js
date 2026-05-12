@@ -1,15 +1,22 @@
-export default async function handler(req, res) {
-res.setHeader(‘Access-Control-Allow-Origin’, ‘*’);
-res.setHeader(‘Access-Control-Allow-Methods’, ‘GET,POST,OPTIONS’);
-res.setHeader(‘Access-Control-Allow-Headers’, ‘Content-Type’);
-if (req.method === ‘OPTIONS’) return res.status(200).end();
+export const config = { runtime: ‘edge’ };
+
+export default async function handler(req) {
+const headers = {
+‘Access-Control-Allow-Origin’: ‘*’,
+‘Access-Control-Allow-Methods’: ‘GET,OPTIONS’,
+‘Content-Type’: ‘application/json’
+};
+
+if (req.method === ‘OPTIONS’) {
+return new Response(null, { status: 200, headers });
+}
 
 const CLIENT_ID = process.env.EBAY_CLIENT_ID;
 const CLIENT_SECRET = process.env.EBAY_CLIENT_SECRET;
 const SELLERS = [‘discounttechdirect’, ‘merresale’, ‘paymore_doraville’];
 
 try {
-const credentials = Buffer.from(`${CLIENT_ID}:${CLIENT_SECRET}`).toString(‘base64’);
+const credentials = btoa(`${CLIENT_ID}:${CLIENT_SECRET}`);
 const tokenRes = await fetch(‘https://api.ebay.com/identity/v1/oauth2/token’, {
 method: ‘POST’,
 headers: {
@@ -21,10 +28,14 @@ body: ‘grant_type=client_credentials&scope=https://api.ebay.com/oauth/api_scop
 
 ```
 const tokenData = await tokenRes.json();
-if (!tokenData.access_token) return res.status(500).json({ error: 'Token error', details: tokenData });
+if (!tokenData.access_token) {
+  return new Response(JSON.stringify({ error: 'Token error', details: tokenData }), { status: 500, headers });
+}
 
 const token = tokenData.access_token;
-const { q = 'laptop', limit = 20 } = req.query;
+const url = new URL(req.url);
+const q = url.searchParams.get('q') || 'laptop';
+const limit = url.searchParams.get('limit') || '20';
 
 const searchRes = await fetch(
   `https://api.ebay.com/buy/browse/v1/item_summary/search?q=${encodeURIComponent(q)}&filter=sellers:{${SELLERS.join('|')}}&limit=${limit}`,
@@ -53,10 +64,13 @@ const products = (data.itemSummaries || []).map(item => {
   };
 });
 
-return res.status(200).json({ success: true, total: data.total || 0, products });
+return new Response(
+  JSON.stringify({ success: true, total: data.total || 0, products }),
+  { status: 200, headers }
+);
 ```
 
 } catch (err) {
-return res.status(500).json({ error: err.message });
+return new Response(JSON.stringify({ error: err.message }), { status: 500, headers });
 }
 }
