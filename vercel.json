@@ -1,17 +1,5 @@
 {
-  "functions": {
-    "api/ebay.js": {
-      "memory": 256,
-      "maxDuration": 15
-    }
-  },
-  "headers": [
-    {
-      "source": "/api/(.*)",
-      "headers": [
-        { "key": "Access-Control-Allow-Origin", "value": "*" },
-        { "key": "Access-Control-Allow-Methods", "value": "GET, OPTIONS" }
-      ]
-    }
+  "rewrites": [
+    { "source": "/api/ebay", "destination": "/api/ebay.js" }
   ]
 }
