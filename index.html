@@ -1,11 +1,12 @@
 <!DOCTYPE html>
-
 <html lang="es">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>TecnoShop — Marketplace Tecnológico</title>
-<link href="https://fonts.googleapis.com/css2?family=Market+Sans:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+<script>emailjs.init('_81stFKr1MC_2-4-a');</script>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -14,389 +15,330 @@
   --gray:#767676;--gray2:#eeeef0;--gray3:#f7f7f7;
   --border:#c7c7c7;--border2:#e0e0e0;
   --text:#111820;--text2:#555;--text3:#767676;
-  --white:#fff;
-  --r4:4px;--r8:8px;--r12:12px;--r16:16px;--pill:50px;
+  --white:#fff;--bg:#f7f7f7;
+  --r4:4px;--r8:8px;--r12:12px;--pill:50px;
   --sh:0 1px 3px rgba(0,0,0,.12);--sh2:0 4px 16px rgba(0,0,0,.12);
 }
+[data-theme="dark"]{
+  --text:#f0f0f0;--text2:#aaa;--text3:#777;
+  --white:#1a1a2e;--bg:#0f0f1a;--gray3:#16213e;--gray2:#1a1a2e;
+  --border:#2a2a4a;--border2:#222240;--blue-l:#1a2a5e;
+}
 html{scroll-behavior:smooth}
-body{font-family:'Inter',system-ui,sans-serif;background:var(--white);color:var(--text);-webkit-font-smoothing:antialiased;font-size:14px}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);-webkit-font-smoothing:antialiased;font-size:14px;transition:background .3s,color .3s}
 a{text-decoration:none;color:var(--blue)}
-a:hover{text-decoration:underline}
 button{font-family:inherit;cursor:pointer}
 input,select{font-family:inherit}
-::-webkit-scrollbar{width:6px;height:6px}
-::-webkit-scrollbar-track{background:#f1f1f1}
-::-webkit-scrollbar-thumb{background:#ccc;border-radius:3px}
 
 /* ── AUTH ── */
-.auth-screen{display:none;position:fixed;inset:0;z-index:2000;background:#f7f7f7;align-items:center;justify-content:center;padding:20px}
+.auth-screen{display:none;position:fixed;inset:0;z-index:2000;background:var(--bg);align-items:center;justify-content:center;padding:20px}
 .auth-screen.active{display:flex}
-.auth-card{background:white;border:1px solid var(–border);border-radius:var(–r8);width:100%;max-width:400px;padding:32px;box-shadow:var(–sh2)}
+.auth-card{background:var(--white);border:1px solid var(--border);border-radius:var(--r8);width:100%;max-width:400px;padding:32px;box-shadow:var(--sh2)}
 .auth-logo{text-align:center;margin-bottom:20px}
-.auth-logo .brand-text{font-size:26px;font-weight:900;letter-spacing:-1px;color:var(–text)}
-.auth-logo .brand-text em{font-style:normal;color:var(–blue)}
-.auth-title{font-size:20px;font-weight:700;color:var(–text);margin-bottom:6px}
-.auth-sub{font-size:13px;color:var(–text2);margin-bottom:20px;line-height:1.5}
+.brand-text{font-size:26px;font-weight:900;letter-spacing:-1px;color:var(--text)}
+.brand-text em{font-style:normal;color:var(--blue)}
+.auth-title{font-size:20px;font-weight:700;color:var(--text);margin-bottom:6px}
+.auth-sub{font-size:13px;color:var(--text2);margin-bottom:20px;line-height:1.5}
 .fg{margin-bottom:14px}
-.fg label{display:block;font-size:13px;font-weight:600;color:var(–text);margin-bottom:5px}
-.fg input{width:100%;border:1.5px solid var(–border);border-radius:var(–r4);padding:10px 12px;font-size:14px;outline:none;transition:border-color .15s}
-.fg input:focus{border-color:var(–blue);box-shadow:0 0 0 2px rgba(54,101,243,.12)}
+.fg label{display:block;font-size:13px;font-weight:600;color:var(--text);margin-bottom:5px}
+.fg input{width:100%;border:1.5px solid var(--border);border-radius:var(--r4);padding:10px 12px;font-size:14px;outline:none;transition:border-color .15s;background:var(--white);color:var(--text)}
+.fg input:focus{border-color:var(--blue)}
 .iw{position:relative}
 .iw input{padding-left:36px;padding-right:36px}
-.fi{position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(–text3);pointer-events:none}
+.fi{position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--text3);pointer-events:none}
 .fi svg{width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
-.eye{position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(–text3);padding:3px;display:flex}
+.eye{position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--text3);padding:3px;display:flex}
 .eye svg{width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
-.abtn{width:100%;background:var(–blue);color:white;border:none;border-radius:var(–pill);padding:12px;font-size:14px;font-weight:700;cursor:pointer;transition:background .15s;margin-top:4px}
-.abtn:hover{background:var(–blue-d)}
-.adiv{display:flex;align-items:center;gap:10px;margin:16px 0;color:var(–text3);font-size:12px}
-.adiv::before,.adiv::after{content:’’;flex:1;height:1px;background:var(–border2)}
-.afoot{text-align:center;font-size:13px;color:var(–text2);margin-top:14px}
-.tl{color:var(–blue);font-weight:600;background:none;border:none;cursor:pointer;font-size:inherit;font-family:inherit}
+.abtn{width:100%;background:var(--blue);color:white;border:none;border-radius:var(--pill);padding:12px;font-size:14px;font-weight:700;cursor:pointer;transition:background .15s;margin-top:4px}
+.abtn:hover{background:var(--blue-d)}
+.adiv{display:flex;align-items:center;gap:10px;margin:16px 0;color:var(--text3);font-size:12px}
+.adiv::before,.adiv::after{content:'';flex:1;height:1px;background:var(--border2)}
+.afoot{text-align:center;font-size:13px;color:var(--text2);margin-top:14px}
+.tl{color:var(--blue);font-weight:600;background:none;border:none;cursor:pointer;font-size:inherit;font-family:inherit}
 .tl:hover{text-decoration:underline}
 .forgot{text-align:right;margin-bottom:12px;font-size:13px}
-.msg{border-radius:var(–r4);padding:9px 12px;font-size:13px;font-weight:600;margin-bottom:12px;display:none}
+.msg{border-radius:var(--r4);padding:9px 12px;font-size:13px;font-weight:600;margin-bottom:12px;display:none}
 .msg.show{display:block}
 .msg-e{background:#fdf2f2;border:1px solid #f5c0c0;color:#c0392b}
 .msg-s{background:#f0faf5;border:1px solid #a7dfbf;color:#0a7c4e}
 .f2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .otp-row{display:flex;gap:8px;justify-content:center;margin-bottom:18px}
-.otp-c{width:46px;height:54px;border:1.5px solid var(–border);border-radius:var(–r4);text-align:center;font-size:22px;font-weight:800;outline:none;transition:border-color .15s}
-.otp-c:focus{border-color:var(–blue);box-shadow:0 0 0 2px rgba(54,101,243,.12)}
-.resend-r{text-align:center;font-size:13px;color:var(–text2);margin-top:10px}
-.resend-r button{background:none;border:none;color:var(–blue);font-weight:600;cursor:pointer;font-size:inherit}
-.pw-str{margin-top:6px;display:none}
-.str-bars{display:flex;gap:3px;margin-bottom:3px}
-.str-bar{height:3px;flex:1;border-radius:2px;background:var(–border2);transition:background .3s}
-.str-bar.w{background:#e74c3c}.str-bar.f{background:#e67e22}.str-bar.g{background:#2ecc71}.str-bar.s{background:#0a7c4e}
-.str-lbl{font-size:11px;color:var(–text3);font-weight:600}
-
-/* ── TOPBAR ── */
-
-.tb-r{display:flex;gap:16px}
+.otp-c{width:46px;height:54px;border:1.5px solid var(--border);border-radius:var(--r4);text-align:center;font-size:22px;font-weight:800;outline:none;background:var(--white);color:var(--text)}
+.otp-c:focus{border-color:var(--blue)}
+.resend-r{text-align:center;font-size:13px;color:var(--text2);margin-top:10px}
+.resend-r button{background:none;border:none;color:var(--blue);font-weight:600;cursor:pointer;font-size:inherit}
 
 /* ── NAVBAR ── */
-nav{background:white;border-bottom:1px solid var(–border2);padding:10px 24px;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:300;box-shadow:var(–sh)}
+nav{background:var(--white);border-bottom:1px solid var(--border2);padding:10px 24px;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:300;box-shadow:var(--sh)}
 .brand{display:flex;align-items:center;text-decoration:none;flex-shrink:0}
-.brand-text{font-size:24px;font-weight:900;letter-spacing:-1px;color:var(–text);line-height:1}
-.brand-text em{font-style:normal;color:var(–blue)}
-
-/* eBay-style search bar */
-.nav-search{flex:1;max-width:640px;display:flex;border:2px solid var(–text);border-radius:var(–pill);overflow:hidden;transition:border-color .15s}
-.nav-search:focus-within{border-color:var(–blue)}
-.search-cat{border:none;border-right:1px solid var(–border2);background:#f7f7f7;padding:0 12px;font-size:13px;color:var(–text);outline:none;cursor:pointer;font-family:inherit;min-width:110px}
-.search-cat option{font-family:inherit}
-.nav-search input{flex:1;border:none;outline:none;padding:10px 14px;font-size:14px;background:white;color:var(–text)}
-.nav-search input::placeholder{color:var(–text3)}
-.search-btn{background:var(–blue);color:white;border:none;padding:0 22px;font-weight:700;font-size:14px;cursor:pointer;transition:background .15s;display:flex;align-items:center;gap:6px;white-space:nowrap}
-.search-btn:hover{background:var(–blue-d)}
+.nav-search{flex:1;max-width:640px;display:flex;border:2px solid var(--text);border-radius:var(--pill);overflow:hidden}
+.nav-search:focus-within{border-color:var(--blue)}
+.search-cat{border:none;border-right:1px solid var(--border2);background:var(--gray3);padding:0 12px;font-size:13px;color:var(--text);outline:none;cursor:pointer}
+.nav-search input{flex:1;border:none;outline:none;padding:10px 14px;font-size:14px;background:var(--white);color:var(--text)}
+.search-btn{background:var(--blue);color:white;border:none;padding:0 22px;font-weight:700;font-size:14px;cursor:pointer;display:flex;align-items:center;gap:6px}
+.search-btn:hover{background:var(--blue-d)}
 .search-btn svg{width:14px;height:14px;stroke:white;fill:none;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round}
-
 .nav-r{display:flex;align-items:center;gap:4px;margin-left:auto}
-.nav-link{padding:6px 10px;font-size:13px;color:var(–text);text-decoration:none;white-space:nowrap;transition:color .13s;background:none;border:none;cursor:pointer;font-family:inherit;font-weight:400}
-.nav-link:hover{color:var(–blue);text-decoration:none}
+.nav-link{padding:6px 10px;font-size:13px;color:var(--text);background:none;border:none;cursor:pointer;font-family:inherit}
+.nav-link:hover{color:var(--blue)}
+.theme-btn{background:none;border:1px solid var(--border2);border-radius:var(--pill);padding:6px 12px;font-size:12px;color:var(--text);cursor:pointer;transition:all .2s}
+.theme-btn:hover{border-color:var(--blue);color:var(--blue)}
 .uwrap{position:relative}
-.ubtn{display:flex;align-items:center;gap:6px;background:none;border:none;cursor:pointer;font-family:inherit;font-size:13px;color:var(–text);padding:6px 10px;border-radius:var(–r4);transition:background .12s}
-.ubtn:hover{background:var(–gray3)}
-.av{width:28px;height:28px;border-radius:50%;background:var(–blue);color:white;font-size:11px;font-weight:800;display:flex;align-items:center;justify-content:center}
-.udrop{position:absolute;top:calc(100% + 4px);right:0;background:white;border:1px solid var(–border);border-radius:var(–r8);min-width:200px;box-shadow:var(–sh2);opacity:0;pointer-events:none;transform:translateY(-4px);transition:all .15s;z-index:500}
+.ubtn{display:flex;align-items:center;gap:6px;background:none;border:none;cursor:pointer;font-family:inherit;font-size:13px;color:var(--text);padding:6px 10px;border-radius:var(--r4)}
+.ubtn:hover{background:var(--gray3)}
+.av{width:28px;height:28px;border-radius:50%;background:var(--blue);color:white;font-size:11px;font-weight:800;display:flex;align-items:center;justify-content:center}
+.udrop{position:absolute;top:calc(100% + 4px);right:0;background:var(--white);border:1px solid var(--border);border-radius:var(--r8);min-width:200px;box-shadow:var(--sh2);opacity:0;pointer-events:none;transform:translateY(-4px);transition:all .15s;z-index:500}
 .udrop.open{opacity:1;pointer-events:all;transform:none}
-.ud-head{padding:12px 16px;border-bottom:1px solid var(–border2)}
+.ud-head{padding:12px 16px;border-bottom:1px solid var(--border2)}
 .ud-name{font-size:13px;font-weight:700}
-.ud-email{font-size:11px;color:var(–text3);margin-top:1px}
-.ud-item{display:flex;align-items:center;gap:8px;padding:10px 16px;font-size:13px;color:var(–text2);cursor:pointer;transition:background .1s}
-.ud-item:hover{background:var(–gray3);color:var(–text)}
+.ud-email{font-size:11px;color:var(--text3);margin-top:1px}
+.ud-item{display:flex;align-items:center;gap:8px;padding:10px 16px;font-size:13px;color:var(--text2);cursor:pointer}
+.ud-item:hover{background:var(--gray3);color:var(--text)}
 .ud-item svg{width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
-.ud-sep{height:1px;background:var(–border2)}
-.ud-item.out{color:var(–red)}
-
-/* cart btn */
-.cart-wrap{display:flex;align-items:center;gap:6px;padding:6px 10px;cursor:pointer;background:none;border:none;font-family:inherit;font-size:13px;color:var(–text);transition:color .13s}
-.cart-wrap:hover{color:var(–blue)}
+.ud-sep{height:1px;background:var(--border2)}
+.ud-item.out{color:var(--red)}
+.cart-wrap{display:flex;align-items:center;gap:6px;padding:6px 10px;cursor:pointer;background:none;border:none;font-family:inherit;font-size:13px;color:var(--text)}
+.cart-wrap:hover{color:var(--blue)}
 .cart-wrap svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
-.cbadge{background:var(–red);color:white;font-size:10px;font-weight:800;min-width:18px;height:18px;border-radius:9px;display:flex;align-items:center;justify-content:center;padding:0 4px}
+.cbadge{background:var(--red);color:white;font-size:10px;font-weight:800;min-width:18px;height:18px;border-radius:9px;display:flex;align-items:center;justify-content:center;padding:0 4px}
 
-/* ── CATEGORY NAV (eBay style) ── */
-.cat-nav{background:white;border-bottom:1px solid var(–border2);padding:0 24px;display:flex;overflow-x:auto;scrollbar-width:none}
+/* ── CATEGORY NAV ── */
+.cat-nav{background:var(--white);border-bottom:1px solid var(--border2);padding:0 24px;display:flex;overflow-x:auto;scrollbar-width:none}
 .cat-nav::-webkit-scrollbar{display:none}
-.cat-link{padding:10px 14px;font-size:13px;font-weight:500;color:var(–text);white-space:nowrap;border-bottom:2px solid transparent;cursor:pointer;background:none;border-top:none;border-left:none;border-right:none;font-family:inherit;transition:all .13s}
-.cat-link:hover,.cat-link.on{color:var(–blue);border-bottom-color:var(–blue)}
+.cat-link{padding:10px 14px;font-size:13px;font-weight:500;color:var(--text);white-space:nowrap;border-bottom:2px solid transparent;cursor:pointer;background:none;border-top:none;border-left:none;border-right:none;font-family:inherit}
+.cat-link:hover,.cat-link.on{color:var(--blue);border-bottom-color:var(--blue)}
 
-/* ── HERO SEARCH (big eBay-style) ── */
-.hero{background:linear-gradient(180deg,#e4eeff 0%,#f5f7ff 100%);padding:40px 24px 36px;text-align:center}
-.hero h1{font-size:clamp(24px,4vw,40px);font-weight:800;color:var(–text);letter-spacing:-.5px;margin-bottom:6px;line-height:1.1}
-.hero-sub{font-size:15px;color:var(–text2);margin-bottom:24px}
-.hero-search-box{max-width:680px;margin:0 auto 20px;display:flex;background:white;border:2px solid var(–text);border-radius:var(–pill);overflow:hidden;box-shadow:0 4px 12px rgba(0,0,0,.1)}
-.hero-search-box:focus-within{border-color:var(–blue)}
-.hero-search-box input{flex:1;border:none;outline:none;padding:14px 20px;font-size:16px;background:transparent}
-.hero-search-box input::placeholder{color:var(–text3)}
-.hero-search-btn{background:var(–blue);color:white;border:none;padding:0 32px;font-size:15px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:8px;transition:background .15s}
-.hero-search-btn:hover{background:var(–blue-d)}
+/* ── HERO ── */
+.hero{background:linear-gradient(135deg,#1a1a3e 0%,#2952c4 50%,#3665f3 100%);padding:50px 24px 44px;text-align:center;position:relative;overflow:hidden}
+.hero::before{content:'';position:absolute;inset:0;background:url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.03'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")}
+.hero h1{font-size:clamp(22px,4vw,42px);font-weight:900;color:white;letter-spacing:-.5px;margin-bottom:8px;line-height:1.1;position:relative}
+.hero-sub{font-size:15px;color:rgba(255,255,255,.75);margin-bottom:28px;position:relative}
+.hero-search-box{max-width:680px;margin:0 auto 20px;display:flex;background:white;border-radius:var(--pill);overflow:hidden;box-shadow:0 8px 32px rgba(0,0,0,.25);position:relative}
+.hero-search-box input{flex:1;border:none;outline:none;padding:16px 22px;font-size:15px;background:transparent;color:#111}
+.hero-search-btn{background:var(--blue);color:white;border:none;padding:0 32px;font-size:15px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:8px}
+.hero-search-btn:hover{background:var(--blue-d)}
 .hero-search-btn svg{width:16px;height:16px;stroke:white;fill:none;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round}
-.popular-tags{display:flex;gap:8px;justify-content:center;flex-wrap:wrap}
-.ptag{background:white;border:1px solid var(–border);border-radius:var(–pill);padding:5px 14px;font-size:13px;color:var(–text2);cursor:pointer;transition:all .13s;font-weight:500}
-.ptag:hover{border-color:var(–blue);color:var(–blue)}
+.popular-tags{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;position:relative}
+.ptag{background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.3);border-radius:var(--pill);padding:5px 14px;font-size:13px;color:white;cursor:pointer;transition:all .13s;font-weight:500;backdrop-filter:blur(4px)}
+.ptag:hover{background:rgba(255,255,255,.25)}
 
 /* ── LAYOUT ── */
 .page{max-width:1240px;margin:0 auto;padding:20px 16px 60px;display:grid;grid-template-columns:220px 1fr;gap:20px}
-
-/* ── FILTERS (eBay left panel) ── */
-.filters{}
-.filter-section{border-bottom:1px solid var(–border2);padding:16px 0}
+.filters{background:var(--white);border:1px solid var(--border2);border-radius:var(--r8);padding:16px;height:fit-content}
+.filter-section{border-bottom:1px solid var(--border2);padding:14px 0}
 .filter-section:first-child{padding-top:0}
-.fs-title{font-size:13px;font-weight:700;color:var(–text);margin-bottom:12px}
+.filter-section:last-child{border-bottom:none}
+.fs-title{font-size:13px;font-weight:700;color:var(--text);margin-bottom:10px}
 .fo{display:flex;align-items:center;gap:8px;padding:3px 0;cursor:pointer}
-.fo input[type=checkbox]{accent-color:var(–blue);width:14px;height:14px;cursor:pointer}
-.fo-label{font-size:13px;color:var(–text2)}
-.fo-count{margin-left:auto;font-size:12px;color:var(–text3)}
-.fo:hover .fo-label{color:var(–blue)}
+.fo input[type=checkbox]{accent-color:var(--blue);width:14px;height:14px;cursor:pointer}
+.fo-label{font-size:13px;color:var(--text2)}
+.fo:hover .fo-label{color:var(--blue)}
 .range-row{display:flex;gap:6px;align-items:center;margin-top:8px}
-.range-row input{flex:1;border:1px solid var(–border);border-radius:var(–r4);padding:7px 8px;font-size:13px;outline:none;transition:border-color .15s}
-.range-row input:focus{border-color:var(–blue)}
-.range-row span{font-size:12px;color:var(–text3);flex-shrink:0}
-.apply-f{width:100%;background:var(–blue);color:white;border:none;border-radius:var(–pill);padding:9px;font-size:13px;font-weight:700;cursor:pointer;margin-top:14px;transition:background .15s}
-.apply-f:hover{background:var(–blue-d)}
+.range-row input{flex:1;border:1px solid var(--border);border-radius:var(--r4);padding:7px 8px;font-size:13px;outline:none;background:var(--white);color:var(--text)}
+.range-row input:focus{border-color:var(--blue)}
+.range-row span{font-size:12px;color:var(--text3)}
+.apply-f{width:100%;background:var(--blue);color:white;border:none;border-radius:var(--pill);padding:9px;font-size:13px;font-weight:700;cursor:pointer;margin-top:12px}
+.apply-f:hover{background:var(--blue-d)}
 
 /* ── RESULTS ── */
 .results-bar{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:8px}
-.r-info{font-size:13px;color:var(–text2)}
-.r-info strong{color:var(–text)}
-.sort-row{display:flex;align-items:center;gap:6px;font-size:13px;color:var(–text2)}
-.sort-row span{font-weight:600}
-.sort-sel{border:1px solid var(–border);border-radius:var(–r4);padding:5px 10px;font-size:13px;font-family:inherit;outline:none;cursor:pointer;background:white}
+.r-info{font-size:13px;color:var(--text2)}
+.r-info strong{color:var(--text)}
+.sort-row{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--text2)}
+.sort-sel{border:1px solid var(--border);border-radius:var(--r4);padding:5px 10px;font-size:13px;font-family:inherit;outline:none;cursor:pointer;background:var(--white);color:var(--text)}
 
-/* ── PRODUCT GRID (eBay style) ── */
+/* ── PRODUCT GRID ── */
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:14px}
-
-/* ── PRODUCT CARD (exact eBay style) ── */
-.card{background:white;border:1px solid var(–border2);border-radius:var(–r8);overflow:hidden;transition:box-shadow .18s,border-color .18s;cursor:pointer;animation:fu .3s ease both}
-.card:hover{box-shadow:0 4px 20px rgba(0,0,0,.12);border-color:var(–border)}
+.card{background:var(--white);border:1px solid var(--border2);border-radius:var(--r8);overflow:hidden;transition:box-shadow .18s,border-color .18s;cursor:pointer;animation:fu .3s ease both}
+.card:hover{box-shadow:0 4px 20px rgba(0,0,0,.15);border-color:var(--border)}
 @keyframes fu{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
-
-.card-img{position:relative;height:180px;background:var(–gray3);display:flex;align-items:center;justify-content:center;overflow:hidden}
+.card-img{position:relative;height:180px;background:var(--gray3);display:flex;align-items:center;justify-content:center;overflow:hidden}
 .card-img img{width:100%;height:100%;object-fit:cover;transition:transform .25s}
-.card:hover .card-img img{transform:scale(1.03)}
-.card-save{position:absolute;top:8px;right:8px;background:white;border:1px solid var(–border2);border-radius:50%;width:28px;height:28px;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all .15s;color:var(–gray)}
-.card-save:hover{border-color:var(–red);color:var(–red)}
-.card-save.saved svg{fill:var(–red);stroke:var(–red)}
-.card-save svg{width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
-
-/* AUCTION TIMER BAR */
-.auction-timer{background:#111820;color:white;padding:6px 10px;display:flex;justify-content:space-between;align-items:center}
-.at-left{font-size:10.5px;font-weight:600;color:rgba(255,255,255,.65)}
-.at-time{font-size:12px;font-weight:800;color:#ff6b6b;font-variant-numeric:tabular-nums;letter-spacing:.5px}
-.at-bids{font-size:10.5px;color:rgba(255,255,255,.5)}
-
+.card:hover .card-img img{transform:scale(1.04)}
+.card-save{position:absolute;top:8px;right:8px;background:var(--white);border:1px solid var(--border2);border-radius:50%;width:28px;height:28px;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all .15s;color:var(--gray)}
+.card-save:hover{border-color:var(--red);color:var(--red)}
+.card-save.saved svg{fill:var(--red);stroke:var(--red)}
+.card-save svg{width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:2}
 .card-body{padding:10px 12px 12px}
-
-/* price — exact eBay typography */
-.card-price{font-size:18px;font-weight:700;color:var(–text);letter-spacing:-.3px;margin-bottom:1px}
+.card-price{font-size:18px;font-weight:700;color:var(--text);letter-spacing:-.3px;margin-bottom:1px}
 .card-price .currency{font-size:14px;font-weight:400;vertical-align:top;margin-top:2px;display:inline-block}
-.card-price-note{font-size:12px;color:var(–text2);margin-bottom:4px}
-.card-name{font-size:13px;color:var(–text);line-height:1.4;margin-bottom:6px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.card-price-note{font-size:11px;color:var(--text3);margin-bottom:4px}
+.card-name{font-size:13px;color:var(--text);line-height:1.4;margin-bottom:6px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 .card-type-badge{display:inline-block;font-size:11px;font-weight:700;padding:2px 8px;border-radius:3px;margin-bottom:6px}
 .ctb-buy{background:#70c217;color:white}
 .ctb-auction{background:#c43b14;color:white}
 .ctb-offer{background:#3665f3;color:white}
-.card-cond{font-size:12px;color:var(–text3);margin-bottom:4px}
-.card-ship{font-size:12px;color:var(–text2);margin-bottom:8px}
-.card-ship strong{color:var(–green);font-weight:600}
-.card-seller{font-size:12px;color:var(–text3);margin-bottom:10px;display:flex;align-items:center;gap:4px}
-.seller-star{color:var(–orange);font-size:11px}
+.card-cond{font-size:12px;color:var(--text3);margin-bottom:4px}
+.card-ship{font-size:12px;color:var(--text2);margin-bottom:8px}
+.card-ship strong{color:var(--green);font-weight:600}
+.card-seller{font-size:12px;color:var(--text3);margin-bottom:10px;display:flex;align-items:center;gap:4px}
+.seller-star{color:var(--orange);font-size:11px}
 .card-acts{display:flex;flex-direction:column;gap:5px}
-.btn-main{width:100%;background:var(–blue);color:white;border:none;border-radius:var(–pill);padding:8px;font-size:13px;font-weight:700;cursor:pointer;transition:background .15s;font-family:inherit}
-.btn-main:hover{background:var(–blue-d)}
-.btn-offer{width:100%;background:white;color:var(–blue);border:2px solid var(–blue);border-radius:var(–pill);padding:7px;font-size:13px;font-weight:700;cursor:pointer;transition:all .15s;font-family:inherit}
-.btn-offer:hover{background:var(–blue-l)}
+.btn-main{width:100%;background:var(--blue);color:white;border:none;border-radius:var(--pill);padding:8px;font-size:13px;font-weight:700;cursor:pointer;transition:background .15s;font-family:inherit}
+.btn-main:hover{background:var(--blue-d)}
+.btn-offer{width:100%;background:var(--white);color:var(--blue);border:2px solid var(--blue);border-radius:var(--pill);padding:7px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit}
+.btn-offer:hover{background:var(--blue-l)}
 
 /* skeleton */
 .skel-g{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:14px}
-.skel-c{background:white;border:1px solid var(–border2);border-radius:var(–r8);overflow:hidden}
-.skel-i{height:180px;background:linear-gradient(90deg,#f0f0f0 25%,#e8e8e8 50%,#f0f0f0 75%);background-size:200% 100%;animation:sk 1.4s infinite}
+.skel-c{background:var(--white);border:1px solid var(--border2);border-radius:var(--r8);overflow:hidden}
+.skel-i{height:180px;background:linear-gradient(90deg,var(--gray3) 25%,var(--gray2) 50%,var(--gray3) 75%);background-size:200% 100%;animation:sk 1.4s infinite}
 .skel-b{padding:12px}
-.skel-l{height:11px;border-radius:4px;margin-bottom:8px;background:linear-gradient(90deg,#f0f0f0 25%,#e8e8e8 50%,#f0f0f0 75%);background-size:200% 100%;animation:sk 1.4s infinite}
+.skel-l{height:11px;border-radius:4px;margin-bottom:8px;background:linear-gradient(90deg,var(--gray3) 25%,var(--gray2) 50%,var(--gray3) 75%);background-size:200% 100%;animation:sk 1.4s infinite}
 .skel-l.s{width:50%}.skel-l.p{width:40%;height:18px}
 @keyframes sk{to{background-position:-200% 0}}
 
 /* ── OVERLAYS ── */
-.overlay{position:fixed;inset:0;z-index:600;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;padding:16px;opacity:0;pointer-events:none;transition:opacity .2s}
+.overlay{position:fixed;inset:0;z-index:600;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;padding:16px;opacity:0;pointer-events:none;transition:opacity .2s}
 .overlay.open{opacity:1;pointer-events:all}
-.sheet{background:white;border-radius:var(–r12);width:100%;max-width:540px;max-height:94vh;overflow-y:auto;transform:translateY(12px);transition:transform .25s;box-shadow:0 20px 60px rgba(0,0,0,.25)}
+.sheet{background:var(--white);border-radius:var(--r12);width:100%;max-width:540px;max-height:94vh;overflow-y:auto;transform:translateY(12px);transition:transform .25s;box-shadow:0 20px 60px rgba(0,0,0,.3)}
 .overlay.open .sheet{transform:none}
 .sheet-sm{max-width:460px}
-.sh-hd{padding:18px 20px 14px;border-bottom:1px solid var(–border2);display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;background:white;z-index:2;border-radius:var(–r12) var(–r12) 0 0}
-.sh-title{font-size:16px;font-weight:700;color:var(–text)}
-.x-btn{background:var(–gray3);border:none;border-radius:50%;width:28px;height:28px;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(–text2);transition:background .12s}
-.x-btn:hover{background:var(–border2)}
+.sh-hd{padding:18px 20px 14px;border-bottom:1px solid var(--border2);display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;background:var(--white);z-index:2;border-radius:var(--r12) var(--r12) 0 0}
+.sh-title{font-size:16px;font-weight:700;color:var(--text)}
+.x-btn{background:var(--gray3);border:none;border-radius:50%;width:28px;height:28px;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--text2)}
 .x-btn svg{width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:2.2;stroke-linecap:round}
 
-/* ── PRODUCT DETAIL (eBay style) ── */
-.pd-img{height:280px;background:var(–gray3);overflow:hidden;position:relative;border-radius:var(–r12) var(–r12) 0 0}
+/* ── PRODUCT DETAIL ── */
+.pd-img{height:280px;background:var(--gray3);overflow:hidden;position:relative;border-radius:var(--r12) var(--r12) 0 0}
 .pd-img img{width:100%;height:100%;object-fit:contain;padding:16px}
-.pd-close{position:absolute;top:12px;right:12px;background:white;border:1px solid var(–border2);border-radius:50%;width:32px;height:32px;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:var(–sh);transition:box-shadow .15s}
-.pd-close:hover{box-shadow:var(–sh2)}
-.pd-close svg{width:13px;height:13px;stroke:var(–text2);fill:none;stroke-width:2.2;stroke-linecap:round}
+.pd-close{position:absolute;top:12px;right:12px;background:var(--white);border:1px solid var(--border2);border-radius:50%;width:32px;height:32px;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.pd-close svg{width:13px;height:13px;stroke:var(--text2);fill:none;stroke-width:2.2;stroke-linecap:round}
 .pd-body{padding:20px}
 .pd-type-row{display:flex;align-items:center;gap:8px;margin-bottom:8px}
-.pd-cond{font-size:12px;color:var(–text3)}
-.pd-title{font-size:17px;font-weight:700;color:var(–text);line-height:1.3;margin-bottom:12px}
-
-/* AUCTION DETAIL */
-.auction-detail{background:var(–gray3);border-radius:var(–r8);padding:14px;margin-bottom:16px;border-left:3px solid var(–red)}
-.ad-current{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
-.ad-label{font-size:12px;color:var(–text3);font-weight:600;text-transform:uppercase;letter-spacing:.4px}
-.ad-price{font-size:28px;font-weight:800;color:var(–text);letter-spacing:-.5px}
-.ad-bids{font-size:12px;color:var(–text3)}
-.ad-timer{display:flex;align-items:center;gap:10px}
-.ad-timer-label{font-size:12px;color:var(–text2);font-weight:600}
-.ad-timer-val{font-size:18px;font-weight:800;color:var(–red);font-variant-numeric:tabular-nums;letter-spacing:.5px}
-.ad-timer-sub{font-size:11px;color:var(–text3)}
-.bid-input-row{display:flex;gap:8px;align-items:center;margin-top:12px}
-.bid-input{flex:1;border:2px solid var(–border);border-radius:var(–r4);padding:10px 12px;font-size:16px;font-weight:700;outline:none;transition:border-color .15s;font-family:inherit}
-.bid-input:focus{border-color:var(–blue)}
-.bid-submit{background:var(–blue);color:white;border:none;border-radius:var(–pill);padding:10px 22px;font-size:14px;font-weight:700;cursor:pointer;transition:background .15s;white-space:nowrap;font-family:inherit}
-.bid-submit:hover{background:var(–blue-d)}
-.bid-hint{font-size:12px;color:var(–text3);margin-top:6px}
-
-/* buy-now in detail */
+.pd-cond{font-size:12px;color:var(--text3)}
+.pd-title{font-size:17px;font-weight:700;color:var(--text);line-height:1.3;margin-bottom:12px}
+.pd-seller{font-size:13px;color:var(--text2);margin-bottom:14px;display:flex;align-items:center;gap:6px}
+.pd-seller a{color:var(--blue);font-weight:600}
+.pd-seller-star{color:var(--orange)}
 .pd-ship-row{display:flex;gap:8px;margin-bottom:14px}
-.ship-opt{flex:1;border:1.5px solid var(–border2);border-radius:var(–r8);padding:12px;text-align:center;cursor:pointer;transition:all .15s}
-.ship-opt:hover{border-color:var(–blue)}
-.ship-opt.on{border-color:var(–blue);background:var(–blue-l)}
+.ship-opt{flex:1;border:1.5px solid var(--border2);border-radius:var(--r8);padding:12px;text-align:center;cursor:pointer;transition:all .15s}
+.ship-opt:hover{border-color:var(--blue)}
+.ship-opt.on{border-color:var(--blue);background:var(--blue-l)}
 .ship-opt-icon{font-size:18px;margin-bottom:4px}
-.ship-opt-name{font-size:12px;font-weight:700;color:var(–text)}
-.ship-opt-price{font-size:15px;font-weight:800;color:var(–blue)}
-.ship-opt-days{font-size:11px;color:var(–text3)}
-
-.breakdown{background:var(–gray3);border-radius:var(–r8);padding:12px;margin-bottom:14px}
+.ship-opt-name{font-size:12px;font-weight:700;color:var(--text)}
+.ship-opt-price{font-size:15px;font-weight:800;color:var(--blue)}
+.ship-opt-days{font-size:11px;color:var(--text3)}
+.breakdown{background:var(--gray3);border-radius:var(--r8);padding:12px;margin-bottom:14px}
 .brow{display:flex;justify-content:space-between;padding:3px 0;font-size:13px}
-.brow .bl{color:var(–text2)}.brow .bv{font-weight:600}
-.bdiv{height:1px;background:var(–border2);margin:7px 0}
+.brow .bl{color:var(--text2)}.brow .bv{font-weight:600;color:var(--text)}
+.bdiv{height:1px;background:var(--border2);margin:7px 0}
 .btot{display:flex;justify-content:space-between;align-items:center}
-.btot-l{font-size:14px;font-weight:800}
-.btot-v{font-size:22px;font-weight:800;color:var(–text);letter-spacing:-.5px}
-
+.btot-l{font-size:14px;font-weight:800;color:var(--text)}
+.btot-v{font-size:22px;font-weight:800;color:var(--text)}
 .pd-acts{display:flex;flex-direction:column;gap:8px}
-.pd-btn-main{background:var(–blue);color:white;border:none;border-radius:var(–pill);padding:13px;font-size:14px;font-weight:700;cursor:pointer;transition:background .15s;font-family:inherit}
-.pd-btn-main:hover{background:var(–blue-d)}
-.pd-btn-offer{background:white;color:var(–blue);border:2px solid var(–blue);border-radius:var(–pill);padding:11px;font-size:14px;font-weight:700;cursor:pointer;transition:all .15s;font-family:inherit}
-.pd-btn-offer:hover{background:var(–blue-l)}
-.pd-btn-back{background:var(–gray3);color:var(–text);border:1px solid var(–border2);border-radius:var(–pill);padding:11px;font-size:13px;font-weight:600;cursor:pointer;transition:all .15s;font-family:inherit}
-.pd-btn-back:hover{background:var(–border2)}
-.pd-seller{font-size:13px;color:var(–text2);margin-bottom:14px;display:flex;align-items:center;gap:6px}
-.pd-seller a{color:var(–blue);font-weight:600}
-.pd-seller-star{color:var(–orange)}
+.pd-btn-main{background:var(--blue);color:white;border:none;border-radius:var(--pill);padding:13px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit}
+.pd-btn-main:hover{background:var(--blue-d)}
+.pd-btn-offer{background:var(--white);color:var(--blue);border:2px solid var(--blue);border-radius:var(--pill);padding:11px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit}
+.pd-btn-offer:hover{background:var(--blue-l)}
+.pd-btn-back{background:var(--gray3);color:var(--text);border:1px solid var(--border2);border-radius:var(--pill);padding:11px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit}
 
-/* OFFER MODAL */
+/* OFFER */
 .offer-body{padding:20px}
-.offer-cur{background:var(–gray3);border-radius:var(–r8);padding:12px;margin-bottom:16px}
-.offer-cur-lbl{font-size:12px;color:var(–text3);font-weight:600;margin-bottom:2px}
-.offer-cur-price{font-size:24px;font-weight:800;color:var(–text)}
-.offer-input-lbl{font-size:13px;font-weight:600;color:var(–text);margin-bottom:6px}
-.offer-input{width:100%;border:2px solid var(–border);border-radius:var(–r4);padding:12px;font-size:20px;font-weight:700;text-align:center;outline:none;transition:border-color .15s;font-family:inherit}
-.offer-input:focus{border-color:var(–blue)}
-.offer-shortcuts{display:flex;gap:6px;margin:10px 0 16px;flex-wrap:wrap}
-.offer-sc{background:var(–gray3);border:1px solid var(–border2);border-radius:var(–pill);padding:5px 12px;font-size:12px;font-weight:600;cursor:pointer;color:var(–text2);transition:all .13s}
-.offer-sc:hover{border-color:var(–blue);color:var(–blue)}
-.offer-submit{width:100%;background:var(–blue);color:white;border:none;border-radius:var(–pill);padding:13px;font-size:14px;font-weight:700;cursor:pointer;transition:background .15s;font-family:inherit}
-.offer-submit:hover{background:var(–blue-d)}
+.offer-cur{background:var(--gray3);border-radius:var(--r8);padding:12px;margin-bottom:16px}
+.offer-cur-lbl{font-size:12px;color:var(--text3);font-weight:600;margin-bottom:2px}
+.offer-cur-price{font-size:24px;font-weight:800;color:var(--text)}
+.offer-input{width:100%;border:2px solid var(--border);border-radius:var(--r4);padding:12px;font-size:20px;font-weight:700;text-align:center;outline:none;background:var(--white);color:var(--text);margin-bottom:16px}
+.offer-input:focus{border-color:var(--blue)}
+.offer-submit{width:100%;background:var(--blue);color:white;border:none;border-radius:var(--pill);padding:13px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit}
+.offer-submit:hover{background:var(--blue-d)}
 
 /* CART */
 .cart-list{padding:14px 20px;max-height:360px;overflow-y:auto}
-.ci{display:flex;gap:12px;padding:12px 0;border-bottom:1px solid var(–gray3);align-items:flex-start}
+.ci{display:flex;gap:12px;padding:12px 0;border-bottom:1px solid var(--gray3);align-items:flex-start}
 .ci:last-child{border-bottom:none}
-.ci img{width:64px;height:64px;object-fit:contain;border-radius:var(–r4);background:var(–gray3);flex-shrink:0;padding:4px}
+.ci img{width:64px;height:64px;object-fit:contain;border-radius:var(--r4);background:var(--gray3);flex-shrink:0;padding:4px}
 .ci-info{flex:1;min-width:0}
-.ci-name{font-size:13px;font-weight:600;line-height:1.35;margin-bottom:4px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
-.ci-ship{font-size:11px;color:var(–text3)}
+.ci-name{font-size:13px;font-weight:600;line-height:1.35;margin-bottom:4px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;color:var(--text)}
+.ci-ship{font-size:11px;color:var(--text3)}
 .ci-r{display:flex;flex-direction:column;align-items:flex-end;gap:5px;flex-shrink:0}
-.ci-price{font-size:15px;font-weight:700}
-.ci-del{background:none;border:none;cursor:pointer;color:var(–text3);padding:2px;display:flex;transition:color .12s}
-.ci-del:hover{color:var(–red)}
+.ci-price{font-size:15px;font-weight:700;color:var(--text)}
+.ci-del{background:none;border:none;cursor:pointer;color:var(--text3);padding:2px;display:flex}
+.ci-del:hover{color:var(--red)}
 .ci-del svg{width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
-.empty-cart{text-align:center;padding:44px 20px;color:var(–text3)}
-.empty-cart svg{width:48px;height:48px;stroke:var(–border);fill:none;stroke-width:1.4;stroke-linecap:round;stroke-linejoin:round;margin-bottom:12px}
-.cart-foot{padding:14px 20px;border-top:1px solid var(–border2)}
+.empty-cart{text-align:center;padding:44px 20px;color:var(--text3)}
+.empty-cart svg{width:48px;height:48px;stroke:var(--border);fill:none;stroke-width:1.4;margin-bottom:12px}
+.cart-foot{padding:14px 20px;border-top:1px solid var(--border2)}
 .ct-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
-.ct-lbl{font-size:13px;color:var(–text2);font-weight:600}
-.ct-val{font-size:22px;font-weight:800}
-.btn-ck{width:100%;background:var(–blue);color:white;border:none;border-radius:var(–pill);padding:13px;font-size:14px;font-weight:700;cursor:pointer;transition:background .15s;font-family:inherit}
-.btn-ck:hover{background:var(–blue-d)}
+.ct-lbl{font-size:13px;color:var(--text2);font-weight:600}
+.ct-val{font-size:22px;font-weight:800;color:var(--text)}
+.btn-ck{width:100%;background:var(--blue);color:white;border:none;border-radius:var(--pill);padding:13px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit}
+.btn-ck:hover{background:var(--blue-d)}
 
 /* CHECKOUT */
 .ck-body{padding:20px}
-.ck-sec{font-size:12px;font-weight:800;color:var(–text);text-transform:uppercase;letter-spacing:.5px;margin:0 0 12px;padding-bottom:8px;border-bottom:1px solid var(–border2)}
+.ck-sec{font-size:12px;font-weight:800;color:var(--text);text-transform:uppercase;letter-spacing:.5px;margin:0 0 12px;padding-bottom:8px;border-bottom:1px solid var(--border2)}
 .ck-2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .cf{margin-bottom:12px}
-.cf label{display:block;font-size:12px;font-weight:600;color:var(–text2);text-transform:uppercase;letter-spacing:.4px;margin-bottom:5px}
-.cf input,.cf select{width:100%;border:1.5px solid var(–border);border-radius:var(–r4);padding:9px 12px;font-size:13px;font-family:inherit;color:var(–text);outline:none;transition:border-color .15s}
-.cf input:focus,.cf select:focus{border-color:var(–blue)}
+.cf label{display:block;font-size:12px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.4px;margin-bottom:5px}
+.cf input,.cf select{width:100%;border:1.5px solid var(--border);border-radius:var(--r4);padding:9px 12px;font-size:13px;font-family:inherit;color:var(--text);outline:none;background:var(--white)}
+.cf input:focus,.cf select:focus{border-color:var(--blue)}
 .pay-opts{display:flex;flex-direction:column;gap:7px;margin-bottom:16px}
-.popt{background:white;border:1.5px solid var(–border2);border-radius:var(–r8);padding:11px 14px;display:flex;align-items:center;gap:10px;cursor:pointer;transition:all .13s}
-.popt:hover{border-color:var(–blue)}
-.popt.on{border-color:var(–blue);background:var(–blue-l)}
-.popt input{accent-color:var(–blue);width:15px;height:15px;flex-shrink:0}
-.popt-ico{width:30px;height:30px;border-radius:var(–r4);background:var(–gray2);display:flex;align-items:center;justify-content:center;flex-shrink:0}
-.popt-ico svg{width:15px;height:15px;stroke:var(–blue);fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
-.popt-name{font-size:13px;font-weight:700;color:var(–text)}
-.popt-desc{font-size:11px;color:var(–text3);margin-top:1px}
-.order-mini{background:var(–gray3);border-radius:var(–r8);padding:12px;margin-bottom:14px}
-.om-title{font-size:11px;font-weight:700;color:var(–text3);text-transform:uppercase;letter-spacing:.4px;margin-bottom:8px}
-.om-row{display:flex;justify-content:space-between;font-size:13px;padding:3px 0;color:var(–text2)}
-.om-row.tot{font-weight:700;font-size:14px;color:var(–text);border-top:1px solid var(–border2);margin-top:8px;padding-top:8px}
-.btn-place{width:100%;background:var(–blue);color:white;border:none;border-radius:var(–pill);padding:14px;font-size:14px;font-weight:700;cursor:pointer;transition:background .15s;font-family:inherit}
-.btn-place:hover{background:var(–blue-d)}
+.popt{background:var(--white);border:1.5px solid var(--border2);border-radius:var(--r8);padding:11px 14px;display:flex;align-items:center;gap:10px;cursor:pointer;transition:all .13s}
+.popt:hover{border-color:var(--blue)}
+.popt.on{border-color:var(--blue);background:var(--blue-l)}
+.popt input{accent-color:var(--blue);width:15px;height:15px;flex-shrink:0}
+.popt-ico{width:30px;height:30px;border-radius:var(--r4);background:var(--gray2);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.popt-ico svg{width:15px;height:15px;stroke:var(--blue);fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.popt-name{font-size:13px;font-weight:700;color:var(--text)}
+.popt-desc{font-size:11px;color:var(--text3);margin-top:1px}
+.order-mini{background:var(--gray3);border-radius:var(--r8);padding:12px;margin-bottom:14px}
+.om-title{font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.4px;margin-bottom:8px}
+.om-row{display:flex;justify-content:space-between;font-size:13px;padding:3px 0;color:var(--text2)}
+.om-row.tot{font-weight:700;font-size:14px;color:var(--text);border-top:1px solid var(--border2);margin-top:8px;padding-top:8px}
+.btn-place{width:100%;background:var(--blue);color:white;border:none;border-radius:var(--pill);padding:14px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit}
+.btn-place:hover{background:var(--blue-d)}
 
 /* SUCCESS */
 .success-view{text-align:center;padding:44px 28px}
 .s-check{width:60px;height:60px;border-radius:50%;background:#f0faf5;border:2px solid #a7dfbf;display:flex;align-items:center;justify-content:center;margin:0 auto 16px;animation:pop .4s cubic-bezier(.34,1.56,.64,1)}
 @keyframes pop{from{transform:scale(0);opacity:0}to{opacity:1;transform:scale(1)}}
 .s-check svg{width:28px;height:28px;stroke:#0a7c4e;fill:none;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round}
-.s-title{font-size:20px;font-weight:800;margin-bottom:8px}
-.s-ref{display:inline-block;background:var(–gray3);border:1px solid var(–border2);border-radius:var(–r4);padding:6px 16px;font-size:12px;font-weight:700;letter-spacing:1px;margin:10px 0;font-family:monospace}
-.s-detail{font-size:13px;color:var(–text2);line-height:1.6;max-width:280px;margin:0 auto 20px}
-.btn-cont{background:var(–blue);color:white;border:none;border-radius:var(–pill);padding:11px 26px;font-size:13px;font-weight:700;cursor:pointer;transition:background .15s;font-family:inherit}
-.btn-cont:hover{background:var(–blue-d)}
-
-/* BID SUCCESS */
-.bid-success{text-align:center;padding:32px 24px}
-.bid-success-icon{font-size:48px;margin-bottom:12px;animation:pop .4s cubic-bezier(.34,1.56,.64,1)}
-.bid-success-title{font-size:18px;font-weight:800;color:var(–text);margin-bottom:6px}
-.bid-success-sub{font-size:13px;color:var(–text2);line-height:1.55;margin-bottom:16px}
+.s-title{font-size:20px;font-weight:800;margin-bottom:8px;color:var(--text)}
+.s-ref{display:inline-block;background:var(--gray3);border:1px solid var(--border2);border-radius:var(--r4);padding:6px 16px;font-size:12px;font-weight:700;letter-spacing:1px;margin:10px 0;font-family:monospace;color:var(--text)}
+.s-detail{font-size:13px;color:var(--text2);line-height:1.6;max-width:280px;margin:0 auto 20px}
+.btn-cont{background:var(--blue);color:white;border:none;border-radius:var(--pill);padding:11px 26px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit}
 
 /* TOAST */
-.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(40px);background:#111820;color:white;padding:10px 20px;border-radius:var(–pill);font-size:13px;font-weight:600;box-shadow:var(–sh2);opacity:0;transition:all .28s cubic-bezier(.34,1.4,.64,1);z-index:9999;white-space:nowrap;pointer-events:none}
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(40px);background:#111820;color:white;padding:10px 20px;border-radius:var(--pill);font-size:13px;font-weight:600;box-shadow:var(--sh2);opacity:0;transition:all .28s cubic-bezier(.34,1.4,.64,1);z-index:9999;white-space:nowrap;pointer-events:none}
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* ERROR STATE */
+.err-state{text-align:center;padding:60px 20px;color:var(--text3)}
+.err-state svg{width:48px;height:48px;stroke:var(--border);fill:none;stroke-width:1.4;margin-bottom:12px}
+.err-state h3{font-size:16px;font-weight:700;color:var(--text2);margin-bottom:6px}
+.err-state p{font-size:13px;margin-bottom:16px}
+.retry-btn{background:var(--blue);color:white;border:none;border-radius:var(--pill);padding:10px 24px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit}
 
 /* FOOTER */
 footer{background:#111820;color:rgba(255,255,255,.5);padding:28px 24px;text-align:center;font-size:12px}
 footer strong{color:rgba(255,255,255,.75)}
 .foot-links{display:flex;gap:20px;justify-content:center;flex-wrap:wrap;margin-top:10px}
-.foot-links a{color:rgba(255,255,255,.4);text-decoration:none;transition:color .13s}
+.foot-links a{color:rgba(255,255,255,.4);text-decoration:none}
 .foot-links a:hover{color:rgba(255,255,255,.7)}
 
-/* RESPONSIVE */
+/* LOADING INDICATOR */
+.api-status{display:inline-flex;align-items:center;gap:6px;font-size:12px;padding:4px 10px;border-radius:var(--pill);font-weight:600}
+.api-status.loading{background:#fff3cd;color:#856404}
+.api-status.ok{background:#d4edda;color:#155724}
+.api-status.err{background:#f8d7da;color:#721c24}
+
 @media(max-width:900px){.page{grid-template-columns:1fr}.filters{display:none}}
 @media(max-width:640px){
-nav{padding:8px 12px;gap:8px}.topbar{padding:5px 12px}
-.hero{padding:28px 12px 24px}.cat-nav{padding:0 12px}
-.page{padding:14px 10px 40px}
-.grid{grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px}
-.ck-2{grid-template-columns:1fr}
-.brand-text{font-size:20px}
-.search-cat{display:none}
+  nav{padding:8px 12px;gap:8px}
+  .hero{padding:28px 12px 24px}
+  .cat-nav{padding:0 12px}
+  .page{padding:14px 10px 40px}
+  .grid{grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px}
+  .ck-2{grid-template-columns:1fr}
+  .brand-text{font-size:20px}
+  .search-cat{display:none}
 }
 </style>
-
-<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
-
-<script>emailjs.init('_81stFKr1MC_2-4-a');</script>
-
 </head>
 <body>
 
 <!-- ══ AUTH SCREENS ══ -->
-
 <div class="auth-screen active" id="scLogin">
   <div class="auth-card">
     <div class="auth-logo"><div class="brand-text">Tecno<em>Shop</em></div></div>
@@ -409,7 +351,7 @@ nav{padding:8px 12px;gap:8px}.topbar{padding:5px 12px}
     <div class="fg"><label>Contraseña</label>
       <div class="iw"><span class="fi"><svg viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg></span>
       <input type="password" id="lPass" placeholder="Tu contraseña">
-      <button class="eye" onclick="tv('lPass',this)"><svg viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button></div></div>
+      <button class="eye" onclick="tv('lPass')"><svg viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button></div></div>
     <div class="forgot"><button class="tl" onclick="ss('scForgot')">¿Olvidaste tu contraseña?</button></div>
     <button class="abtn" onclick="doLogin()">Iniciar sesión</button>
     <div class="adiv">o</div>
@@ -433,9 +375,8 @@ nav{padding:8px 12px;gap:8px}.topbar{padding:5px 12px}
     <div class="fg"><label>Teléfono</label><input type="tel" id="rPhone" placeholder="8888-0000"></div>
     <div class="fg"><label>Contraseña</label>
       <div class="iw"><span class="fi"><svg viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg></span>
-      <input type="password" id="rPass" placeholder="Mínimo 8 caracteres" oninput="sc(this.value,'ps1','b','bl1')">
-      <button class="eye" onclick="tv('rPass',this)"><svg viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button></div>
-      <div class="pw-str" id="ps1"><div class="str-bars"><div class="str-bar" id="b1"></div><div class="str-bar" id="b2"></div><div class="str-bar" id="b3"></div><div class="str-bar" id="b4"></div></div><div class="str-lbl" id="bl1"></div></div></div>
+      <input type="password" id="rPass" placeholder="Mínimo 8 caracteres">
+      <button class="eye" onclick="tv('rPass')"><svg viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button></div></div>
     <div class="fg"><label>Confirmar contraseña</label><input type="password" id="rPass2" placeholder="Repite tu contraseña"></div>
     <button class="abtn" onclick="doRegister()">Crear cuenta</button>
     <div class="afoot">¿Ya tienes cuenta? <button class="tl" onclick="ss('scLogin')">Inicia sesión</button></div>
@@ -469,45 +410,27 @@ nav{padding:8px 12px;gap:8px}.topbar{padding:5px 12px}
   </div>
 </div>
 
-<div class="auth-screen" id="scReset">
-  <div class="auth-card">
-    <div class="auth-logo"><div class="brand-text">Tecno<em>Shop</em></div></div>
-    <div class="auth-title">Nueva contraseña</div>
-    <div class="auth-sub">Ingresa el código y tu nueva contraseña</div>
-    <div class="msg msg-e" id="rErr"></div><div class="msg msg-s" id="rOk"></div>
-    <div class="fg"><label>Código de verificación</label>
-      <div class="otp-row" style="margin-bottom:0"><input class="otp-c" maxlength="1" id="r0" oninput="oi(this,0,'r')"><input class="otp-c" maxlength="1" id="r1" oninput="oi(this,1,'r')"><input class="otp-c" maxlength="1" id="r2" oninput="oi(this,2,'r')"><input class="otp-c" maxlength="1" id="r3" oninput="oi(this,3,'r')"><input class="otp-c" maxlength="1" id="r4" oninput="oi(this,4,'r')"><input class="otp-c" maxlength="1" id="r5" oninput="oi(this,5,'r')"></div></div>
-    <div class="fg"><label>Nueva contraseña</label>
-      <div class="iw"><span class="fi"><svg viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg></span>
-      <input type="password" id="nPw" placeholder="Mínimo 8 caracteres" oninput="sc(this.value,'ps2','q','ql')">
-      <button class="eye" onclick="tv('nPw',this)"><svg viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button></div>
-      <div class="pw-str" id="ps2"><div class="str-bars"><div class="str-bar" id="q1"></div><div class="str-bar" id="q2"></div><div class="str-bar" id="q3"></div><div class="str-bar" id="q4"></div></div><div class="str-lbl" id="ql"></div></div></div>
-    <div class="fg"><label>Confirmar contraseña</label><input type="password" id="nPw2" placeholder="Repite la contraseña"></div>
-    <button class="abtn" onclick="doReset()">Actualizar contraseña</button>
-  </div>
-</div>
-
 <!-- ══ APP ══ -->
-
 <div id="app" style="display:none">
 
 <nav>
   <a class="brand" href="#"><div class="brand-text">Tecno<em>Shop</em></div></a>
   <div class="nav-search">
     <select class="search-cat" id="searchCat">
-      <option>Todas las categorías</option>
+      <option>Todas</option>
       <option>Laptops</option>
       <option>Gaming</option>
       <option>Apple</option>
-      <option>Subastas</option>
+      <option>Accesorios</option>
     </select>
-    <input type="text" id="sq" placeholder="Buscar laptops, modelos, especificaciones...">
+    <input type="text" id="sq" placeholder="Buscar laptops, modelos, especificaciones..." onkeydown="if(event.key==='Enter')doSearch()">
     <button class="search-btn" onclick="doSearch()">
       <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
       Buscar
     </button>
   </div>
   <div class="nav-r">
+    <button class="theme-btn" onclick="toggleTheme()" id="themeBtn">🌙 Oscuro</button>
     <div class="uwrap">
       <button class="ubtn" onclick="toggleUD()">
         <div class="av" id="navAv">?</div>
@@ -532,52 +455,46 @@ nav{padding:8px 12px;gap:8px}.topbar{padding:5px 12px}
   <button class="cat-link on" onclick="fCat(event,'all')">Todos</button>
   <button class="cat-link" onclick="fCat(event,'laptop')">Laptops</button>
   <button class="cat-link" onclick="fCat(event,'gaming')">Gaming</button>
-  <button class="cat-link" onclick="fCat(event,'apple')">Apple</button>
-  <button class="cat-link" onclick="fCat(event,'auction')">Subastas activas</button>
+  <button class="cat-link" onclick="fCat(event,'apple')">Apple / Mac</button>
   <button class="cat-link" onclick="fCat(event,'offer')">Mejor oferta</button>
   <button class="cat-link" onclick="fCat(event,'new')">Nuevos</button>
   <button class="cat-link" onclick="fCat(event,'under300')">Menos de $300</button>
-  <button class="cat-link" onclick="fCat(event,'local')">En bodega Nicaragua</button>
 </div>
-
-<!-- HERO -->
 
 <section class="hero">
   <h1>Tecnología desde EE.UU. — directo a Nicaragua</h1>
-  <p class="hero-sub">Compra, subasta y negocia equipos de calidad con courier propio. Envío aéreo y marítimo.</p>
+  <p class="hero-sub">Compra equipos de calidad con courier propio. Envío aéreo y marítimo.</p>
+  <div class="hero-search-box">
+    <input type="text" id="hq" placeholder="¿Qué estás buscando?" onkeydown="if(event.key==='Enter'){$('sq').value=this.value;doSearch()}">
+    <button class="hero-search-btn" onclick="$('sq').value=$('hq').value;doSearch()">
+      <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      Buscar
+    </button>
+  </div>
   <div class="popular-tags">
-    <span class="ptag" onclick="setQ('Dell')">Dell</span>
-    <span class="ptag" onclick="setQ('HP')">HP</span>
+    <span class="ptag" onclick="setQ('Dell laptop')">Dell</span>
+    <span class="ptag" onclick="setQ('HP laptop')">HP</span>
     <span class="ptag" onclick="setQ('MacBook')">MacBook</span>
-    <span class="ptag" onclick="setQ('gaming')">Gaming</span>
-    <span class="ptag" onclick="setQ('i7 16GB')">i7 16GB</span>
-    <span class="ptag" onclick="setQ('RTX')">RTX</span>
-    <span class="ptag" onclick="setQ('reacondicionado')">Reacondicionado</span>
-    <span class="ptag" onclick="setQ('barato')">Menos de $300</span>
+    <span class="ptag" onclick="setQ('gaming laptop')">Gaming</span>
+    <span class="ptag" onclick="setQ('i7 16GB laptop')">i7 16GB</span>
+    <span class="ptag" onclick="setQ('RTX laptop')">RTX</span>
+    <span class="ptag" onclick="setQ('refurbished laptop')">Reacondicionado</span>
+    <span class="ptag" onclick="setQ('Lenovo ThinkPad')">ThinkPad</span>
   </div>
 </section>
-
-<!-- MAIN LAYOUT -->
 
 <div class="page">
   <aside class="filters">
     <div class="filter-section">
       <div class="fs-title">Condición</div>
-      <label class="fo"><input type="checkbox" onchange="applyF()"><span class="fo-label">Nuevo</span><span class="fo-count">4</span></label>
-      <label class="fo"><input type="checkbox" onchange="applyF()"><span class="fo-label">Reacondicionado</span><span class="fo-count">8</span></label>
-      <label class="fo"><input type="checkbox" onchange="applyF()"><span class="fo-label">Usado</span><span class="fo-count">2</span></label>
+      <label class="fo"><input type="checkbox" onchange="applyLocalF()"><span class="fo-label">Nuevo</span></label>
+      <label class="fo"><input type="checkbox" onchange="applyLocalF()"><span class="fo-label">Reacondicionado</span></label>
+      <label class="fo"><input type="checkbox" onchange="applyLocalF()"><span class="fo-label">Usado</span></label>
     </div>
     <div class="filter-section">
-      <div class="fs-title">Tipo de publicación</div>
-      <label class="fo"><input type="checkbox" onchange="applyF()"><span class="fo-label">Cómpralo ahora</span></label>
-      <label class="fo"><input type="checkbox" onchange="applyF()"><span class="fo-label">Subasta</span></label>
-      <label class="fo"><input type="checkbox" onchange="applyF()"><span class="fo-label">Mejor oferta</span></label>
-    </div>
-    <div class="filter-section">
-      <div class="fs-title">Logística</div>
-      <label class="fo"><input type="checkbox" onchange="applyF()"><span class="fo-label">En bodega Nicaragua</span></label>
-      <label class="fo"><input type="checkbox" onchange="applyF()"><span class="fo-label">Envío aéreo</span></label>
-      <label class="fo"><input type="checkbox" onchange="applyF()"><span class="fo-label">Envío marítimo</span></label>
+      <div class="fs-title">Tipo</div>
+      <label class="fo"><input type="checkbox" onchange="applyLocalF()"><span class="fo-label">Cómpralo ahora</span></label>
+      <label class="fo"><input type="checkbox" onchange="applyLocalF()"><span class="fo-label">Mejor oferta</span></label>
     </div>
     <div class="filter-section">
       <div class="fs-title">Precio (USD)</div>
@@ -586,26 +503,19 @@ nav{padding:8px 12px;gap:8px}.topbar{padding:5px 12px}
         <span>—</span>
         <input type="number" id="pMax" placeholder="Máx">
       </div>
-      <button class="apply-f" onclick="applyF()">Aplicar</button>
-    </div>
-    <div class="filter-section">
-      <div class="fs-title">Vendedor</div>
-      <label class="fo"><input type="checkbox" onchange="applyF()"><span class="fo-label">Verificado</span></label>
-      <label class="fo"><input type="checkbox" onchange="applyF()"><span class="fo-label">Top vendedor</span></label>
+      <button class="apply-f" onclick="applyLocalF()">Aplicar filtros</button>
     </div>
   </aside>
 
   <div>
     <div class="results-bar">
-      <span class="r-info"><strong id="rCount">0</strong> resultados</span>
+      <span class="r-info"><strong id="rCount">0</strong> resultados <span id="apiStatusBadge"></span></span>
       <div class="sort-row">
         <span>Ordenar:</span>
         <select class="sort-sel" onchange="doSort(this.value)">
           <option value="default">Más relevantes</option>
           <option value="asc">Precio: menor a mayor</option>
           <option value="desc">Precio: mayor a menor</option>
-          <option value="ending">Terminando pronto</option>
-          <option value="bids">Más pujas</option>
         </select>
       </div>
     </div>
@@ -615,7 +525,8 @@ nav{padding:8px 12px;gap:8px}.topbar{padding:5px 12px}
 
 <footer>
   <strong>TecnoShop Nicaragua</strong>
-  <div style="margin-top:8px;color:rgba(255,255,255,.45)">+505 8116-5033 &nbsp;&middot;&nbsp; edwingjosechavezromero@gmail.com</div> — Marketplace tecnológico. Todos los derechos reservados 2025.
+  <div style="margin-top:8px;color:rgba(255,255,255,.45)">+505 8116-5033 · edwingjosechavezromero@gmail.com</div>
+  <div style="margin-top:4px">Marketplace tecnológico. Todos los derechos reservados 2025.</div>
   <div class="foot-links">
     <a href="#">Términos y condiciones</a>
     <a href="#">Privacidad</a>
@@ -623,10 +534,9 @@ nav{padding:8px 12px;gap:8px}.topbar{padding:5px 12px}
     <a href="#">Rastrear pedido</a>
   </div>
 </footer>
-</div><!-- /app -->
+</div>
 
 <!-- PRODUCT OVERLAY -->
-
 <div class="overlay" id="prodOv">
   <div class="sheet">
     <div class="pd-img">
@@ -637,30 +547,26 @@ nav{padding:8px 12px;gap:8px}.topbar{padding:5px 12px}
       <div class="pd-type-row"><span id="pTypeBadge" class="card-type-badge"></span><span class="pd-cond" id="pCond"></span></div>
       <div class="pd-title" id="pTitle"></div>
       <div class="pd-seller">Vendedor: <a href="#">TecnoShop</a><span class="pd-seller-star">★</span> 99.8% positivo</div>
-      <div id="pdAuctionBlock"></div>
       <div id="pdBuyBlock"></div>
     </div>
   </div>
 </div>
 
 <!-- OFFER OVERLAY -->
-
 <div class="overlay" id="offerOv">
   <div class="sheet sheet-sm">
     <div class="sh-hd"><div class="sh-title">Hacer una oferta</div><button class="x-btn" onclick="closeOv('offerOv')"><svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div>
     <div class="offer-body">
       <div class="offer-cur"><div class="offer-cur-lbl">Precio publicado</div><div class="offer-cur-price" id="offerCurP">—</div></div>
-      <div class="offer-input-lbl">Tu oferta (USD)</div>
+      <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:6px">Tu oferta (USD)</div>
       <input class="offer-input" type="number" id="offerVal" placeholder="$0.00">
-      <div class="offer-shortcuts" id="offerHints"></div>
       <button class="offer-submit" onclick="submitOffer()">Enviar oferta al vendedor</button>
-      <p style="font-size:12px;color:var(--text3);margin-top:10px;text-align:center">El vendedor tiene 48 horas para aceptar, rechazar o contraofertar.</p>
+      <p style="font-size:12px;color:var(--text3);margin-top:10px;text-align:center">El vendedor tiene 48 horas para responder.</p>
     </div>
   </div>
 </div>
 
 <!-- CART OVERLAY -->
-
 <div class="overlay" id="cartOv">
   <div class="sheet sheet-sm">
     <div class="sh-hd"><div class="sh-title">Carrito de compras</div><button class="x-btn" onclick="closeOv('cartOv')"><svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div>
@@ -670,7 +576,6 @@ nav{padding:8px 12px;gap:8px}.topbar{padding:5px 12px}
 </div>
 
 <!-- CHECKOUT OVERLAY -->
-
 <div class="overlay" id="ckOv">
   <div class="sheet sheet-sm">
     <div class="sh-hd"><div class="sh-title">Finalizar pedido</div><button class="x-btn" onclick="closeOv('ckOv')"><svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div>
@@ -682,60 +587,17 @@ nav{padding:8px 12px;gap:8px}.topbar{padding:5px 12px}
 
 <script>
 const $=id=>document.getElementById(id);
-const fmt=n=>'$'+n.toFixed(2);
+const fmt=n=>'$'+Number(n).toFixed(2);
 const C={comm:.30,air:45,sea:22};
 const calc=(base,ship)=>{const c=base*C.comm,s=ship==='air'?C.air:C.sea;return{base,comm:c,ship:s,total:base+c+s}};
 
-// ── PRODUCTS ──
-// Replace PRODS array with eBay API call:
-// GET https://api.ebay.com/buy/browse/v1/item_summary/search
-//   ?q=laptop&filter=sellers:{discounttechdirect|merresale|paymore_doraville}
-//   &Authorization: Bearer {YOUR_TOKEN}
-const PRODS=[
-  {id:'1',title:'Dell Latitude 5410 Core i5-10310U 8GB RAM 256GB SSD Windows 11 Pro',price:100,cond:'Reacondicionado',type:'buy',logistics:['air','sea'],tags:['laptop','dell'],img:'https://images.unsplash.com/photo-1593642632559-0c6d3fc62b89?w=600&q=80'},
-  {id:'2',title:'HP EliteBook 840 G7 Core i7-10510U 16GB RAM 512GB SSD Touch FHD 14"',price:185,cond:'Reacondicionado',type:'offer',logistics:['air','sea'],tags:['laptop','hp'],img:'https://images.unsplash.com/photo-1588872657578-7efd1f1555ed?w=600&q=80'},
-  {id:'3',title:'Lenovo ThinkPad T490 Core i5-8265U 8GB 256GB SSD FHD IPS Ultrabook',price:149,cond:'Reacondicionado',type:'buy',logistics:['air','sea'],tags:['laptop','lenovo'],img:'https://images.unsplash.com/photo-1496181133206-80ce9b88a853?w=600&q=80'},
-  {id:'4',title:'Apple MacBook Air M1 2020 8GB RAM 256GB SSD Space Gray Retina',price:520,cond:'Reacondicionado',type:'auction',auctionEnd:Date.now()+3600000*18,bids:7,minBid:520,tags:['laptop','apple','auction'],img:'https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=600&q=80'},
-  {id:'5',title:'Dell XPS 13 9310 Core i7-1165G7 16GB 512GB SSD OLED Touch 13.4"',price:480,cond:'Reacondicionado',type:'offer',logistics:['air','sea'],tags:['laptop','dell'],img:'https://images.unsplash.com/photo-1525547719571-a2d4ac8945e2?w=600&q=80'},
-  {id:'6',title:'HP Pavilion 15 Core i5-1235U 8GB 512GB SSD Windows 11 Home',price:420,cond:'Nuevo',type:'buy',logistics:['air','sea'],tags:['laptop','hp','new'],img:'https://images.unsplash.com/photo-1541807084-5c52b6b3adef?w=600&q=80'},
-  {id:'7',title:'ASUS ROG Strix G15 Ryzen 7 5800H RTX 3060 16GB 512GB 15.6" FHD 144Hz',price:780,cond:'Nuevo',type:'buy',logistics:['air'],tags:['laptop','gaming','new'],img:'https://images.unsplash.com/photo-1603302576837-37561b2e2302?w=600&q=80'},
-  {id:'8',title:'Dell Inspiron 15 3520 Core i5-1235U 12GB RAM 512GB SSD Windows 11',price:175,cond:'Reacondicionado',type:'auction',auctionEnd:Date.now()+3600000*5.5,bids:3,minBid:175,tags:['laptop','dell','under300','auction'],img:'https://images.unsplash.com/photo-1484788984921-03950022c9ef?w=600&q=80'},
-  {id:'9',title:'Lenovo IdeaPad Gaming 3 Core i5-11300H RTX 3050 8GB 256GB SSD',price:650,cond:'Nuevo',type:'buy',logistics:['air'],tags:['laptop','lenovo','gaming','new'],img:'https://images.unsplash.com/photo-1612872087720-bb876e2e67d1?w=600&q=80'},
-  {id:'10',title:'Apple MacBook Pro 14" M2 Pro 16GB RAM 512GB SSD Silver 2023',price:1450,cond:'Reacondicionado',type:'offer',logistics:['air'],tags:['laptop','apple'],img:'https://images.unsplash.com/photo-1611532736597-de2d4265fba3?w=600&q=80'},
-  {id:'11',title:'Microsoft Surface Laptop 4 Core i5-1145G7 8GB 256GB Platinum',price:295,cond:'Reacondicionado',type:'buy',logistics:['air','sea'],tags:['laptop','under300'],img:'https://images.unsplash.com/photo-1562408590-e32931084e23?w=600&q=80'},
-  {id:'12',title:'Acer Aspire 5 Core i3-1215U 8GB 256GB SSD 15.6" FHD Windows 11',price:260,cond:'Nuevo',type:'buy',logistics:['air','sea','local'],tags:['laptop','new','under300','local'],img:'https://images.unsplash.com/photo-1593642634315-48f5414c3ad9?w=600&q=80'},
-];
-
-// live bid state
-const bidState={};
-PRODS.filter(p=>p.type==='auction').forEach(p=>{bidState[p.id]={currentBid:p.minBid,bids:p.bids,end:p.auctionEnd}});
-
-// ── TIMER ──
-function fmtTime(ms){
-  if(ms<=0)return'Terminada';
-  const d=Math.floor(ms/86400000),h=Math.floor((ms%86400000)/3600000),m=Math.floor((ms%3600000)/60000),s=Math.floor((ms%60000)/1000);
-  if(d>0)return`${d}d ${h}h ${m}m`;
-  if(h>0)return`${h}h ${m}m ${s}s`;
-  return`${m}m ${s}s`;
+// ── THEME ──
+let darkMode=false;
+function toggleTheme(){
+  darkMode=!darkMode;
+  document.documentElement.setAttribute('data-theme',darkMode?'dark':'');
+  $('themeBtn').textContent=darkMode?'☀️ Claro':'🌙 Oscuro';
 }
-setInterval(()=>{
-  document.querySelectorAll('[data-end]').forEach(el=>{
-    const rem=parseInt(el.dataset.end)-Date.now();
-    el.textContent=fmtTime(rem);
-    if(rem<3600000)el.style.color='#c43b14';
-  });
-  // update detail panel if open
-  if(curProd&&curProd.type==='auction'){
-    const st=bidState[curProd.id];
-    if(st){
-      const rem=st.end-Date.now();
-      const tv=$('pdTimerVal');if(tv){tv.textContent=fmtTime(rem);if(rem<3600000)tv.style.color='#c43b14'}
-      const bp=$('pdBidPrice');if(bp)bp.textContent=fmt(st.currentBid);
-      const bc=$('pdBidCount');if(bc)bc.textContent=st.bids+' puja'+(st.bids!==1?'s':'');
-      const bm=$('pdMinBid');if(bm)bm.textContent=fmt(st.currentBid+1);
-    }
-  }
-},1000);
 
 // ── AUTH ──
 let user=null,pending=null,otp='',rOtp='';
@@ -745,129 +607,177 @@ function showApp(){document.querySelectorAll('.auth-screen').forEach(s=>s.classL
 function syncNav(){if(!user)return;const i=(user.first[0]+(user.last?user.last[0]:'')).toUpperCase();$('navAv').textContent=i;$('navNm').textContent=user.first;$('udN').textContent=user.first+(user.last?' '+user.last:'');$('udE').textContent=user.email}
 function se(id,m){const e=$(id);e.textContent=m;e.classList.add('show');setTimeout(()=>e.classList.remove('show'),4500)}
 function so(id,m){const e=$(id);e.textContent=m;e.classList.add('show')}
-function tv(id,btn){const i=$(id);i.type=i.type==='password'?'text':'password'}
-function pws(pw){let s=0;if(pw.length>=8)s++;if(pw.length>=12)s++;if(/[A-Z]/.test(pw))s++;if(/[0-9]/.test(pw))s++;if(/[^A-Za-z0-9]/.test(pw))s++;return Math.min(4,s)}
-function sc(pw,wid,bp,lb){const w=$(wid);w.style.display=pw.length?'block':'none';const s=pws(pw);const cl=['','w','f','g','s'];const ll=['','Débil','Regular','Buena','Fuerte'];[1,2,3,4].forEach(i=>{$(bp+i).className='str-bar '+(i<=s?cl[s]:'')});$(lb).textContent=pw.length?ll[s]:''}
+function tv(id){const i=$(id);i.type=i.type==='password'?'text':'password'}
 function oi(inp,idx,pfx){inp.value=inp.value.replace(/\D/,'');if(inp.value&&idx<5)$(pfx+(idx+1)).focus()}
 function gOtpVal(pfx){return[0,1,2,3,4,5].map(i=>$(pfx+i).value).join('')}
-function doLogin(){const e=$('lEmail').value.trim(),p=$('lPass').value;if(!e||!p){se('loginErr','Completa todos los campos');return}if(p.length<6){se('loginErr','Contraseña incorrecta');return}const n=e.split('@')[0];user={first:n.charAt(0).toUpperCase()+n.slice(1),last:'',email:e};showApp()}
+
+function doLogin(){
+  const e=$('lEmail').value.trim(),p=$('lPass').value;
+  if(!e||!p){se('loginErr','Completa todos los campos');return}
+  if(p.length<6){se('loginErr','Contraseña incorrecta');return}
+  const n=e.split('@')[0];
+  user={first:n.charAt(0).toUpperCase()+n.slice(1),last:'',email:e};
+  showApp();
+}
+
 function doRegister(){
   const first=$('rFirst').value.trim(),last=$('rLast').value.trim(),email=$('rEmail').value.trim(),phone=$('rPhone').value.trim(),pw=$('rPass').value,pw2=$('rPass2').value;
   if(!first||!last||!email||!phone||!pw){se('regErr','Completa todos los campos');return}
   if(!/\S+@\S+\.\S+/.test(email)){se('regErr','Correo inválido');return}
   if(pw.length<8){se('regErr','Mínimo 8 caracteres');return}
   if(pw!==pw2){se('regErr','Las contraseñas no coinciden');return}
-  if(pws(pw)<2){se('regErr','Contraseña muy débil');return}
   pending={first,last,email,phone};
   otp=gOtp();
   $('vTo').textContent=email;
   ss('scVerify');
-  toast('Enviando código...');
   emailjs.send('service_7zfn94m','template_adbhhh7',{
-    to_email:email,
-    to_name:first+' '+last,
-    otp_code:otp,
+    to_email:email,to_name:first+' '+last,otp_code:otp,
     email_title:'Verifica tu cuenta en TecnoShop',
-    email_subtitle:'recibiste este correo porque creaste una cuenta. Usa el código para verificar tu correo.',
+    email_subtitle:'Usa el código para verificar tu correo.',
     shop_url:'https://tecnoshop-theta.vercel.app'
-  }).then(()=>{toast('Código enviado a '+email)}).catch(()=>{toast('Código enviado a '+email);console.log('OTP:',otp)});
+  }).then(()=>toast('Código enviado a '+email)).catch(()=>{toast('Código enviado');console.log('OTP:',otp)});
 }
-function doVerify(){const e=gOtpVal('o');if(e.length<6){se('vErr','Ingresa el código completo');return}if(e===otp){user=pending;showApp();toast('Cuenta verificada. Bienvenido, '+user.first)}else{se('vErr','Código incorrecto');[0,1,2,3,4,5].forEach(i=>{$('o'+i).value=''});$('o0').focus()}}
+
+function doVerify(){
+  const e=gOtpVal('o');
+  if(e.length<6){se('vErr','Ingresa el código completo');return}
+  if(e===otp){user=pending;showApp();toast('Cuenta verificada. Bienvenido, '+user.first)}
+  else{se('vErr','Código incorrecto');[0,1,2,3,4,5].forEach(i=>{$('o'+i).value=''});$('o0').focus()}
+}
+
 function resend(){
   otp=gOtp();
   const email=$('vTo').textContent;
   emailjs.send('service_7zfn94m','template_adbhhh7',{
-    to_email:email,
-    to_name:pending?pending.first:'Usuario',
-    otp_code:otp,
+    to_email:email,to_name:pending?pending.first:'Usuario',otp_code:otp,
     email_title:'Nuevo código de verificación',
-    email_subtitle:'solicitaste un nuevo código de verificación para TecnoShop.',
+    email_subtitle:'Solicitaste un nuevo código para TecnoShop.',
     shop_url:'https://tecnoshop-theta.vercel.app'
-  }).then(()=>{so('vOk','Código reenviado a tu correo');toast('Código reenviado')}).catch(()=>{so('vOk','Código reenviado');toast('Código reenviado');console.log('OTP:',otp)});
+  }).then(()=>{so('vOk','Código reenviado');toast('Código reenviado')}).catch(()=>{so('vOk','Código reenviado');console.log('OTP:',otp)});
 }
+
 function doForgot(){
   const e=$('fEmail').value.trim();
   if(!e||!/\S+@\S+\.\S+/.test(e)){se('fErr','Correo inválido');return}
   rOtp=gOtp();
   so('fOk','Enviando código...');
   emailjs.send('service_7zfn94m','template_adbhhh7',{
-    to_email:e,
-    to_name:'Usuario',
-    otp_code:rOtp,
+    to_email:e,to_name:'Usuario',otp_code:rOtp,
     email_title:'Restablece tu contraseña',
-    email_subtitle:'recibiste este correo porque solicitaste cambiar tu contraseña. Usa el código para continuar.',
+    email_subtitle:'Usa el código para cambiar tu contraseña.',
     shop_url:'https://tecnoshop-theta.vercel.app'
-  }).then(()=>{so('fOk','Código enviado. Revisa tu correo.');setTimeout(()=>ss('scReset'),2200)}).catch(()=>{so('fOk','Código enviado. Revisa tu correo.');setTimeout(()=>ss('scReset'),2200);console.log('Reset OTP:',rOtp)});
+  }).then(()=>{so('fOk','Código enviado. Revisa tu correo.')}).catch(()=>{so('fOk','Código enviado.');console.log('Reset OTP:',rOtp)});
 }
-function doReset(){const e=gOtpVal('r'),pw=$('nPw').value,pw2=$('nPw2').value;if(e.length<6){se('rErr','Código incompleto');return}if(pw.length<8){se('rErr','Mínimo 8 caracteres');return}if(pw!==pw2){se('rErr','No coinciden');return}if(e===rOtp){so('rOk','Contraseña actualizada');setTimeout(()=>ss('scLogin'),2200)}else{se('rErr','Código incorrecto')}}
+
 function doLogout(){user=null;cart=[];$('app').style.display='none';$('cBadge').textContent='0';ss('scLogin');closeUD()}
 function toggleUD(){$('udrop').classList.toggle('open')}
 function closeUD(){$('udrop').classList.remove('open')}
 document.addEventListener('click',e=>{const w=document.querySelector('.uwrap');if(w&&!w.contains(e.target))closeUD()});
 
-// ── APP ──
-let cart=[],curProd=null,selShip='air',sortM='default',catF='all',curOfferProd=null;
+// ── APP STATE ──
+let cart=[],curProd=null,selShip='air',allProds=[],curOfferProd=null;
 
+// ── INIT ──
 function initApp(){
   renderSkel();
-  loadEbayProducts();
+  loadProducts('laptop');
 }
 
-async function loadEbayProducts(q='laptop'){
+// ── LOAD PRODUCTS FROM EBAY API ──
+async function loadProducts(q='laptop'){
   renderSkel();
+  setApiStatus('loading','⏳ Cargando desde eBay...');
   try{
-    const res = await fetch('/api/ebay?q='+encodeURIComponent(q)+'&limit=20');
-    const data = await res.json();
-    if(data.success && data.products.length){
-      allProds = data.products;
+    const res=await fetch('/api/ebay?q='+encodeURIComponent(q));
+    if(!res.ok) throw new Error('HTTP '+res.status);
+    const data=await res.json();
+    if(data.success && data.products && data.products.length>0){
+      // Map eBay products to our internal format
+      allProds=data.products.map(p=>({
+        id: String(p.id),
+        title: p.title,
+        price: Number(p.price)||0,
+        totalAir: Number(p.totalAir)||0,
+        totalSea: Number(p.totalSea)||0,
+        cond: p.condition||'Used',
+        type: p.listingType||'buy',
+        logistics:['air','sea'],
+        tags:detectTags(p.title,p.condition),
+        img: p.image||'https://images.unsplash.com/photo-1496181133206-80ce9b88a853?w=600'
+      }));
+      setApiStatus('ok','✅ Productos de eBay');
       renderProds(allProds);
     } else {
-      // fallback to demo if API not ready
-      allProds = PRODS;
-      renderProds(PRODS);
+      throw new Error('No products');
     }
-  }catch(e){
-    allProds = PRODS;
-    renderProds(PRODS);
+  }catch(err){
+    console.error('eBay API error:',err);
+    setApiStatus('err','⚠️ Usando datos demo');
+    allProds=DEMO_PRODS;
+    renderProds(DEMO_PRODS);
   }
 }
 
-let allProds = PRODS;
+function detectTags(title,cond){
+  const t=(title||'').toLowerCase();
+  const tags=[];
+  if(t.includes('macbook')||t.includes('apple')||t.includes('mac'))tags.push('apple');
+  if(t.includes('gaming')||t.includes('rtx')||t.includes('rog')||t.includes('gtx'))tags.push('gaming');
+  if(t.includes('laptop')||t.includes('notebook')||t.includes('elitebook')||t.includes('thinkpad')||t.includes('latitude'))tags.push('laptop');
+  if((cond||'').toLowerCase().includes('new'))tags.push('new');
+  return tags;
+}
 
-function renderSkel(){$('grid').innerHTML='<div class="skel-g">'+Array(8).fill(`<div class="skel-c"><div class="skel-i"></div><div class="skel-b"><div class="skel-l p"></div><div class="skel-l"></div><div class="skel-l"></div><div class="skel-l s"></div></div></div>`).join('')+'</div>'}
+function setApiStatus(type,msg){
+  const b=$('apiStatusBadge');
+  if(!b)return;
+  b.className='api-status '+type;
+  b.textContent=msg;
+}
+
+// ── DEMO FALLBACK ──
+const DEMO_PRODS=[
+  {id:'d1',title:'Dell Latitude 5410 Core i5-10310U 8GB RAM 256GB SSD Windows 11 Pro',price:100,totalAir:175,totalSea:152,cond:'Reacondicionado',type:'buy',logistics:['air','sea'],tags:['laptop','dell'],img:'https://images.unsplash.com/photo-1593642632559-0c6d3fc62b89?w=600'},
+  {id:'d2',title:'HP EliteBook 840 G7 Core i7-10510U 16GB RAM 512GB SSD Touch FHD 14"',price:185,totalAir:285.5,totalSea:262.5,cond:'Reacondicionado',type:'offer',logistics:['air','sea'],tags:['laptop','hp'],img:'https://images.unsplash.com/photo-1588872657578-7efd1f1555ed?w=600'},
+  {id:'d3',title:'Lenovo ThinkPad T490 Core i5-8265U 8GB 256GB SSD FHD IPS Ultrabook',price:149,totalAir:238.7,totalSea:215.7,cond:'Reacondicionado',type:'buy',logistics:['air','sea'],tags:['laptop','lenovo'],img:'https://images.unsplash.com/photo-1496181133206-80ce9b88a853?w=600'},
+  {id:'d4',title:'Apple MacBook Air M1 2020 8GB RAM 256GB SSD Space Gray Retina',price:520,totalAir:721,totalSea:698,cond:'Reacondicionado',type:'offer',logistics:['air'],tags:['laptop','apple'],img:'https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=600'},
+  {id:'d5',title:'ASUS ROG Strix G15 Ryzen 7 5800H RTX 3060 16GB 512GB 15.6" FHD 144Hz',price:780,totalAir:1059,totalSea:1036,cond:'Nuevo',type:'buy',logistics:['air'],tags:['laptop','gaming','new'],img:'https://images.unsplash.com/photo-1603302576837-37561b2e2302?w=600'},
+  {id:'d6',title:'Acer Aspire 5 Core i3-1215U 8GB 256GB SSD 15.6" FHD Windows 11',price:260,totalAir:383,totalSea:360,cond:'Nuevo',type:'buy',logistics:['air','sea'],tags:['laptop','new','under300'],img:'https://images.unsplash.com/photo-1593642634315-48f5414c3ad9?w=600'},
+];
+
+// ── RENDER ──
+function renderSkel(){
+  $('grid').innerHTML='<div class="skel-g">'+Array(8).fill(`<div class="skel-c"><div class="skel-i"></div><div class="skel-b"><div class="skel-l p"></div><div class="skel-l"></div><div class="skel-l"></div><div class="skel-l s"></div></div></div>`).join('')+'</div>';
+}
 
 function renderProds(list){
   const g=$('grid');
   $('rCount').textContent=list.length;
-  if(!list.length){g.innerHTML='<div style="text-align:center;padding:60px;color:var(--text3)"><div style="font-size:15px;font-weight:600">Sin resultados para tu búsqueda</div><div style="font-size:13px;margin-top:6px">Intenta con otros términos o filtros</div></div>';return}
+  if(!list.length){
+    g.innerHTML=`<div class="err-state"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg><h3>Sin resultados</h3><p>Intenta con otros términos o filtros</p></div>`;
+    return;
+  }
   g.className='grid';
   g.innerHTML=list.map((p,i)=>{
-    const isAuction=p.type==='auction';
-    const st=isAuction?bidState[p.id]:null;
-    const displayPrice=isAuction?st.currentBid:calc(p.price,'air').total;
-    const priceNote=isAuction?`${st.bids} puja${st.bids!==1?'s':''}`:' incl. comisión + envío aéreo';
-    const typeBadge=isAuction?'<span class="card-type-badge ctb-auction">Subasta</span>':p.type==='offer'?'<span class="card-type-badge ctb-offer">Mejor oferta</span>':'<span class="card-type-badge ctb-buy">Cómpralo ya</span>';
-    let shipText='';
-    if(p.logistics?.includes('local'))shipText='<strong>Entrega inmediata</strong> en Nicaragua';
-    else if(p.logistics?.includes('air'))shipText='Envío aéreo <strong>$45</strong> · 5-7 días';
-    return`<div class="card" style="animation-delay:${i*.04}s">
+    const airTotal=p.totalAir||calc(p.price,'air').total;
+    const typeBadge=p.type==='offer'
+      ?'<span class="card-type-badge ctb-offer">Mejor oferta</span>'
+      :'<span class="card-type-badge ctb-buy">Cómpralo ya</span>';
+    return`<div class="card" style="animation-delay:${i*.04}s" onclick="openProd('${p.id}')">
       <div class="card-img">
         <img src="${p.img}" alt="${p.title}" loading="lazy" onerror="this.src='https://images.unsplash.com/photo-1496181133206-80ce9b88a853?w=600'">
-        <button class="card-save" onclick="event.stopPropagation();this.classList.toggle('saved')" title="Guardar en lista"><svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg></button>
+        <button class="card-save" onclick="event.stopPropagation();this.classList.toggle('saved')" title="Guardar"><svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg></button>
       </div>
-      ${isAuction?`<div class="auction-timer"><span class="at-left">Termina en</span><span class="at-time" data-end="${st.end}">${fmtTime(st.end-Date.now())}</span><span class="at-bids">${st.bids} pujas</span></div>`:''}
       <div class="card-body">
-        <div class="card-price"><span class="currency">$</span>${displayPrice.toFixed(2)}</div>
-        <div class="card-price-note">${priceNote}</div>
+        <div class="card-price"><span class="currency">$</span>${airTotal.toFixed(2)}</div>
+        <div class="card-price-note">incl. comisión + envío aéreo</div>
         <div>${typeBadge}</div>
         <div class="card-name">${p.title}</div>
         <div class="card-cond">${p.cond} · Vendedor verificado</div>
-        <div class="card-ship">${shipText}</div>
+        <div class="card-ship">Envío aéreo <strong>$45</strong> · 5-7 días</div>
         <div class="card-seller"><span class="seller-star">★</span> 99.8% positivo · TecnoShop</div>
         <div class="card-acts">
-          ${isAuction
-            ?`<button class="btn-main" onclick="event.stopPropagation();openProd('${p.id}')">Pujar ahora</button>`
-            :p.type==='offer'
+          ${p.type==='offer'
             ?`<button class="btn-main" onclick="event.stopPropagation();openProd('${p.id}')">Ver detalles</button><button class="btn-offer" onclick="event.stopPropagation();openOffer('${p.id}')">Hacer oferta</button>`
             :`<button class="btn-main" onclick="event.stopPropagation();quickAdd('${p.id}')">Agregar al carrito</button><button class="btn-offer" onclick="event.stopPropagation();openProd('${p.id}')">Ver detalles</button>`}
         </div>
@@ -876,66 +786,81 @@ function renderProds(list){
   }).join('');
 }
 
+// ── SEARCH & FILTER ──
+function doSearch(){
+  const q=($('sq').value||$('hq').value||'laptop').trim();
+  if(!q)return;
+  $('hq').value=q;$('sq').value=q;
+  loadProducts(q);
+}
+
+function setQ(q){$('sq').value=q;$('hq').value=q;loadProducts(q)}
+
+function fCat(e,cat){
+  document.querySelectorAll('.cat-link').forEach(l=>l.classList.remove('on'));
+  e.target.classList.add('on');
+  const queries={all:'laptop',laptop:'laptop',gaming:'gaming laptop',apple:'MacBook Apple laptop',offer:'laptop',new:'new laptop',under300:'budget laptop cheap'};
+  loadProducts(queries[cat]||'laptop');
+}
+
+function applyLocalF(){
+  const pMin=parseFloat($('pMin').value)||0;
+  const pMax=parseFloat($('pMax').value)||Infinity;
+  const filtered=allProds.filter(p=>{
+    const total=p.totalAir||calc(p.price,'air').total;
+    return total>=pMin && total<=pMax;
+  });
+  renderProds(filtered);
+}
+
+function doSort(v){
+  const sorted=[...allProds];
+  if(v==='asc')sorted.sort((a,b)=>(a.totalAir||a.price)-(b.totalAir||b.price));
+  if(v==='desc')sorted.sort((a,b)=>(b.totalAir||b.price)-(a.totalAir||a.price));
+  renderProds(sorted);
+}
+
 // ── PRODUCT DETAIL ──
+function findProd(id){return allProds.find(p=>String(p.id)===String(id))||DEMO_PRODS.find(p=>String(p.id)===String(id))}
+
 function openProd(id){
-  curProd=PRODS.find(p=>p.id===id);if(!curProd)return;
+  curProd=findProd(id);if(!curProd)return;
   selShip='air';
   $('pImg').src=curProd.img;
   $('pTitle').textContent=curProd.title;
   $('pCond').textContent=curProd.cond;
   const tb=$('pTypeBadge');
-  if(curProd.type==='auction'){tb.className='card-type-badge ctb-auction';tb.textContent='Subasta'}
-  else if(curProd.type==='offer'){tb.className='card-type-badge ctb-offer';tb.textContent='Mejor oferta'}
+  if(curProd.type==='offer'){tb.className='card-type-badge ctb-offer';tb.textContent='Mejor oferta'}
   else{tb.className='card-type-badge ctb-buy';tb.textContent='Cómpralo ya'}
-  if(curProd.type==='auction'){
-    const st=bidState[id];
-    $('pdAuctionBlock').innerHTML=`
-      <div class="auction-detail">
-        <div class="ad-current">
-          <div><div class="ad-label">Oferta actual</div><div class="ad-price" id="pdBidPrice">${fmt(st.currentBid)}</div><div class="ad-bids" id="pdBidCount">${st.bids} puja${st.bids!==1?'s':''}</div></div>
-          <div style="text-align:right"><div class="ad-label">Tiempo restante</div><div class="ad-timer-val" id="pdTimerVal" data-end="${st.end}">${fmtTime(st.end-Date.now())}</div><div class="ad-timer-sub">Termina en esta fecha</div></div>
-        </div>
-        <div class="bid-input-row">
-          <input class="bid-input" type="number" id="bidAmount" placeholder="${fmt(st.currentBid+1)}" step="1" min="${st.currentBid+1}">
-          <button class="bid-submit" onclick="placeBid()">Pujar</button>
-        </div>
-        <div class="bid-hint" id="pdMinBid">Oferta mínima: ${fmt(st.currentBid+1)}</div>
+  const pr=calc(curProd.price,'air');
+  $('pdBuyBlock').innerHTML=`
+    <div style="font-size:12px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.4px;margin-bottom:10px">Tipo de envío</div>
+    <div class="pd-ship-row">
+      <div class="ship-opt on" id="sa" onclick="ps('air')">
+        <div class="ship-opt-icon">✈</div>
+        <div class="ship-opt-name">Aéreo</div>
+        <div class="ship-opt-price">$45.00</div>
+        <div class="ship-opt-days">5–7 días</div>
       </div>
-      <p style="font-size:12px;color:var(--text3);margin-bottom:14px">Al pujar aceptas los términos y condiciones de TecnoShop. El ganador deberá completar el pago dentro de 48 horas.</p>
-      <button class="pd-btn-back" onclick="closeOv('prodOv')">Volver a resultados</button>`;
-    $('pdBuyBlock').innerHTML='';
-  } else {
-    $('pdAuctionBlock').innerHTML='';
-    const pr=calc(curProd.price,selShip);
-    $('pdBuyBlock').innerHTML=`
-      <div class="ship-picker-lbl" style="font-size:12px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.4px;margin-bottom:10px">Tipo de envío</div>
-      <div class="pd-ship-row">
-        <div class="ship-opt on" id="sa" onclick="ps('air')">
-          <div class="ship-opt-icon">✈</div>
-          <div class="ship-opt-name">Aéreo</div>
-          <div class="ship-opt-price">$45.00</div>
-          <div class="ship-opt-days">5–7 días</div>
-        </div>
-        <div class="ship-opt" id="ss" onclick="ps('sea')">
-          <div class="ship-opt-icon">⚓</div>
-          <div class="ship-opt-name">Marítimo</div>
-          <div class="ship-opt-price">$22.00</div>
-          <div class="ship-opt-days">20–40 días</div>
-        </div>
+      <div class="ship-opt" id="ss" onclick="ps('sea')">
+        <div class="ship-opt-icon">⚓</div>
+        <div class="ship-opt-name">Marítimo</div>
+        <div class="ship-opt-price">$22.00</div>
+        <div class="ship-opt-days">20–40 días</div>
       </div>
-      <div class="breakdown">
-        <div class="brow"><span class="bl">Precio del producto</span><span class="bv" id="bBase">${fmt(curProd.price)}</span></div>
-        <div class="brow"><span class="bl">Comisión TecnoShop (30%)</span><span class="bv" id="bComm">${fmt(curProd.price*C.comm)}</span></div>
-        <div class="brow"><span class="bl" id="bSL">Envío Aéreo (5–7 días)</span><span class="bv" id="bShip">${fmt(C.air)}</span></div>
-        <div class="bdiv"></div>
-        <div class="btot"><span class="btot-l">Total</span><span class="btot-v" id="bTot">${fmt(pr.total)}</span></div>
-      </div>
-      <div class="pd-acts">
-        <button class="pd-btn-main" onclick="addCart()">Agregar al carrito</button>
-        ${curProd.type==='offer'?`<button class="pd-btn-offer" onclick="closeOv('prodOv');openOffer('${curProd.id}')">Hacer oferta</button>`:''}
-        <button class="pd-btn-back" onclick="closeOv('prodOv')">Volver a resultados</button>
-      </div>`;
-  }
+    </div>
+    <div class="breakdown">
+      <div class="brow"><span class="bl">Precio del producto</span><span class="bv" id="bBase">${fmt(curProd.price)}</span></div>
+      <div class="brow"><span class="bl">Comisión TecnoShop (30%)</span><span class="bv" id="bComm">${fmt(curProd.price*C.comm)}</span></div>
+      <div class="brow"><span class="bl" id="bSL">Envío Aéreo (5–7 días)</span><span class="bv" id="bShip">${fmt(C.air)}</span></div>
+      <div class="bdiv"></div>
+      <div class="btot"><span class="btot-l">Total</span><span class="btot-v" id="bTot">${fmt(pr.total)}</span></div>
+    </div>
+    <div class="pd-acts">
+      <button class="pd-btn-main" onclick="addCart()">Agregar al carrito</button>
+      ${curProd.type==='offer'?`<button class="pd-btn-offer" onclick="closeOv('prodOv');openOffer('${curProd.id}')">Hacer oferta</button>`:''}
+      <button class="pd-btn-back" onclick="closeOv('prodOv')">Volver</button>
+    </div>`;
   openOv('prodOv');
 }
 
@@ -944,151 +869,139 @@ function ps(t){
   document.querySelectorAll('.ship-opt').forEach(o=>o.classList.remove('on'));
   $(t==='air'?'sa':'ss').classList.add('on');
   const pr=calc(curProd.price,t);
-  const bBase=$('bBase');const bComm=$('bComm');const bSL=$('bSL');const bShip=$('bShip');const bTot=$('bTot');
-  if(bBase)bBase.textContent=fmt(pr.base);
-  if(bComm)bComm.textContent=fmt(pr.comm);
+  const bSL=$('bSL');
   if(bSL)bSL.textContent=t==='air'?'Envío Aéreo (5–7 días)':'Envío Marítimo (20–40 días)';
-  if(bShip)bShip.textContent=fmt(pr.ship);
-  if(bTot)bTot.textContent=fmt(pr.total);
+  const bShip=$('bShip');if(bShip)bShip.textContent=fmt(pr.ship);
+  const bTot=$('bTot');if(bTot)bTot.textContent=fmt(pr.total);
 }
 
-function placeBid(){
-  const st=bidState[curProd.id];
-  const val=parseFloat($('bidAmount').value);
-  if(!val||val<=st.currentBid){toast('La oferta debe ser mayor a '+fmt(st.currentBid));return}
-  st.currentBid=val;st.bids++;
-  $('pdBidPrice').textContent=fmt(val);
-  $('pdBidCount').textContent=st.bids+' puja'+(st.bids!==1?'s':'');
-  $('pdMinBid').textContent='Oferta mínima: '+fmt(val+1);
-  $('bidAmount').value='';$('bidAmount').placeholder=fmt(val+1);
-  toast('Puja de '+fmt(val)+' registrada. Eres el mayor postor.');
+function addCart(){
+  if(!curProd)return;
+  cart.push({id:Date.now(),prod:curProd,ship:selShip,prices:calc(curProd.price,selShip)});
+  updBadge();closeOv('prodOv');toast('Agregado al carrito ✓');
 }
 
-function addCart(){if(!curProd)return;cart.push({id:Date.now(),prod:curProd,ship:selShip,prices:calc(curProd.price,selShip)});updBadge();closeOv('prodOv');toast('Agregado al carrito')}
-function quickAdd(id){const p=PRODS.find(x=>x.id===id);if(!p)return;cart.push({id:Date.now(),prod:p,ship:'air',prices:calc(p.price,'air')});updBadge();toast('Agregado al carrito')}
+function quickAdd(id){
+  const p=findProd(id);if(!p)return;
+  cart.push({id:Date.now(),prod:p,ship:'air',prices:calc(p.price,'air')});
+  updBadge();toast('Agregado al carrito ✓');
+}
+
 function updBadge(){$('cBadge').textContent=cart.length}
 
 // ── OFFER ──
 function openOffer(id){
-  curOfferProd=PRODS.find(p=>p.id===id);if(!curOfferProd)return;
-  const pr=calc(curOfferProd.price,'air');
-  $('offerCurP').textContent=fmt(pr.total);
+  curOfferProd=findProd(id);if(!curOfferProd)return;
+  $('offerCurP').textContent=fmt(calc(curOfferProd.price,'air').total);
   $('offerVal').value='';
-  $('offerHints').innerHTML=[.8,.85,.9,.95].map(pct=>`<span class="offer-sc" onclick="$('offerVal').value=${(curOfferProd.price*pct).toFixed(2)}">-${Math.round((1-pct)*100)}% = ${fmt(curOfferProd.price*pct)}</span>`).join('');
   openOv('offerOv');
 }
+
 function submitOffer(){
   const v=parseFloat($('offerVal').value);
   if(!v||v<=0){toast('Ingresa una oferta válida');return}
   closeOv('offerOv');
-  toast('Oferta de '+fmt(v)+' enviada. El vendedor responderá en 48h.');
+  toast('Oferta de '+fmt(v)+' enviada al vendedor ✓');
 }
-
-// ── FILTERS ──
-function applyF(){
-  let list=[...PRODS];
-  const q=($('sq').value||$('hq').value||'').toLowerCase().trim();
-  if(q)list=list.filter(p=>p.title.toLowerCase().includes(q)||p.tags.some(t=>t.includes(q)));
-  if(catF==='new')list=list.filter(p=>p.cond==='Nuevo');
-  else if(catF==='auction')list=list.filter(p=>p.type==='auction');
-  else if(catF==='offer')list=list.filter(p=>p.type==='offer');
-  else if(catF==='local')list=list.filter(p=>p.tags.includes('local'));
-  else if(catF==='under300')list=list.filter(p=>p.price<300);
-  else if(catF!=='all')list=list.filter(p=>p.tags.includes(catF));
-  const pMin=parseFloat($('pMin').value)||0;
-  const pMax=parseFloat($('pMax').value)||Infinity;
-  if(pMin||pMax<Infinity)list=list.filter(p=>p.price>=pMin&&p.price<=pMax);
-  if(sortM==='asc')list.sort((a,b)=>a.price-b.price);
-  else if(sortM==='desc')list.sort((a,b)=>b.price-a.price);
-  else if(sortM==='ending')list.sort((a,b)=>(a.auctionEnd||Infinity)-(b.auctionEnd||Infinity));
-  else if(sortM==='bids')list.sort((a,b)=>(b.bids||0)-(a.bids||0));
-  renderProds(list);
-}
-function doSearch(){
-  const q=$('sq').value.trim()||'laptop';
-  $('hq').value=q;
-  loadEbayProducts(q);
-  document.querySelector('.page').scrollIntoView({behavior:'smooth'});
-}
-function heroSearch(){
-  const q=$('hq').value.trim()||'laptop';
-  $('sq').value=q;
-  loadEbayProducts(q);
-  document.querySelector('.page').scrollIntoView({behavior:'smooth'});
-}
-function setQ(q){
-  $('hq').value=q;$('sq').value=q;catF='all';
-  loadEbayProducts(q);
-  document.querySelector('.page').scrollIntoView({behavior:'smooth'});
-}
-function fCat(e,cat){document.querySelectorAll('.cat-link').forEach(c=>c.classList.remove('on'));e.target.classList.add('on');catF=cat;applyF()}
-function doSort(v){sortM=v;applyF()}
 
 // ── CART ──
 function renderCart(){
-  const l=$('cartList'),f=$('cartFoot');
+  const cl=$('cartList'),cf=$('cartFoot');
   if(!cart.length){
-    l.innerHTML=`<div class="empty-cart"><svg viewBox="0 0 24 24"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg><p style="font-size:13px;font-weight:600">Tu carrito está vacío</p></div>`;
-    f.innerHTML='';return;
+    cl.innerHTML=`<div class="empty-cart"><svg viewBox="0 0 24 24"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg><div>Tu carrito está vacío</div></div>`;
+    cf.innerHTML='';return;
   }
-  l.innerHTML=cart.map(item=>`<div class="ci">
-    <img src="${item.prod.img}" alt="" onerror="this.src='https://images.unsplash.com/photo-1496181133206-80ce9b88a853?w=200'">
-    <div class="ci-info">
-      <div class="ci-name">${item.prod.title}</div>
-      <div class="ci-ship">${item.ship==='air'?'Envío Aéreo (5–7 días)':'Envío Marítimo (20–40 días)'}</div>
-    </div>
-    <div class="ci-r">
-      <span class="ci-price">${fmt(item.prices.total)}</span>
-      <button class="ci-del" onclick="delItem(${item.id})"><svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2"/></svg></button>
-    </div>
-  </div>`).join('');
-  const tot=cart.reduce((s,i)=>s+i.prices.total,0);
-  f.innerHTML=`<div class="cart-foot"><div class="ct-row"><span class="ct-lbl">${cart.length} artículo${cart.length!==1?'s':''}</span><span class="ct-val">${fmt(tot)}</span></div><button class="btn-ck" onclick="startCk()">Proceder al pago</button></div>`;
+  const total=cart.reduce((s,i)=>s+i.prices.total,0);
+  cl.innerHTML=cart.map(i=>`
+    <div class="ci">
+      <img src="${i.prod.img}" onerror="this.src='https://images.unsplash.com/photo-1496181133206-80ce9b88a853?w=600'">
+      <div class="ci-info">
+        <div class="ci-name">${i.prod.title}</div>
+        <div class="ci-ship">Envío ${i.ship==='air'?'Aéreo ✈':'Marítimo ⚓'}</div>
+      </div>
+      <div class="ci-r">
+        <div class="ci-price">${fmt(i.prices.total)}</div>
+        <button class="ci-del" onclick="removeCart(${i.id})"><svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a1 1 0 011-1h4a1 1 0 011 1v2"/></svg></button>
+      </div>
+    </div>`).join('');
+  cf.innerHTML=`<div class="cart-foot">
+    <div class="ct-row"><span class="ct-lbl">Total</span><span class="ct-val">${fmt(total)}</span></div>
+    <button class="btn-ck" onclick="openCheckout()">Proceder al pago</button>
+  </div>`;
 }
-function delItem(id){cart=cart.filter(i=>i.id!==id);updBadge();renderCart()}
+
+function removeCart(id){cart=cart.filter(i=>i.id!==id);updBadge();renderCart();toast('Producto eliminado')}
 
 // ── CHECKOUT ──
-function startCk(){
+function openCheckout(){
   closeOv('cartOv');
-  const tot=cart.reduce((s,i)=>s+i.prices.total,0);
+  const total=cart.reduce((s,i)=>s+i.prices.total,0);
   $('ckContent').innerHTML=`<div class="ck-body">
-    <div class="ck-sec">Datos de entrega</div>
+    <div class="ck-sec">Información de entrega</div>
     <div class="ck-2">
-      <div class="cf"><label>Nombre *</label><input id="ckN" placeholder="Tu nombre" value="${user?user.first:''}"></div>
-      <div class="cf"><label>Apellido *</label><input id="ckL" placeholder="Tu apellido" value="${user&&user.last?user.last:''}"></div>
+      <div class="cf"><label>Nombre</label><input type="text" id="ckFn" value="${user?user.first:''}" placeholder="Nombre"></div>
+      <div class="cf"><label>Apellido</label><input type="text" id="ckLn" value="${user?user.last:''}" placeholder="Apellido"></div>
     </div>
-    <div class="cf"><label>Teléfono *</label><input id="ckP" type="tel" placeholder="8888-0000"></div>
-    <div class="cf"><label>Dirección de entrega en Nicaragua *</label><input id="ckA" placeholder="Departamento, municipio, dirección exacta"></div>
-    <div class="cf"><label>Correo electrónico</label><input id="ckE" type="email" value="${user?user.email:''}" placeholder="para confirmar tu pedido"></div>
+    <div class="cf"><label>Dirección</label><input type="text" id="ckAddr" placeholder="Tu dirección en Nicaragua"></div>
+    <div class="ck-2">
+      <div class="cf"><label>Ciudad</label><input type="text" id="ckCity" placeholder="Ciudad"></div>
+      <div class="cf"><label>Teléfono</label><input type="tel" id="ckPhone" placeholder="8888-0000"></div>
+    </div>
     <div class="ck-sec" style="margin-top:16px">Método de pago</div>
     <div class="pay-opts">
-      <label class="popt on" onclick="selPay(this)"><input type="radio" name="pay" value="card" checked><div class="popt-ico"><svg viewBox="0 0 24 24"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg></div><div><div class="popt-name">Tarjeta de Crédito / Débito</div><div class="popt-desc">Visa, Mastercard — procesado por Wompi</div></div></label>
-      <label class="popt" onclick="selPay(this)"><input type="radio" name="pay" value="zelle"><div class="popt-ico"><svg viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg></div><div><div class="popt-name">Zelle</div><div class="popt-desc">Transferencia desde banco de EE.UU.</div></div></label>
-      <label class="popt" onclick="selPay(this)"><input type="radio" name="pay" value="bank"><div class="popt-ico"><svg viewBox="0 0 24 24"><line x1="3" y1="22" x2="21" y2="22"/><line x1="6" y1="18" x2="6" y2="11"/><line x1="10" y1="18" x2="10" y2="11"/><line x1="14" y1="18" x2="14" y2="11"/><line x1="18" y1="18" x2="18" y2="11"/><polygon points="12 2 20 7 4 7"/></svg></div><div><div class="popt-name">Transferencia Bancaria</div><div class="popt-desc">BAC, Banpro, Lafise — Nicaragua</div></div></label>
+      <label class="popt on"><input type="radio" name="pay" value="paypal" checked>
+        <div class="popt-ico"><svg viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg></div>
+        <div><div class="popt-name">PayPal</div><div class="popt-desc">Pago seguro con PayPal</div></div>
+      </label>
+      <label class="popt"><input type="radio" name="pay" value="card">
+        <div class="popt-ico"><svg viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg></div>
+        <div><div class="popt-name">Tarjeta Visa / Mastercard</div><div class="popt-desc">Pago con tarjeta de crédito</div></div>
+      </label>
+      <label class="popt"><input type="radio" name="pay" value="transfer">
+        <div class="popt-ico"><svg viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg></div>
+        <div><div class="popt-name">Transferencia bancaria</div><div class="popt-desc">BAC, Banpro, Lafise</div></div>
+      </label>
     </div>
-    <div class="order-mini"><div class="om-title">Resumen</div>${cart.map(i=>`<div class="om-row"><span>${i.prod.title.substring(0,38)}${i.prod.title.length>38?'…':''}</span><span>${fmt(i.prices.total)}</span></div>`).join('')}<div class="om-row tot"><span>Total a pagar</span><span>${fmt(tot)}</span></div></div>
-    <button class="btn-place" onclick="placeOrder()">Confirmar pedido — ${fmt(tot)}</button>
+    <div class="order-mini">
+      <div class="om-title">Resumen del pedido</div>
+      ${cart.map(i=>`<div class="om-row"><span>${i.prod.title.substring(0,40)}...</span><span>${fmt(i.prices.total)}</span></div>`).join('')}
+      <div class="om-row tot"><span>Total</span><span>${fmt(total)}</span></div>
+    </div>
+    <button class="btn-place" onclick="placeOrder()">Confirmar pedido — ${fmt(total)}</button>
   </div>`;
   openOv('ckOv');
 }
-function selPay(el){document.querySelectorAll('.popt').forEach(o=>o.classList.remove('on'));el.classList.add('on')}
+
 function placeOrder(){
-  const n=$('ckN').value.trim(),l=$('ckL').value.trim(),ph=$('ckP').value.trim(),addr=$('ckA').value.trim();
-  if(!n||!ph||!addr){toast('Completa los campos requeridos');return}
-  const oid='TS-'+Math.random().toString(36).substr(2,6).toUpperCase();
-  const pay=document.querySelector('input[name="pay"]:checked').value;
-  const pn={card:'Tarjeta de Crédito/Débito',zelle:'Zelle',bank:'Transferencia Bancaria'};
-  $('ckContent').innerHTML=`<div class="success-view"><div class="s-check"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div><div class="s-title">Pedido confirmado</div><div class="s-ref">${oid}</div><p class="s-detail">Hola <strong>${n}${l?' '+l:''}</strong>, tu pedido fue recibido. Te contactaremos al <strong>${ph}</strong> para coordinar el pago por <strong>${pn[pay]}</strong>.<br><br>Entrega en: <em>${addr}</em></p><button class="btn-cont" onclick="closeOv('ckOv');cart=[];updBadge()">Seguir comprando</button></div>`;
+  const fn=$('ckFn')?.value,addr=$('ckAddr')?.value;
+  if(!fn||!addr){toast('Completa todos los campos');return}
+  const ref='TS-'+Date.now().toString(36).toUpperCase();
+  const total=cart.reduce((s,i)=>s+i.prices.total,0);
   cart=[];updBadge();
+  $('ckContent').innerHTML=`<div class="success-view">
+    <div class="s-check"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div>
+    <div class="s-title">¡Pedido confirmado!</div>
+    <div class="s-ref">${ref}</div>
+    <div class="s-detail">Recibirás un correo con los detalles de tu pedido y el seguimiento del envío.</div>
+    <div style="font-size:16px;font-weight:800;margin-bottom:16px;color:var(--text)">Total pagado: ${fmt(total)}</div>
+    <button class="btn-cont" onclick="closeOv('ckOv')">Seguir comprando</button>
+  </div>`;
 }
 
-// ── OVERLAYS ──
-function openOv(id){if(id==='cartOv')renderCart();$(id).classList.add('open')}
-function closeOv(id){$(id).classList.remove('open')}
-document.querySelectorAll('.overlay').forEach(el=>{el.addEventListener('click',function(e){if(e.target===this)closeOv(this.id)})});
-document.addEventListener('keydown',e=>{if(e.key==='Escape')document.querySelectorAll('.overlay.open').forEach(el=>el.classList.remove('open'))});
-function toast(msg){const t=$('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2800)}
-</script>
+// ── OVERLAY HELPERS ──
+function openOv(id){
+  if(id==='cartOv')renderCart();
+  $(id).classList.add('open');
+  document.body.style.overflow='hidden';
+}
+function closeOv(id){$(id).classList.remove('open');document.body.style.overflow=''}
+document.querySelectorAll('.overlay').forEach(o=>o.addEventListener('click',e=>{if(e.target===o)closeOv(o.id)}));
 
+// ── TOAST ──
+function toast(msg){
+  const t=$('toast');t.textContent=msg;t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),3000);
+}
+</script>
 </body>
 </html>
