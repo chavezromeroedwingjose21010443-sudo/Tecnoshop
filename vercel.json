@@ -1,5 +1,8 @@
 {
-  "rewrites": [
-    { "source": "/api/ebay", "destination": "/api/ebay.js" }
-  ]
+  "version": 2,
+  "functions": {
+    "api/ebay.js": {
+      "runtime": "nodejs18.x"
+    }
+  }
 }
