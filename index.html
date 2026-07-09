@@ -29,7 +29,16 @@ window._auth = auth;
 window._db = db;
 window._fbFns = { createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged, sendPasswordResetEmail, updateProfile, collection, addDoc, getDocs, getDoc, setDoc, deleteDoc, query, where, orderBy, serverTimestamp, doc, updateDoc, onSnapshot };
 
+// Safety timeout — if Firebase takes too long, show login anyway
+const _authTimeout = setTimeout(() => {
+  if (document.getElementById('loadingScreen') && !document.getElementById('loadingScreen').classList.contains('hidden')) {
+    window._currentUser = null;
+    showAuth();
+  }
+}, 5000);
+
 onAuthStateChanged(auth, async (user) => {
+  clearTimeout(_authTimeout);
   if (user) {
     try {
       const userDocRef = doc(db, 'users', user.uid);
@@ -755,11 +764,9 @@ function showApp(){
 }
 
 function showAuth(){
-  setTimeout(()=>{
-    $('loadingScreen').classList.add('hidden');
-    $('app').style.display='none';
-    ss('scLogin');
-  },800);
+  $('loadingScreen').classList.add('hidden');
+  $('app').style.display='none';
+  ss('scLogin');
 }
 
 function syncNav(){
