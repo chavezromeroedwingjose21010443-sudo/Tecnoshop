@@ -377,7 +377,6 @@ footer strong{color:rgba(255,255,255,.75)}
     </button>
   </div>
   <div class="nav-r">
-    <button class="theme-btn" onclick="toggleTheme()" id="themeBtn">🌙 Oscuro</button>
     <div class="uwrap">
       <button class="ubtn" onclick="toggleUD()">
         <div class="av" id="navAv">?</div>
@@ -390,6 +389,9 @@ footer strong{color:rgba(255,255,255,.75)}
         <button class="ud-item" onclick="openFavs()"><svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg>Mis favoritos <span id="favBadge" style="margin-left:auto;background:var(--blue);color:white;font-size:9px;font-weight:800;padding:2px 6px;border-radius:10px">0</span></button>
         <div class="ud-sec">Ayuda</div>
         <button class="ud-item" onclick="openWA()"><svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>Chat de soporte</button>
+        <div class="ud-sep"></div>
+        <div class="ud-sec">Configuración</div>
+        <button class="ud-item" onclick="toggleTheme();this.querySelector('span').textContent=darkMode?'☀️ Modo Claro':'🌙 Modo Oscuro'"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg><span>🌙 Modo Oscuro</span></button>
         <div class="ud-sep"></div>
         <button class="ud-item out" onclick="doLogout()"><svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>Cerrar sesión</button>
       </div>
@@ -404,12 +406,7 @@ footer strong{color:rgba(255,255,255,.75)}
 <section class="hero">
   <h1>Lo mejor para emprender</h1>
   <p class="hero-sub">Tecnología de calidad al mejor precio</p>
-  <div class="hero-search-box">
-    <input type="text" id="hq" placeholder="¿Qué estás buscando?" onkeydown="if(event.key==='Enter'){document.getElementById('sq').value=this.value;doSearch()}">
-    <button class="hero-search-btn" onclick="document.getElementById('sq').value=document.getElementById('hq').value;doSearch()">
-      <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>Buscar
-    </button>
-  </div>
+
   <div class="popular-tags">
     <span class="ptag" onclick="setQ('Dell laptop')">Dell</span>
     <span class="ptag" onclick="setQ('HP laptop')">HP</span>
@@ -543,8 +540,8 @@ footer strong{color:rgba(255,255,255,.75)}
 const $=id=>document.getElementById(id);
 const fmt=n=>'$'+Number(n).toFixed(2);
 // Shipping: Prioritario +$50, Gratis +$22
-const SHIP={priority:50,free:22};
-const calcTotal=(price,ship)=>price+(SHIP[ship]||50);
+const SHIP={priority:85,free:0};
+const calcTotal=(price,ship)=>price+(SHIP[ship]||85);
 const LS={g:k=>{try{return JSON.parse(localStorage.getItem(k))}catch{return null}},s:(k,v)=>localStorage.setItem(k,JSON.stringify(v))};
 
 // STATE
@@ -704,12 +701,12 @@ async function loadProducts(q='laptop'){
 }
 
 const DEMO=[
-  {id:'d1',title:'Dell Latitude 5410 Core i5-10310U 8GB RAM 256GB SSD Windows 11 Pro',price:100,cond:'Reacondicionado',type:'buy',img:'https://images.unsplash.com/photo-1593642632559-0c6d3fc62b89?w=600',description:'Laptop empresarial Dell en excelente estado. Incluye cargador original. Perfecta para trabajo y estudio.'},
-  {id:'d2',title:'HP EliteBook 840 G7 Core i7-10510U 16GB RAM 512GB SSD Touch FHD',price:185,cond:'Reacondicionado',type:'offer',img:'https://images.unsplash.com/photo-1588872657578-7efd1f1555ed?w=600',description:'HP EliteBook premium con pantalla táctil Full HD 14 pulgadas. Ideal para profesionales.'},
-  {id:'d3',title:'Apple MacBook Air M1 2020 8GB RAM 256GB SSD Space Gray Retina',price:520,cond:'Reacondicionado',type:'offer',img:'https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=600',description:'MacBook Air con chip M1. Rendimiento excepcional y hasta 18 horas de batería.'},
-  {id:'d4',title:'ASUS ROG Strix G15 Ryzen 7 5800H RTX 3060 16GB 512GB 144Hz',price:780,cond:'Nuevo',type:'buy',img:'https://images.unsplash.com/photo-1603302576837-37561b2e2302?w=600',description:'Laptop gaming de alto rendimiento con pantalla 144Hz y GPU RTX 3060.'},
-  {id:'d5',title:'Lenovo ThinkPad T490 Core i5-8265U 8GB 256GB SSD FHD IPS',price:149,cond:'Reacondicionado',type:'buy',img:'https://images.unsplash.com/photo-1496181133206-80ce9b88a853?w=600',description:'ThinkPad confiable para profesionales. Diseño compacto y resistente.'},
-  {id:'d6',title:'Acer Aspire 5 Core i3-1215U 8GB 256GB SSD 15.6 FHD Windows 11',price:260,cond:'Nuevo',type:'buy',img:'https://images.unsplash.com/photo-1593642634315-48f5414c3ad9?w=600',description:'Laptop nueva con gran relación calidad-precio. Perfecta para uso diario.'},
+  {id:'d1',title:'Dell Latitude 5410 Core i5-10310U 8GB RAM 256GB SSD Windows 11 Pro',price:100,cond:'Reacondicionado',type:'buy',img:'https://images.unsplash.com/photo-1593642632559-0c6d3fc62b89?w=600',description:'Laptop empresarial Dell en excelente estado. Incluye cargador original.',specs:[{name:'Procesador',value:'Intel Core i5-10310U'},{name:'RAM',value:'8GB DDR4'},{name:'Almacenamiento',value:'256GB SSD'},{name:'Sistema Operativo',value:'Windows 11 Pro'},{name:'Pantalla',value:'14" FHD'},{name:'Marca',value:'Dell'}]},
+  {id:'d2',title:'HP EliteBook 840 G7 Core i7-10510U 16GB RAM 512GB SSD Touch FHD',price:185,cond:'Reacondicionado',type:'offer',img:'https://images.unsplash.com/photo-1588872657578-7efd1f1555ed?w=600',description:'HP EliteBook premium con pantalla táctil Full HD. Ideal para profesionales.',specs:[{name:'Procesador',value:'Intel Core i7-10510U'},{name:'RAM',value:'16GB DDR4'},{name:'Almacenamiento',value:'512GB SSD'},{name:'Pantalla',value:'14" FHD Touch'},{name:'Marca',value:'HP'}]},
+  {id:'d3',title:'Apple MacBook Air M1 2020 8GB RAM 256GB SSD Space Gray Retina',price:520,cond:'Reacondicionado',type:'offer',img:'https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=600',description:'MacBook Air con chip M1. Hasta 18 horas de batería.',specs:[{name:'Chip',value:'Apple M1'},{name:'RAM',value:'8GB Unificada'},{name:'Almacenamiento',value:'256GB SSD'},{name:'Pantalla',value:'13.3" Retina'},{name:'Marca',value:'Apple'}]},
+  {id:'d4',title:'ASUS ROG Strix G15 Ryzen 7 5800H RTX 3060 16GB 512GB 144Hz',price:780,cond:'Nuevo',type:'buy',img:'https://images.unsplash.com/photo-1603302576837-37561b2e2302?w=600',description:'Laptop gaming de alto rendimiento con pantalla 144Hz y GPU RTX 3060.',specs:[{name:'Procesador',value:'AMD Ryzen 7 5800H'},{name:'GPU',value:'NVIDIA RTX 3060 6GB'},{name:'RAM',value:'16GB DDR4'},{name:'Almacenamiento',value:'512GB SSD'},{name:'Pantalla',value:'15.6" FHD 144Hz'}]},
+  {id:'d5',title:'Lenovo ThinkPad T490 Core i5-8265U 8GB 256GB SSD FHD IPS',price:149,cond:'Reacondicionado',type:'buy',img:'https://images.unsplash.com/photo-1496181133206-80ce9b88a853?w=600',description:'ThinkPad confiable para profesionales. Diseño compacto y resistente.',specs:[{name:'Procesador',value:'Intel Core i5-8265U'},{name:'RAM',value:'8GB DDR4'},{name:'Almacenamiento',value:'256GB SSD'},{name:'Pantalla',value:'14" FHD IPS'},{name:'Marca',value:'Lenovo'}]},
+  {id:'d6',title:'Acer Aspire 5 Core i3-1215U 8GB 256GB SSD 15.6 FHD Windows 11',price:260,cond:'Nuevo',type:'buy',img:'https://images.unsplash.com/photo-1593642634315-48f5414c3ad9?w=600',description:'Laptop nueva con gran relación calidad-precio para uso diario.',specs:[{name:'Procesador',value:'Intel Core i3-1215U'},{name:'RAM',value:'8GB DDR4'},{name:'Almacenamiento',value:'256GB SSD'},{name:'Pantalla',value:'15.6" FHD'},{name:'Marca',value:'Acer'}]},
 ];
 
 function renderSkel(){$('grid').innerHTML='<div class="skel-g">'+Array(8).fill('<div class="skel-c"><div class="skel-i"></div><div class="skel-b"><div class="skel-l p"></div><div class="skel-l"></div><div class="skel-l s"></div></div></div>').join('')+'</div>'}
@@ -776,23 +773,38 @@ function openProd(id){
   else{tb.className='card-type-badge ctb-buy';tb.textContent='Disponible'}
   const favBtn=$('pdFavBtn');favBtn.classList.toggle('saved',FAVS.includes(curProd.id));
   const total=calcTotal(curProd.price,'priority');
-  const descHtml=curProd.description?`<div class="pd-desc"><div class="pd-desc-title">📋 Descripción del producto</div><div class="pd-desc-txt">${curProd.description}</div></div>`:'';
+
+  // Build specs table like eBay
+  const specsRows=curProd.specs&&curProd.specs.length
+    ? curProd.specs.map(s=>`<tr><td style="color:var(--text3);padding:8px 12px;border-bottom:1px solid var(--border2);font-size:13px;width:40%;vertical-align:top">${s.name}</td><td style="padding:8px 12px;border-bottom:1px solid var(--border2);font-size:13px;font-weight:500;color:var(--text)">${s.value}</td></tr>`).join('')
+    : '';
+
+  const condRow=`<tr><td style="color:var(--text3);padding:8px 12px;border-bottom:1px solid var(--border2);font-size:13px">Estado</td><td style="padding:8px 12px;border-bottom:1px solid var(--border2);font-size:13px;font-weight:500;color:var(--text)">${curProd.cond}</td></tr>`;
+
+  const aboutSection=(specsRows||curProd.description)?`
+    <div style="margin-bottom:16px">
+      <div style="font-size:16px;font-weight:800;color:var(--text);margin-bottom:10px">Acerca de este artículo</div>
+      <table style="width:100%;border-collapse:collapse;background:var(--white);border:1px solid var(--border2);border-radius:var(--r8);overflow:hidden">
+        ${condRow}
+        ${curProd.description?`<tr><td style="color:var(--text3);padding:8px 12px;border-bottom:1px solid var(--border2);font-size:13px;vertical-align:top">Descripción</td><td style="padding:8px 12px;border-bottom:1px solid var(--border2);font-size:13px;color:var(--text)">${curProd.description}</td></tr>`:''}
+        ${specsRows}
+      </table>
+    </div>`:'';
+
   $('pdBuyBlock').innerHTML=`
     <div style="background:var(--gray3);border-radius:var(--r8);padding:14px;margin-bottom:14px">
       <div style="font-size:26px;font-weight:800;color:var(--text)" id="pTotal">${fmt(total)}</div>
-      <div style="font-size:11px;color:var(--text3)" id="pNote">Incluye envío prioritario</div>
+      <div style="font-size:11px;color:var(--text3);margin-top:2px" id="pNote">Envío Prioritario incluido</div>
     </div>
     <div class="pd-ship-row">
       <div class="ship-opt on" id="sOpt1" onclick="selectShip('priority')">
         <div class="ship-opt-icon">⚡</div>
         <div class="ship-opt-name">Envío Prioritario</div>
-        <div class="ship-opt-price">+$${SHIP.priority}</div>
         <div class="ship-opt-days">5–7 días</div>
       </div>
       <div class="ship-opt" id="sOpt2" onclick="selectShip('free')">
         <div class="ship-opt-icon">🎁</div>
         <div class="ship-opt-name">Envío Gratis</div>
-        <div class="ship-opt-price">+$${SHIP.free}</div>
         <div class="ship-opt-days">20–40 días</div>
       </div>
     </div>
@@ -802,7 +814,7 @@ function openProd(id){
       <div class="bdiv"></div>
       <div class="btot"><span class="btot-l">Total</span><span class="btot-v" id="brkTotal">${fmt(total)}</span></div>
     </div>
-    ${descHtml}
+    ${aboutSection}
     <div class="pd-acts">
       <button class="pd-btn-main" onclick="addCart()">🛒 Agregar al carrito</button>
       ${curProd.type==='offer'?`<button class="pd-btn-offer" onclick="closeOv('prodOv');openOffer('${curProd.id}')">Hacer oferta</button>`:''}
@@ -818,9 +830,9 @@ function selectShip(type){
   const total=calcTotal(curProd.price,type);
   const pt=$('pTotal');if(pt)pt.textContent=fmt(total);
   const bt=$('brkTotal');if(bt)bt.textContent=fmt(total);
-  const sa=$('shipAmt');if(sa)sa.textContent=fmt(SHIP[type]);
+  const sa=$('shipAmt');if(sa)sa.textContent=type==='priority'?fmt(SHIP.priority):'Gratis';
   const sl=$('shipLbl');if(sl)sl.textContent=type==='priority'?'Envío Prioritario':'Envío Gratis';
-  const pn=$('pNote');if(pn)pn.textContent=type==='priority'?'Incluye envío prioritario':'Incluye envío gratis';
+  const pn=$('pNote');if(pn)pn.textContent=type==='priority'?'Envío Prioritario incluido':'Envío Gratis incluido';
 }
 
 function addCart(){
