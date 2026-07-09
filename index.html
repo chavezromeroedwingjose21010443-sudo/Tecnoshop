@@ -378,6 +378,16 @@ footer strong{color:rgba(255,255,255,.75)}
   </div>
   <div class="nav-r">
     <div class="uwrap">
+      <button class="ubtn" onclick="toggleNotifD()" title="Notificaciones" style="position:relative;padding:8px">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg>
+        <span class="cbadge" id="nBadge" style="display:none;position:absolute;top:0;right:0">0</span>
+      </button>
+      <div class="udrop" id="notifDrop" style="min-width:300px;max-width:330px">
+        <div class="ud-head" style="display:flex;justify-content:space-between;align-items:center"><span class="ud-name">🔔 Notificaciones</span><button onclick="markAllNotifs()" style="background:none;border:none;color:#9db4ff;font-size:11px;cursor:pointer;font-family:inherit;font-weight:600">Marcar leídas</button></div>
+        <div id="notifList" style="max-height:360px;overflow-y:auto"></div>
+      </div>
+    </div>
+    <div class="uwrap">
       <button class="ubtn" onclick="toggleUD()">
         <div class="av" id="navAv">?</div>
         <span id="navNm">Mi cuenta</span>
@@ -391,6 +401,9 @@ footer strong{color:rgba(255,255,255,.75)}
         <button class="ud-item" onclick="openWA()"><svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>Chat de soporte</button>
         <div class="ud-sep"></div>
         <div class="ud-sec">Configuración</div>
+        <button class="ud-item" onclick="openPanel('personal')"><svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>Datos personales</button>
+        <button class="ud-item" onclick="openPanel('security')"><svg viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>Inicio de sesión y seguridad</button>
+        <button class="ud-item" onclick="openPanel('emails')"><svg viewBox="0 0 24 24"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>Correos vinculados</button>
         <button class="ud-item" onclick="toggleTheme();this.querySelector('span').textContent=darkMode?'☀️ Modo Claro':'🌙 Modo Oscuro'"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg><span>🌙 Modo Oscuro</span></button>
         <div class="ud-sep"></div>
         <button class="ud-item out" onclick="doLogout()"><svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>Cerrar sesión</button>
@@ -458,6 +471,8 @@ footer strong{color:rgba(255,255,255,.75)}
       </div>
     </div>
     <div id="grid"></div>
+    <div id="loadingMore" style="display:none;text-align:center;padding:18px;color:var(--text3);font-size:13px">⏳ Cargando más productos…</div>
+    <div id="scrollSentinel" style="height:1px"></div>
   </div>
 </div>
 
@@ -534,6 +549,13 @@ footer strong{color:rgba(255,255,255,.75)}
   </div>
 </div>
 
+<div class="overlay" id="panelOv">
+  <div class="sheet sheet-sm">
+    <div class="sh-hd"><div class="sh-title" id="panelTitle">Configuración</div><button class="x-btn" onclick="closeOv('panelOv')"><svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div>
+    <div id="panelBody" style="padding:18px 20px;max-height:540px;overflow-y:auto"></div>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <script>
@@ -549,6 +571,7 @@ const LS={g:k=>{try{return JSON.parse(localStorage.getItem(k))}catch{return null
 // STATE
 let darkMode=false,cart=[],curProd=null,selShip='priority',allProds=[],curOfferProd=null;
 let USER=null,ORDERS=[],FAVS=[],FAV_PRODS={};
+let SOLD=LS.g('ts_sold')||[]; // artículos ya vendidos (unidad única)
 
 // THEME
 function toggleTheme(){darkMode=!darkMode;document.documentElement.setAttribute('data-theme',darkMode?'dark':'');$('themeBtn').textContent=darkMode?'☀️ Claro':'🌙 Oscuro'}
@@ -559,7 +582,7 @@ function ss(id){document.querySelectorAll('.auth-screen').forEach(s=>s.classList
 function showApp(){
   document.querySelectorAll('.auth-screen').forEach(s=>s.classList.remove('active'));
   $('app').style.display='block';
-  syncNav();updateFavBadge();
+  syncNav();updateFavBadge();loadNotifs();updNotifBadge();
   if(!window._inited){window._inited=true;initApp()}
 }
 
@@ -584,6 +607,7 @@ function doLogin(){
   FAVS=LS.g('ts_fav_'+USER.email)||[];
   FAV_PRODS=LS.g('ts_favp_'+USER.email)||{};
   cart=[];
+  loadNotifs();checkDevice(false);
   showApp();toast('Bienvenido, '+USER.first+' 👋');
 }
 
@@ -600,6 +624,8 @@ function doRegister(){
   const newUser={first,last,email,phone,pass:btoa(unescape(encodeURIComponent(pass)))};
   users.push(newUser);LS.s('ts_users',users);
   USER=newUser;ORDERS=[];FAVS=[];FAV_PRODS={};cart=[];
+  loadNotifs();checkDevice(true);
+  dispatchNotification('promo','¡Bienvenido a TecnoShop! 🎉','Gracias por crear tu cuenta. Pronto recibirás promociones exclusivas.');
   showApp();toast('¡Cuenta creada! Bienvenido, '+first+' 🎉');
 }
 
@@ -614,13 +640,14 @@ function doForgot(){
 function doLogout(){
   USER=null;cart=[];ORDERS=[];FAVS=[];FAV_PRODS=[];
   $('app').style.display='none';window._inited=false;
-  closeUD();$('cBadge').textContent='0';$('favBadge').textContent='0';
+  closeUD();$('cBadge').textContent='0';$('favBadge').textContent='0';NOTIFS=[];const nb=$('nBadge');if(nb)nb.style.display='none';
   ss('scLogin');toast('Sesión cerrada');
 }
 
-function toggleUD(){$('udrop').classList.toggle('open')}
+function toggleUD(){$('udrop').classList.toggle('open');$('notifDrop').classList.remove('open')}
+function toggleNotifD(){$('notifDrop').classList.toggle('open');$('udrop').classList.remove('open');renderNotifs()}
 function closeUD(){$('udrop').classList.remove('open')}
-document.addEventListener('click',e=>{const w=document.querySelector('.uwrap');if(w&&!w.contains(e.target))closeUD()});
+document.addEventListener('click',e=>{document.querySelectorAll('.uwrap').forEach(w=>{if(!w.contains(e.target)){const d=w.querySelector('.udrop');if(d)d.classList.remove('open')}})});
 function openWA(){window.open('https://wa.me/50581165033?text=Hola, necesito ayuda con TecnoShop','_blank')}
 
 // FAVORITES
@@ -683,24 +710,74 @@ function openOrders(){
 // APP INIT
 function initApp(){loadProducts('laptop')}
 
-// LOAD PRODUCTS
-async function loadProducts(q='laptop'){
-  renderSkel();
-  try{
-    const res=await fetch('/api/ebay?q='+encodeURIComponent(q));
-    if(!res.ok)throw new Error('HTTP '+res.status);
-    const data=await res.json();
-    if(data.success&&data.products&&data.products.length){
-      allProds=data.products.map(p=>({
-        id:String(p.id),title:p.title,price:Number(p.price)||0,
-        cond:p.condition||'Usado',type:p.listingType||'buy',
-        img:p.image||'https://images.unsplash.com/photo-1496181133206-80ce9b88a853?w=600',
-        description:p.shortDescription||''
-      }));
-      renderProds(allProds);
-    }else throw new Error('no products');
-  }catch(e){allProds=DEMO;renderProds(DEMO)}
+// ── CARGA DE PRODUCTOS: paginación + infinite scroll + caché inteligente ──
+const PAGE_SIZE=50;
+const QCACHE={}; // caché en memoria por consulta+página (TTL 10 min)
+let curOffset=0,totalAvail=0,loadingPage=false,endReached=false;
+let curQuery='laptop';
+
+// Traducción de condiciones (nunca mostrar términos externos en inglés)
+const COND_ES={'New':'Nuevo','Used':'Usado','Refurbished':'Reacondicionado','Good - Refurbished':'Bueno - Reacondicionado','Very Good - Refurbished':'Muy Bueno - Reacondicionado','Excellent - Refurbished':'Excelente - Reacondicionado','Certified - Refurbished':'Certificado - Reacondicionado','Seller refurbished':'Reacondicionado','Open box':'Caja abierta','New other (see details)':'Nuevo (otro)','For parts or not working':'Para repuestos'};
+
+function mapProds(list){
+  return list.map(p=>({
+    id:String(p.id),title:p.title,price:Number(p.price)||0,
+    cond:COND_ES[p.condition]||p.condition||'Usado',
+    type:p.listingType||'buy',
+    img:p.image||'https://images.unsplash.com/photo-1496181133206-80ce9b88a853?w=600',
+    description:''
+  })).filter(p=>!SOLD.includes(p.id));
 }
+
+async function fetchPage(q,offset){
+  const key=q+'|'+offset;
+  const hit=QCACHE[key];
+  if(hit&&Date.now()-hit.t<600000)return hit.data; // caché inteligente: 10 min
+  const res=await fetch('/api/ebay?q='+encodeURIComponent(q)+'&limit='+PAGE_SIZE+'&offset='+offset);
+  if(!res.ok)throw new Error('HTTP '+res.status);
+  const data=await res.json();
+  QCACHE[key]={t:Date.now(),data};
+  return data;
+}
+
+async function loadProducts(q='laptop'){
+  curQuery=q;curOffset=0;endReached=false;allProds=[];
+  renderSkel();
+  await loadNextPage(true);
+}
+
+async function loadNextPage(first){
+  if(loadingPage||endReached)return;
+  loadingPage=true;
+  if(!first)$('loadingMore').style.display='block';
+  try{
+    const data=await fetchPage(curQuery,curOffset);
+    if(data.success&&data.products&&data.products.length){
+      totalAvail=data.total||0;
+      const nuevos=mapProds(data.products).filter(n=>!allProds.some(p=>p.id===n.id));
+      const prevLen=allProds.length;
+      allProds=allProds.concat(nuevos);
+      curOffset+=PAGE_SIZE;
+      if(data.products.length<PAGE_SIZE)endReached=true;
+      if(first)renderProds(allProds);else appendProds(allProds.slice(prevLen));
+      $('rCount').textContent=allProds.length+(totalAvail>allProds.length?' de '+totalAvail:'');
+    }else{
+      if(first){allProds=DEMO.filter(p=>!SOLD.includes(p.id));renderProds(allProds)}
+      endReached=true;
+    }
+  }catch(e){
+    if(first){allProds=DEMO.filter(p=>!SOLD.includes(p.id));renderProds(allProds)}
+    endReached=true;
+  }
+  loadingPage=false;
+  const lm=$('loadingMore');if(lm)lm.style.display='none';
+}
+
+// Infinite scroll: carga automática al acercarse al final
+const _io=new IntersectionObserver(entries=>{
+  if(entries[0].isIntersecting&&!loadingPage&&!endReached)loadNextPage(false);
+},{rootMargin:'800px'});
+setTimeout(()=>{const s=$('scrollSentinel');if(s)_io.observe(s)},500);
 
 const DEMO=[
   {id:'d1',title:'Dell Latitude 5410 Core i5-10310U 8GB RAM 256GB SSD Windows 11 Pro',price:100,cond:'Reacondicionado',type:'buy',img:'https://images.unsplash.com/photo-1593642632559-0c6d3fc62b89?w=600',description:'Laptop empresarial Dell en excelente estado. Incluye cargador original.',specs:[{name:'Procesador',value:'Intel Core i5-10310U'},{name:'RAM',value:'8GB DDR4'},{name:'Almacenamiento',value:'256GB SSD'},{name:'Sistema Operativo',value:'Windows 11 Pro'},{name:'Pantalla',value:'14" FHD'},{name:'Marca',value:'Dell'}]},
@@ -713,34 +790,43 @@ const DEMO=[
 
 function renderSkel(){$('grid').innerHTML='<div class="skel-g">'+Array(8).fill('<div class="skel-c"><div class="skel-i"></div><div class="skel-b"><div class="skel-l p"></div><div class="skel-l"></div><div class="skel-l s"></div></div></div>').join('')+'</div>'}
 
+function cardHTML(p,i){
+  const total=calcTotal(p.price,'free');
+  const isFav=FAVS.includes(p.id);
+  const badge=p.type==='offer'?'<span class="card-type-badge ctb-offer">Oferta especial</span>':'<span class="card-type-badge ctb-buy">Disponible</span>';
+  return `<div class="card" style="animation-delay:${(i%12)*.04}s" onclick="openProd('${p.id}')">
+    <div class="card-img">
+      <img src="${p.img}" alt="" loading="lazy" onerror="this.src='https://images.unsplash.com/photo-1496181133206-80ce9b88a853?w=600'">
+      <button class="card-save${isFav?' saved':''}" onclick="event.stopPropagation();handleFavCard(this,'${p.id}')"><svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg></button>
+    </div>
+    <div class="card-body">
+      <div class="card-price"><span class="currency">$</span>${total.toFixed(2)}</div>
+      <div class="card-price-note">Envío Gratis incluido</div>
+      <div>${badge}</div>
+      <div class="card-name">${p.title}</div>
+      <div class="card-cond">${p.cond}</div>
+      <div class="card-ship">🚚 Entrega en Managua, León y Chinandega</div>
+      <div class="card-acts">
+        ${p.type==='offer'
+          ?`<button class="btn-main" onclick="event.stopPropagation();openProd('${p.id}')">Ver detalles</button><button class="btn-offer" onclick="event.stopPropagation();openOffer('${p.id}')">Hacer oferta</button>`
+          :`<button class="btn-main" onclick="event.stopPropagation();quickAdd('${p.id}')">Agregar al carrito</button><button class="btn-offer" onclick="event.stopPropagation();openProd('${p.id}')">Ver detalles</button>`}
+      </div>
+    </div>
+  </div>`;
+}
+
 function renderProds(list){
-  const g=$('grid');$('rCount').textContent=list.length;
+  const g=$('grid');
+  $('rCount').textContent=list.length;
   if(!list.length){g.innerHTML='<div style="text-align:center;padding:60px;color:var(--text3)"><p style="font-size:15px;font-weight:600">Sin resultados</p></div>';return}
   g.className='grid';
-  g.innerHTML=list.map((p,i)=>{
-    const total=calcTotal(p.price,'free');
-    const isFav=FAVS.includes(p.id);
-    const badge=p.type==='offer'?'<span class="card-type-badge ctb-offer">Oferta especial</span>':'<span class="card-type-badge ctb-buy">Disponible</span>';
-    return`<div class="card" style="animation-delay:${i*.04}s" onclick="openProd('${p.id}')">
-      <div class="card-img">
-        <img src="${p.img}" alt="" loading="lazy" onerror="this.src='https://images.unsplash.com/photo-1496181133206-80ce9b88a853?w=600'">
-        <button class="card-save${isFav?' saved':''}" onclick="event.stopPropagation();handleFavCard(this,'${p.id}')"><svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg></button>
-      </div>
-      <div class="card-body">
-        <div class="card-price"><span class="currency">$</span>${total.toFixed(2)}</div>
-        <div class="card-price-note">Envío Gratis incluido</div>
-        <div>${badge}</div>
-        <div class="card-name">${p.title}</div>
-        <div class="card-cond">${p.cond}</div>
-        <div class="card-ship">Entrega <strong>5-7 días</strong></div>
-        <div class="card-acts">
-          ${p.type==='offer'
-            ?`<button class="btn-main" onclick="event.stopPropagation();openProd('${p.id}')">Ver detalles</button><button class="btn-offer" onclick="event.stopPropagation();openOffer('${p.id}')">Hacer oferta</button>`
-            :`<button class="btn-main" onclick="event.stopPropagation();quickAdd('${p.id}')">Agregar al carrito</button><button class="btn-offer" onclick="event.stopPropagation();openProd('${p.id}')">Ver detalles</button>`}
-        </div>
-      </div>
-    </div>`;
-  }).join('');
+  g.innerHTML=list.map((p,i)=>cardHTML(p,i)).join('');
+}
+
+function appendProds(list){
+  const g=$('grid');
+  if(g.className!=='grid'){renderProds(allProds);return}
+  g.insertAdjacentHTML('beforeend',list.map((p,i)=>cardHTML(p,i)).join(''));
 }
 
 function handleFavCard(btn,id){
@@ -750,8 +836,8 @@ function handleFavCard(btn,id){
   toast(saved?'❤️ Guardado':'Eliminado de favoritos');
 }
 
-function doSearch(){const q=($('sq').value||$('hq').value||'laptop').trim();if(!q)return;$('hq').value=q;$('sq').value=q;loadProducts(q)}
-function setQ(q){$('sq').value=q;$('hq').value=q;loadProducts(q)}
+function doSearch(){const q=($('sq').value||'laptop').trim();if(!q)return;$('sq').value=q;loadProducts(q)}
+function setQ(q){$('sq').value=q;loadProducts(q)}
 function fCatR(cat){const q={all:'laptop',laptop:'laptop',gaming:'gaming laptop',apple:'MacBook Apple'};loadProducts(q[cat]||'laptop')}
 function applyLocalF(){
   const mn=parseFloat($('pMin').value)||0,mx=parseFloat($('pMax').value)||Infinity;
@@ -863,6 +949,7 @@ function selectShip(type){
 
 function addCart(){
   if(!curProd)return;
+  if(cart.some(i=>String(i.prod.id)===String(curProd.id))){toast('⚠️ Este artículo ya está en tu carrito (unidad única)');return}
   const total=calcTotal(curProd.price,selShip);
   cart.push({uid:Date.now(),prod:curProd,ship:selShip,total});
   updBadge();closeOv('prodOv');toast('🛒 Agregado al carrito');
@@ -870,6 +957,7 @@ function addCart(){
 
 function quickAdd(id){
   const p=findProd(id);if(!p)return;
+  if(cart.some(i=>String(i.prod.id)===String(p.id))){toast('⚠️ Este artículo ya está en tu carrito (unidad única)');return}
   cart.push({uid:Date.now(),prod:p,ship:'free',total:calcTotal(p.price,'free')});
   updBadge();toast('🛒 Agregado al carrito');
 }
@@ -914,13 +1002,14 @@ function openCheckout(){
   const u=USER||{};const total=cart.reduce((s,i)=>s+i.total,0);
   $('ckContent').innerHTML=`<div class="ck-body">
     <div class="ck-sec">Información de entrega</div>
+    <div style="background:var(--blue-l);border-radius:var(--r4);padding:8px 12px;font-size:12px;color:var(--blue);font-weight:600;margin-bottom:12px">📍 Por el momento solo realizamos entregas en Managua, León y Chinandega</div>
     <div class="ck-2">
       <div class="cf"><label>Nombre</label><input id="ckFn" value="${u.first||''}" placeholder="Nombre"></div>
       <div class="cf"><label>Apellido</label><input id="ckLn" value="${u.last||''}" placeholder="Apellido"></div>
     </div>
-    <div class="cf"><label>Dirección</label><input id="ckAddr" placeholder="Tu dirección completa"></div>
+    <div class="cf"><label>Dirección</label><input id="ckAddr" value="${u.address||''}" placeholder="Tu dirección completa"></div>
     <div class="ck-2">
-      <div class="cf"><label>Ciudad</label><input id="ckCity" placeholder="Ciudad"></div>
+      <div class="cf"><label>Ciudad</label><select id="ckCity"><option value="">Selecciona…</option><option ${u.city==='Managua'?'selected':''}>Managua</option><option ${u.city==='León'?'selected':''}>León</option><option ${u.city==='Chinandega'?'selected':''}>Chinandega</option></select></div>
       <div class="cf"><label>Teléfono</label><input id="ckPhone" value="${u.phone||''}" placeholder="8888-0000"></div>
     </div>
     <div class="ck-sec" style="margin-top:14px">Método de pago</div>
@@ -947,8 +1036,8 @@ function openCheckout(){
 }
 
 function placeOrder(){
-  const fn=$('ckFn')?.value,addr=$('ckAddr')?.value;
-  if(!fn||!addr){toast('Completa todos los campos');return}
+  const fn=$('ckFn')?.value,addr=$('ckAddr')?.value,cityV=$('ckCity')?.value;
+  if(!fn||!addr||!cityV){toast('Completa todos los campos (incluye la ciudad)');return}
   const ref='TS-'+Date.now().toString(36).toUpperCase().slice(-8);
   const total=cart.reduce((s,i)=>s+i.total,0);
   const payMethod=document.querySelector('input[name="pay"]:checked')?.value||'paypal';
@@ -956,7 +1045,14 @@ function placeOrder(){
     customer:{name:fn+' '+($('ckLn')?.value||''),phone:$('ckPhone')?.value||'',address:($('ckAddr')?.value||'')+', '+($('ckCity')?.value||'')}};
   ORDERS.unshift(order);
   if(USER)LS.s('ts_ord_'+USER.email,ORDERS);
+  dispatchNotification('purchase','Compra realizada 🛒','Tu compra '+ref+' por '+fmt(total)+' fue registrada exitosamente.');
+  dispatchNotification('confirmed','Pedido confirmado ✅','Tu pedido '+ref+' fue confirmado y pasará a procesamiento.');
   try{emailjs.send('service_7zfn94m','template_adbhhh7',{to_email:'edwingjosechavezromero@gmail.com',to_name:'TecnoShop Admin',otp_code:ref,email_title:'Nueva orden: '+ref,email_subtitle:'Total: '+fmt(total)+' · Cliente: '+fn+' · Pago: '+payMethod,shop_url:'https://tecnoshop-theta.vercel.app/admin.html'})}catch(e){}
+  // Marcar artículos como vendidos y quitarlos de la tienda
+  order.items.forEach(i=>{const pid=String(i.prod.id);if(!SOLD.includes(pid))SOLD.push(pid)});
+  LS.s('ts_sold',SOLD);
+  allProds=allProds.filter(p=>!SOLD.includes(String(p.id)));
+  renderProds(allProds);
   cart=[];updBadge();
   $('ckContent').innerHTML=`<div class="success-view">
     <div class="s-check"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div>
@@ -975,6 +1071,154 @@ document.querySelectorAll('.overlay').forEach(o=>o.addEventListener('click',e=>{
 
 // TOAST
 function toast(msg){const t=$('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),3000)}
+
+// ═══════════ SISTEMA DE NOTIFICACIONES ═══════════
+// Tipos: purchase, confirmed, processing, shipped, delivered, message, device, security, promo
+// Arquitectura preparada para push: dispatchNotification es el punto único de entrada;
+// en el futuro aquí se conectará Firebase Cloud Messaging / Service Worker.
+let NOTIFS=[];
+const NOTIF_ICONS={purchase:'🛒',confirmed:'✅',processing:'📦',shipped:'🚚',delivered:'🏠',message:'💬',device:'📱',security:'🔐',promo:'🎉'};
+
+function loadNotifs(){NOTIFS=USER?(LS.g('ts_notif_'+USER.email)||[]):[]}
+function saveNotifs(){if(USER)LS.s('ts_notif_'+USER.email,NOTIFS)}
+
+function dispatchNotification(type,title,body){
+  NOTIFS.unshift({type,title,body,time:Date.now(),read:false});
+  if(NOTIFS.length>50)NOTIFS.length=50;
+  saveNotifs();updNotifBadge();
+  // FUTURO PUSH: aquí se enviará también a FCM/ServiceWorker
+}
+
+function updNotifBadge(){
+  const unread=NOTIFS.filter(n=>!n.read).length;
+  const b=$('nBadge');if(!b)return;
+  if(unread>0){b.style.display='flex';b.textContent=unread>9?'9+':unread}
+  else b.style.display='none';
+}
+
+function timeAgo(t){const m=Math.floor((Date.now()-t)/60000);if(m<1)return'Ahora';if(m<60)return m+' min';const h=Math.floor(m/60);if(h<24)return h+' h';return Math.floor(h/24)+' d'}
+
+function renderNotifs(){
+  const el=$('notifList');if(!el)return;
+  if(!NOTIFS.length){el.innerHTML='<div style="padding:28px;text-align:center;color:var(--text3);font-size:13px">Sin notificaciones</div>';return}
+  el.innerHTML=NOTIFS.slice(0,30).map((n,i)=>`<div onclick="readNotif(${i})" style="display:flex;gap:10px;padding:11px 14px;border-bottom:1px solid var(--border2);cursor:pointer;${n.read?'':'background:var(--blue-l)'}">
+    <span style="font-size:18px;flex-shrink:0">${NOTIF_ICONS[n.type]||'🔔'}</span>
+    <div style="flex:1;min-width:0"><div style="font-size:12px;font-weight:700;color:var(--text)">${n.title}</div><div style="font-size:11px;color:var(--text2);line-height:1.45">${n.body}</div><div style="font-size:10px;color:var(--text3);margin-top:2px">${timeAgo(n.time)}</div></div>
+  </div>`).join('');
+}
+function readNotif(i){if(NOTIFS[i]){NOTIFS[i].read=true;saveNotifs();updNotifBadge();renderNotifs()}}
+function markAllNotifs(){NOTIFS.forEach(n=>n.read=true);saveNotifs();updNotifBadge();renderNotifs()}
+
+// Helper para futuros cambios de estado del pedido (se conectará al admin con Firebase)
+function notifyOrderStatus(orderId,status){
+  const map={processing:['Pedido procesado 📦','Tu pedido '+orderId+' está siendo preparado.'],shipped:['Pedido enviado 🚚','Tu pedido '+orderId+' va en camino.'],delivered:['Pedido entregado 🏠','Tu pedido '+orderId+' fue entregado. ¡Gracias por tu compra!']};
+  if(map[status])dispatchNotification(status,map[status][0],map[status][1]);
+}
+
+// ═══════════ DETECCIÓN DE NUEVO DISPOSITIVO ═══════════
+function deviceId(){let d=LS.g('ts_device');if(!d){d='dev_'+Math.random().toString(36).slice(2,12);LS.s('ts_device',d)}return d}
+function checkDevice(isRegister){
+  if(!USER)return;
+  const key='ts_dev_'+USER.email;
+  const known=LS.g(key)||[];
+  const d=deviceId();
+  if(!known.includes(d)){
+    known.push(d);LS.s(key,known);
+    if(!isRegister&&known.length>1){
+      dispatchNotification('device','Inicio de sesión desde un nuevo dispositivo','Detectamos un acceso a tu cuenta desde un dispositivo no registrado.');
+      dispatchNotification('security','Alerta de seguridad 🔐','Si no fuiste tú, cambia tu contraseña de inmediato en Configuración.');
+    }
+  }
+}
+
+// ═══════════ PANEL DE CONFIGURACIÓN ═══════════
+const CITIES=['Managua','León','Chinandega'];
+
+function openPanel(type){
+  closeUD();
+  const u=USER||{};
+  const titles={personal:'Datos personales',security:'Inicio de sesión y seguridad',emails:'Correos vinculados'};
+  $('panelTitle').textContent=titles[type]||'Configuración';
+  let body='';
+  if(type==='personal'){
+    body=`
+      <div class="fg"><label>Nombre</label><input id="spFirst" value="${u.first||''}" style="width:100%;border:1.5px solid var(--border);border-radius:var(--r4);padding:10px 12px;font-size:14px;background:var(--white);color:var(--text);outline:none"></div>
+      <div class="fg"><label>Apellido</label><input id="spLast" value="${u.last||''}" style="width:100%;border:1.5px solid var(--border);border-radius:var(--r4);padding:10px 12px;font-size:14px;background:var(--white);color:var(--text);outline:none"></div>
+      <div class="fg"><label>Teléfono</label><input id="spPhone" value="${u.phone||''}" style="width:100%;border:1.5px solid var(--border);border-radius:var(--r4);padding:10px 12px;font-size:14px;background:var(--white);color:var(--text);outline:none"></div>
+      <div class="fg"><label>Ciudad (solo zonas de entrega)</label>
+        <select id="spCity" style="width:100%;border:1.5px solid var(--border);border-radius:var(--r4);padding:10px 12px;font-size:14px;background:var(--white);color:var(--text);outline:none">
+          <option value="">Selecciona tu ciudad…</option>
+          ${CITIES.map(c=>`<option ${u.city===c?'selected':''}>${c}</option>`).join('')}
+        </select>
+      </div>
+      <div class="fg"><label>Dirección de entrega</label><input id="spAddr" value="${u.address||''}" placeholder="Barrio, calle, referencias…" style="width:100%;border:1.5px solid var(--border);border-radius:var(--r4);padding:10px 12px;font-size:14px;background:var(--white);color:var(--text);outline:none"></div>
+      <button class="abtn" onclick="savePersonal()">Guardar cambios</button>`;
+  }else if(type==='security'){
+    const devs=(LS.g('ts_dev_'+u.email)||[]).length;
+    body=`
+      <div style="background:var(--gray3);border-radius:var(--r8);padding:12px;margin-bottom:16px">
+        <div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Dispositivos vinculados</div>
+        <div style="font-size:14px;font-weight:700;color:var(--text)">📱 ${devs} dispositivo${devs===1?'':'s'} con acceso a tu cuenta</div>
+      </div>
+      <div style="font-size:13px;font-weight:800;color:var(--text);margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid var(--border2)">Cambiar contraseña</div>
+      <div class="fg"><label>Contraseña actual</label><input type="password" id="spPassOld" style="width:100%;border:1.5px solid var(--border);border-radius:var(--r4);padding:10px 12px;font-size:14px;background:var(--white);color:var(--text);outline:none"></div>
+      <div class="fg"><label>Nueva contraseña</label><input type="password" id="spPassNew" placeholder="Mínimo 8 caracteres" style="width:100%;border:1.5px solid var(--border);border-radius:var(--r4);padding:10px 12px;font-size:14px;background:var(--white);color:var(--text);outline:none"></div>
+      <div class="fg"><label>Confirmar nueva contraseña</label><input type="password" id="spPassNew2" style="width:100%;border:1.5px solid var(--border);border-radius:var(--r4);padding:10px 12px;font-size:14px;background:var(--white);color:var(--text);outline:none"></div>
+      <button class="abtn" onclick="changePassword()">Actualizar contraseña</button>`;
+  }else if(type==='emails'){
+    const linked=u.linkedEmails||[];
+    body=`
+      <div style="background:var(--gray3);border-radius:var(--r8);padding:12px;margin-bottom:14px">
+        <div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Correo principal</div>
+        <div style="font-size:14px;font-weight:700;color:var(--text)">✉️ ${u.email||''}</div>
+      </div>
+      ${linked.length?`<div style="font-size:12px;font-weight:700;color:var(--text2);margin-bottom:8px">Correos secundarios:</div>`+linked.map(e=>`<div style="background:var(--gray3);border-radius:var(--r4);padding:9px 12px;font-size:13px;color:var(--text);margin-bottom:6px">${e}</div>`).join(''):''}
+      <div class="fg" style="margin-top:14px"><label>Agregar correo secundario</label><input type="email" id="spNewEmail" placeholder="otro@correo.com" style="width:100%;border:1.5px solid var(--border);border-radius:var(--r4);padding:10px 12px;font-size:14px;background:var(--white);color:var(--text);outline:none"></div>
+      <button class="abtn" onclick="addLinkedEmail()">Vincular correo</button>`;
+  }
+  $('panelBody').innerHTML=body;
+  openOv('panelOv');
+}
+
+function persistUser(){
+  const users=LS.g('ts_users')||[];
+  const idx=users.findIndex(x=>x.email===USER.email);
+  if(idx>-1){users[idx]=USER;LS.s('ts_users',users)}
+}
+
+function savePersonal(){
+  if(!USER)return;
+  USER.first=$('spFirst').value.trim()||USER.first;
+  USER.last=$('spLast').value.trim()||USER.last;
+  USER.phone=$('spPhone').value.trim();
+  USER.city=$('spCity').value;
+  USER.address=$('spAddr').value.trim();
+  persistUser();syncNav();closeOv('panelOv');
+  toast('✅ Datos guardados correctamente');
+}
+
+function changePassword(){
+  if(!USER)return;
+  const oldP=$('spPassOld').value,newP=$('spPassNew').value,newP2=$('spPassNew2').value;
+  if(USER.pass!==btoa(unescape(encodeURIComponent(oldP)))){toast('❌ Contraseña actual incorrecta');return}
+  if(newP.length<8){toast('La nueva contraseña debe tener mínimo 8 caracteres');return}
+  if(newP!==newP2){toast('Las contraseñas nuevas no coinciden');return}
+  USER.pass=btoa(unescape(encodeURIComponent(newP)));
+  persistUser();closeOv('panelOv');
+  dispatchNotification('security','Contraseña actualizada 🔐','Tu contraseña fue cambiada exitosamente.');
+  toast('✅ Contraseña actualizada');
+}
+
+function addLinkedEmail(){
+  if(!USER)return;
+  const e=$('spNewEmail').value.trim();
+  if(!/\S+@\S+\.\S+/.test(e)){toast('Correo inválido');return}
+  USER.linkedEmails=USER.linkedEmails||[];
+  if(USER.linkedEmails.includes(e)||e===USER.email){toast('Ese correo ya está vinculado');return}
+  USER.linkedEmails.push(e);
+  persistUser();openPanel('emails');
+  toast('✅ Correo vinculado');
+}
 </script>
 </body>
 </html>
