@@ -540,8 +540,10 @@ footer strong{color:rgba(255,255,255,.75)}
 const $=id=>document.getElementById(id);
 const fmt=n=>'$'+Number(n).toFixed(2);
 // Shipping: Prioritario +$50, Gratis +$22
-const SHIP={priority:85,free:0};
-const calcTotal=(price,ship)=>price+(SHIP[ship]||85);
+const MARKUP=105; // ganancia general aplicada a todos los productos
+const SHIP={priority:45,free:0};
+const dispPrice=p=>p+MARKUP;
+const calcTotal=(price,ship)=>price+MARKUP+(SHIP[ship]||0);
 const LS={g:k=>{try{return JSON.parse(localStorage.getItem(k))}catch{return null}},s:(k,v)=>localStorage.setItem(k,JSON.stringify(v))};
 
 // STATE
@@ -653,7 +655,7 @@ function openFavs(){
         <img src="${p.img}" style="width:100%;height:120px;object-fit:cover" onerror="this.src='https://images.unsplash.com/photo-1496181133206-80ce9b88a853?w=400'">
         <div style="padding:9px">
           <div style="font-size:11px;font-weight:600;color:var(--text);margin-bottom:4px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">${p.title}</div>
-          <div style="font-size:13px;font-weight:800;color:var(--blue)">${fmt(calcTotal(p.price,'priority'))}</div>
+          <div style="font-size:13px;font-weight:800;color:var(--blue)">${fmt(calcTotal(p.price,'free'))}</div>
         </div>
       </div>`).join('')+'</div>';
   }
@@ -716,7 +718,7 @@ function renderProds(list){
   if(!list.length){g.innerHTML='<div style="text-align:center;padding:60px;color:var(--text3)"><p style="font-size:15px;font-weight:600">Sin resultados</p></div>';return}
   g.className='grid';
   g.innerHTML=list.map((p,i)=>{
-    const total=calcTotal(p.price,'priority');
+    const total=calcTotal(p.price,'free');
     const isFav=FAVS.includes(p.id);
     const badge=p.type==='offer'?'<span class="card-type-badge ctb-offer">Oferta especial</span>':'<span class="card-type-badge ctb-buy">Disponible</span>';
     return`<div class="card" style="animation-delay:${i*.04}s" onclick="openProd('${p.id}')">
@@ -726,7 +728,7 @@ function renderProds(list){
       </div>
       <div class="card-body">
         <div class="card-price"><span class="currency">$</span>${total.toFixed(2)}</div>
-        <div class="card-price-note">Envío incluido</div>
+        <div class="card-price-note">Envío Gratis incluido</div>
         <div>${badge}</div>
         <div class="card-name">${p.title}</div>
         <div class="card-cond">${p.cond}</div>
@@ -753,74 +755,98 @@ function setQ(q){$('sq').value=q;$('hq').value=q;loadProducts(q)}
 function fCatR(cat){const q={all:'laptop',laptop:'laptop',gaming:'gaming laptop',apple:'MacBook Apple'};loadProducts(q[cat]||'laptop')}
 function applyLocalF(){
   const mn=parseFloat($('pMin').value)||0,mx=parseFloat($('pMax').value)||Infinity;
-  renderProds(allProds.filter(p=>calcTotal(p.price,'priority')>=mn&&calcTotal(p.price,'priority')<=mx));
+  renderProds(allProds.filter(p=>calcTotal(p.price,'free')>=mn&&calcTotal(p.price,'free')<=mx));
 }
 function doSort(v){
   const s=[...allProds];
-  if(v==='asc')s.sort((a,b)=>calcTotal(a.price,'priority')-calcTotal(b.price,'priority'));
-  if(v==='desc')s.sort((a,b)=>calcTotal(b.price,'priority')-calcTotal(a.price,'priority'));
+  if(v==='asc')s.sort((a,b)=>calcTotal(a.price,'free')-calcTotal(b.price,'free'));
+  if(v==='desc')s.sort((a,b)=>calcTotal(b.price,'free')-calcTotal(a.price,'free'));
   renderProds(s);
 }
 function findProd(id){return allProds.find(p=>String(p.id)===String(id))||DEMO.find(p=>String(p.id)===String(id))}
 
 // PRODUCT DETAIL
+function addDays(d,n){const x=new Date(d);x.setDate(x.getDate()+n);return x}
+function fdate(d){return d.toLocaleDateString('es',{day:'numeric',month:'short'})}
+function deliveryRanges(maxISO){
+  // base = fecha máxima de entrega que da eBay (o hoy+7 si no hay dato)
+  const base=maxISO?new Date(maxISO):addDays(new Date(),7);
+  return{p:[addDays(base,6),addDays(base,10)],f:[addDays(base,15),addDays(base,30)]};
+}
+
+function buildAbout(info){
+  const rows=[];
+  rows.push(['Estado',info.condition||(curProd?curProd.cond:'')]);
+  if(info.conditionDescription)rows.push(['Descripción del estado',info.conditionDescription]);
+  (info.specs||[]).slice(0,14).forEach(s=>{if(s&&s.name&&s.value)rows.push([s.name,s.value])});
+  const tbl=rows.map(r=>`<tr><td style="color:var(--text3);padding:8px 12px;border-bottom:1px solid var(--border2);font-size:13px;width:42%;vertical-align:top">${r[0]}</td><td style="padding:8px 12px;border-bottom:1px solid var(--border2);font-size:13px;font-weight:500;color:var(--text)">${r[1]}</td></tr>`).join('');
+  const desc=info.description||info.shortDescription||'';
+  return `<div style="font-size:16px;font-weight:800;color:var(--text);margin-bottom:10px">Acerca de este artículo</div>
+    <table style="width:100%;border-collapse:collapse;border:1px solid var(--border2);border-radius:var(--r8);overflow:hidden;margin-bottom:14px">${tbl}</table>
+    ${desc?`<div style="font-size:15px;font-weight:800;color:var(--text);margin-bottom:8px">Descripción del artículo</div><div style="font-size:13px;color:var(--text2);line-height:1.7;margin-bottom:6px">${desc}</div>`:''}`;
+}
+
 function openProd(id){
   curProd=findProd(id);if(!curProd)return;
-  selShip='priority';
+  selShip='free';
   $('pImg').src=curProd.img;$('pTitle').textContent=curProd.title;$('pCond').textContent=curProd.cond;
   const tb=$('pTypeBadge');
   if(curProd.type==='offer'){tb.className='card-type-badge ctb-offer';tb.textContent='Oferta especial'}
   else{tb.className='card-type-badge ctb-buy';tb.textContent='Disponible'}
   const favBtn=$('pdFavBtn');favBtn.classList.toggle('saved',FAVS.includes(curProd.id));
-  const total=calcTotal(curProd.price,'priority');
 
-  // Build specs table like eBay
-  const specsRows=curProd.specs&&curProd.specs.length
-    ? curProd.specs.map(s=>`<tr><td style="color:var(--text3);padding:8px 12px;border-bottom:1px solid var(--border2);font-size:13px;width:40%;vertical-align:top">${s.name}</td><td style="padding:8px 12px;border-bottom:1px solid var(--border2);font-size:13px;font-weight:500;color:var(--text)">${s.value}</td></tr>`).join('')
-    : '';
-
-  const condRow=`<tr><td style="color:var(--text3);padding:8px 12px;border-bottom:1px solid var(--border2);font-size:13px">Estado</td><td style="padding:8px 12px;border-bottom:1px solid var(--border2);font-size:13px;font-weight:500;color:var(--text)">${curProd.cond}</td></tr>`;
-
-  const aboutSection=(specsRows||curProd.description)?`
-    <div style="margin-bottom:16px">
-      <div style="font-size:16px;font-weight:800;color:var(--text);margin-bottom:10px">Acerca de este artículo</div>
-      <table style="width:100%;border-collapse:collapse;background:var(--white);border:1px solid var(--border2);border-radius:var(--r8);overflow:hidden">
-        ${condRow}
-        ${curProd.description?`<tr><td style="color:var(--text3);padding:8px 12px;border-bottom:1px solid var(--border2);font-size:13px;vertical-align:top">Descripción</td><td style="padding:8px 12px;border-bottom:1px solid var(--border2);font-size:13px;color:var(--text)">${curProd.description}</td></tr>`:''}
-        ${specsRows}
-      </table>
-    </div>`:'';
+  const total=calcTotal(curProd.price,'free');
+  const dr=deliveryRanges(curProd.maxDelivery);
 
   $('pdBuyBlock').innerHTML=`
     <div style="background:var(--gray3);border-radius:var(--r8);padding:14px;margin-bottom:14px">
       <div style="font-size:26px;font-weight:800;color:var(--text)" id="pTotal">${fmt(total)}</div>
-      <div style="font-size:11px;color:var(--text3);margin-top:2px" id="pNote">Envío Prioritario incluido</div>
+      <div style="font-size:11px;color:var(--text3);margin-top:2px" id="pNote">Envío Gratis incluido</div>
     </div>
     <div class="pd-ship-row">
-      <div class="ship-opt on" id="sOpt1" onclick="selectShip('priority')">
+      <div class="ship-opt" id="sOpt1" onclick="selectShip('priority')">
         <div class="ship-opt-icon">⚡</div>
         <div class="ship-opt-name">Envío Prioritario</div>
-        <div class="ship-opt-days">5–7 días</div>
+        <div class="ship-opt-price">+$${SHIP.priority}</div>
+        <div class="ship-opt-days" id="pDays">Llega ${fdate(dr.p[0])} – ${fdate(dr.p[1])}</div>
       </div>
-      <div class="ship-opt" id="sOpt2" onclick="selectShip('free')">
+      <div class="ship-opt on" id="sOpt2" onclick="selectShip('free')">
         <div class="ship-opt-icon">🎁</div>
         <div class="ship-opt-name">Envío Gratis</div>
-        <div class="ship-opt-days">20–40 días</div>
+        <div class="ship-opt-price" style="color:var(--green)">Gratis</div>
+        <div class="ship-opt-days" id="fDays">Llega ${fdate(dr.f[0])} – ${fdate(dr.f[1])}</div>
       </div>
     </div>
     <div class="breakdown">
-      <div class="brow"><span class="bl">Precio del producto</span><span class="bv">${fmt(curProd.price)}</span></div>
-      <div class="brow"><span class="bl" id="shipLbl">Envío Prioritario</span><span class="bv" id="shipAmt">${fmt(SHIP.priority)}</span></div>
+      <div class="brow"><span class="bl">Precio del producto</span><span class="bv">${fmt(dispPrice(curProd.price))}</span></div>
+      <div class="brow"><span class="bl" id="shipLbl">Envío Gratis</span><span class="bv" id="shipAmt">Gratis</span></div>
       <div class="bdiv"></div>
       <div class="btot"><span class="btot-l">Total</span><span class="btot-v" id="brkTotal">${fmt(total)}</span></div>
     </div>
-    ${aboutSection}
+    <div id="pdAbout" style="margin-bottom:14px"><div style="font-size:12px;color:var(--text3);text-align:center;padding:14px">Cargando información del producto…</div></div>
     <div class="pd-acts">
       <button class="pd-btn-main" onclick="addCart()">🛒 Agregar al carrito</button>
       ${curProd.type==='offer'?`<button class="pd-btn-offer" onclick="closeOv('prodOv');openOffer('${curProd.id}')">Hacer oferta</button>`:''}
       <button class="pd-btn-back" onclick="closeOv('prodOv')">← Volver</button>
     </div>`;
   openOv('prodOv');
+
+  // Cargar detalles (descripción, specs, fechas reales de eBay)
+  if(String(curProd.id).startsWith('d')){
+    $('pdAbout').innerHTML=buildAbout({condition:curProd.cond,specs:curProd.specs||[],description:curProd.description||''});
+  }else{
+    fetch('/api/item?id='+encodeURIComponent(curProd.id)).then(r=>r.json()).then(d=>{
+      if(d.success&&d.item){
+        curProd.maxDelivery=d.item.maxDelivery||null;
+        const dr2=deliveryRanges(curProd.maxDelivery);
+        const pd=$('pDays');if(pd)pd.textContent='Llega '+fdate(dr2.p[0])+' – '+fdate(dr2.p[1]);
+        const fd=$('fDays');if(fd)fd.textContent='Llega '+fdate(dr2.f[0])+' – '+fdate(dr2.f[1]);
+        $('pdAbout').innerHTML=buildAbout(d.item);
+      }else{
+        $('pdAbout').innerHTML=buildAbout({condition:curProd.cond,description:curProd.description||''});
+      }
+    }).catch(()=>{$('pdAbout').innerHTML=buildAbout({condition:curProd.cond,description:curProd.description||''})});
+  }
 }
 
 function selectShip(type){
@@ -844,7 +870,7 @@ function addCart(){
 
 function quickAdd(id){
   const p=findProd(id);if(!p)return;
-  cart.push({uid:Date.now(),prod:p,ship:'priority',total:calcTotal(p.price,'priority')});
+  cart.push({uid:Date.now(),prod:p,ship:'free',total:calcTotal(p.price,'free')});
   updBadge();toast('🛒 Agregado al carrito');
 }
 
