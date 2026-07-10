@@ -304,6 +304,10 @@ nav{background:var(--white);border-bottom:1px solid var(--border2);padding:10px 
 .ck-sec{font-size:12px;font-weight:800;color:var(--text);text-transform:uppercase;letter-spacing:.5px;margin:0 0 12px;padding-bottom:8px;border-bottom:1px solid var(--border2)}
 .ck-2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .cf{margin-bottom:12px}
+.range-r{display:flex;align-items:center;gap:8px}
+.range-r input{flex:1;border:1.5px solid var(--border);border-radius:var(--r4);padding:9px 12px;font-size:13px;color:var(--text);background:var(--white);outline:none}
+.range-r input:focus{border-color:var(--blue)}
+.range-r span{color:var(--text3);font-size:13px}
 .cf label{display:block;font-size:12px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.4px;margin-bottom:5px}
 .cf input,.cf select{width:100%;border:1.5px solid var(--border);border-radius:var(--r4);padding:9px 12px;font-size:13px;font-family:inherit;color:var(--text);outline:none;background:var(--white)}
 .cf input:focus{border-color:var(--blue)}
@@ -433,6 +437,11 @@ footer strong{color:rgba(255,255,255,.75)}
       <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>Buscar
     </button>
   </div>
+  <button onclick="openFilterPanel()" style="display:flex;align-items:center;gap:6px;background:var(--gray3);border:1.5px solid var(--border2);border-radius:var(--pill);padding:9px 16px;font-size:13px;font-weight:600;color:var(--text);cursor:pointer;margin-left:8px;white-space:nowrap">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="18" x2="20" y2="18"/><circle cx="8" cy="6" r="2" fill="var(--bg)"/><circle cx="16" cy="12" r="2" fill="var(--bg)"/><circle cx="10" cy="18" r="2" fill="var(--bg)"/></svg>
+    Filtrar
+  </button>
+  <span style="font-size:11px;color:var(--text3);white-space:nowrap;margin-left:8px" title="Solo vendedores verificados">✓ Proveedores verificados</span>
   <div class="nav-r">
     <div class="uwrap">
       <button class="ubtn" onclick="toggleNotifD()" title="Notificaciones" style="position:relative;padding:8px">
@@ -612,6 +621,54 @@ footer strong{color:rgba(255,255,255,.75)}
   <div class="sheet sheet-sm">
     <div class="sh-hd"><div class="sh-title" id="panelTitle">Configuración</div><button class="x-btn" onclick="closeOv('panelOv')"><svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div>
     <div id="panelBody" style="padding:18px 20px;max-height:540px;overflow-y:auto"></div>
+  </div>
+</div>
+
+<div class="overlay" id="filterOv">
+  <div class="sheet sheet-sm" style="max-width:420px">
+    <div class="sh-hd">
+      <div class="sh-title">Filtrar</div>
+      <div style="display:flex;align-items:center;gap:10px">
+        <button onclick="resetFilters()" style="background:none;border:none;color:var(--blue);font-size:13px;font-weight:700;cursor:pointer">Restablecer</button>
+        <button class="x-btn" onclick="closeOv('filterOv')"><svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+      </div>
+    </div>
+    <div style="padding:18px 20px;max-height:540px;overflow-y:auto">
+
+      <div style="font-size:13px;font-weight:800;color:var(--text);margin-bottom:10px">Ordenar por</div>
+      <div style="display:flex;flex-direction:column;gap:2px;margin-bottom:20px" id="filterSortGroup">
+        <label class="fo"><input type="radio" name="fSort" value="" checked onchange="setFilterSort('')"><span class="fo-label">Mejor resultado</span></label>
+        <label class="fo"><input type="radio" name="fSort" value="price" onchange="setFilterSort('price')"><span class="fo-label">Precio más bajo</span></label>
+        <label class="fo"><input type="radio" name="fSort" value="-price" onchange="setFilterSort('-price')"><span class="fo-label">Precio más alto</span></label>
+        <label class="fo"><input type="radio" name="fSort" value="newlyListed" onchange="setFilterSort('newlyListed')"><span class="fo-label">Anuncios recientes</span></label>
+      </div>
+
+      <div style="font-size:13px;font-weight:800;color:var(--text);margin-bottom:10px">Formato de compra</div>
+      <div style="display:flex;flex-direction:column;gap:2px;margin-bottom:20px" id="filterBuyingGroup">
+        <label class="fo"><input type="radio" name="fBuying" value="" checked onchange="setFilterBuying('')"><span class="fo-label">Todos los anuncios</span></label>
+        <label class="fo"><input type="radio" name="fBuying" value="FIXED_PRICE" onchange="setFilterBuying('FIXED_PRICE')"><span class="fo-label">¡Cómpralo ahora!</span></label>
+        <label class="fo"><input type="radio" name="fBuying" value="BEST_OFFER" onchange="setFilterBuying('BEST_OFFER')"><span class="fo-label">Mejor oferta</span></label>
+        <label class="fo"><input type="radio" name="fBuying" value="AUCTION" onchange="setFilterBuying('AUCTION')"><span class="fo-label">Subasta</span></label>
+      </div>
+
+      <div style="font-size:13px;font-weight:800;color:var(--text);margin-bottom:10px">Estado</div>
+      <div style="display:flex;flex-direction:column;gap:2px;margin-bottom:20px" id="filterCondGroup">
+        <label class="fo"><input type="radio" name="fCond" value="" checked onchange="setFilterCond('')"><span class="fo-label">Todos</span></label>
+        <label class="fo"><input type="radio" name="fCond" value="NEW" onchange="setFilterCond('NEW')"><span class="fo-label">Nuevo</span></label>
+        <label class="fo"><input type="radio" name="fCond" value="USED" onchange="setFilterCond('USED')"><span class="fo-label">Usado</span></label>
+      </div>
+
+      <div style="font-size:13px;font-weight:800;color:var(--text);margin-bottom:10px">Precio (USD)</div>
+      <div class="range-r" style="margin-bottom:20px">
+        <input type="number" id="fPriceMin" placeholder="Mín.">
+        <span>—</span>
+        <input type="number" id="fPriceMax" placeholder="Máx.">
+      </div>
+
+    </div>
+    <div style="padding:14px 20px;border-top:1px solid var(--border2)">
+      <button class="abtn" onclick="applyFilters()">Mostrar resultados</button>
+    </div>
   </div>
 </div>
 
@@ -903,11 +960,46 @@ function mapProds(list){
   })).filter(p=>!SOLD.includes(p.id));
 }
 
+// ═══ FILTROS (panel deslizante conectado a la API de eBay) ═══
+let activeFilters={sort:'',buying:'',condition:'',priceMin:'',priceMax:''};
+
+function openFilterPanel(){openOv('filterOv')}
+function setFilterSort(v){activeFilters.sort=v}
+function setFilterBuying(v){activeFilters.buying=v}
+function setFilterCond(v){activeFilters.condition=v}
+
+function resetFilters(){
+  activeFilters={sort:'',buying:'',condition:'',priceMin:'',priceMax:''};
+  document.querySelectorAll('#filterSortGroup input[value=""]')[0].checked=true;
+  document.querySelectorAll('#filterBuyingGroup input[value=""]')[0].checked=true;
+  document.querySelectorAll('#filterCondGroup input[value=""]')[0].checked=true;
+  $('fPriceMin').value='';$('fPriceMax').value='';
+}
+
+function applyFilters(){
+  activeFilters.priceMin=$('fPriceMin').value.trim();
+  activeFilters.priceMax=$('fPriceMax').value.trim();
+  closeOv('filterOv');
+  loadProducts(curQuery);
+}
+
+function filterQueryString(){
+  const f=activeFilters;
+  let s='';
+  if(f.sort)s+='&sort='+encodeURIComponent(f.sort);
+  if(f.buying)s+='&buying='+encodeURIComponent(f.buying);
+  if(f.condition)s+='&condition='+encodeURIComponent(f.condition);
+  if(f.priceMin)s+='&priceMin='+encodeURIComponent(f.priceMin);
+  if(f.priceMax)s+='&priceMax='+encodeURIComponent(f.priceMax);
+  return s;
+}
+
 async function fetchPage(q,offset){
-  const key=q+'|'+offset;
+  const fq=filterQueryString();
+  const key=q+'|'+offset+'|'+fq;
   const hit=QCACHE[key];
   if(hit&&Date.now()-hit.t<600000)return hit.data; // caché inteligente: 10 min
-  const res=await fetch('/api/ebay?q='+encodeURIComponent(q)+'&limit='+PAGE_SIZE+'&offset='+offset);
+  const res=await fetch('/api/ebay?q='+encodeURIComponent(q)+'&limit='+PAGE_SIZE+'&offset='+offset+fq);
   if(!res.ok)throw new Error('HTTP '+res.status);
   const data=await res.json();
   QCACHE[key]={t:Date.now(),data};
