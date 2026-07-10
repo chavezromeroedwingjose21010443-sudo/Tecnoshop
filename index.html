@@ -106,7 +106,7 @@ input,select{font-family:inherit}
 .f2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 
 /* NAV */
-nav{background:var(--white);border-bottom:1px solid var(--border2);padding:10px 24px;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:300;box-shadow:var(--sh);width:100%;box-sizing:border-box;overflow-x:hidden}
+nav{background:var(--white);border-bottom:1px solid var(--border2);padding:10px 24px;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:900;box-shadow:var(--sh);width:100%;box-sizing:border-box;overflow-x:hidden}
 .brand{display:flex;align-items:center;text-decoration:none;flex-shrink:0}
 .nav-search{flex:1;min-width:0;max-width:640px;display:flex;border:2px solid var(--text);border-radius:var(--pill);overflow:hidden}
 .nav-search:focus-within{border-color:var(--blue)}
@@ -141,18 +141,10 @@ nav{background:var(--white);border-bottom:1px solid var(--border2);padding:10px 
 .cbadge{background:var(--red);color:white;font-size:10px;font-weight:800;min-width:18px;height:18px;border-radius:9px;display:flex;align-items:center;justify-content:center;padding:0 4px}
 
 /* HERO */
-.hero{background:linear-gradient(135deg,#1a1a3e 0%,#2952c4 50%,#3665f3 100%);padding:50px 24px 44px;text-align:center;position:relative;overflow:hidden;z-index:1}
-.hero::before{content:'';position:absolute;inset:0;background:url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23ffffff' fill-opacity='0.03'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/svg%3E")}
-.hero h1{font-size:clamp(22px,4vw,42px);font-weight:900;color:white;letter-spacing:-.5px;margin-bottom:8px;line-height:1.1;position:relative}
-.hero-sub{font-size:15px;color:rgba(255,255,255,.75);margin-bottom:28px;position:relative}
-.hero-search-box{max-width:680px;margin:0 auto 20px;display:flex;background:white;border-radius:var(--pill);overflow:hidden;box-shadow:0 8px 32px rgba(0,0,0,.25);position:relative}
-.hero-search-box input{flex:1;border:none;outline:none;padding:16px 22px;font-size:15px;background:transparent;color:#111}
-.hero-search-btn{background:var(--blue);color:white;border:none;padding:0 32px;font-size:15px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:8px}
-.hero-search-btn:hover{background:var(--blue-d)}
-.hero-search-btn svg{width:16px;height:16px;stroke:white;fill:none;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round}
-.popular-tags{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;position:relative}
-.ptag{background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.3);border-radius:var(--pill);padding:5px 14px;font-size:13px;color:white;cursor:pointer;transition:all .13s;font-weight:500;backdrop-filter:blur(4px)}
-.ptag:hover{background:rgba(255,255,255,.25)}
+.tags-bar{background:var(--white);border-bottom:1px solid var(--border2);padding:14px 24px}
+.popular-tags{display:flex;gap:8px;justify-content:flex-start;flex-wrap:wrap;max-width:1240px;margin:0 auto}
+.ptag{background:var(--gray3);border:1px solid var(--border2);border-radius:var(--pill);padding:6px 16px;font-size:13px;color:var(--text2);cursor:pointer;transition:all .13s;font-weight:600}
+.ptag:hover{background:var(--blue-l);border-color:var(--blue);color:var(--blue)}
 
 /* LAYOUT */
 .page{max-width:1240px;margin:0 auto;padding:20px 16px 60px;display:grid;grid-template-columns:220px 1fr;gap:20px}
@@ -358,7 +350,7 @@ footer strong{color:rgba(255,255,255,.75)}
 .foot-links a:hover{color:rgba(255,255,255,.7)}
 
 @media(max-width:900px){.page{grid-template-columns:1fr}.filters{display:none}}
-@media(max-width:640px){nav{padding:8px 10px;gap:6px}.hero{padding:28px 12px 24px}.page{padding:14px 10px 40px}.grid{grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px}.ck-2{grid-template-columns:1fr}.brand-text{font-size:18px}.search-btn-label,.filter-btn-label,#navNm{display:none}.search-btn{padding:0 14px}.filter-btn{padding:9px 11px}}
+@media(max-width:640px){nav{padding:8px 10px;gap:6px}.tags-bar{padding:10px 12px}.page{padding:14px 10px 40px}.grid{grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px}.ck-2{grid-template-columns:1fr}.brand-text{font-size:18px}.search-btn-label,.filter-btn-label,#navNm{display:none}.search-btn{padding:0 14px}.filter-btn{padding:9px 11px}}
 </style>
 </head>
 <body>
@@ -483,10 +475,7 @@ footer strong{color:rgba(255,255,255,.75)}
   </div>
 </nav>
 
-<section class="hero">
-  <h1>Lo mejor para emprender</h1>
-  <p class="hero-sub">Tecnología de calidad al mejor precio</p>
-
+<section class="tags-bar">
   <div class="popular-tags">
     <span class="ptag" onclick="setQ('Dell laptop')">Dell</span>
     <span class="ptag" onclick="setQ('HP laptop')">HP</span>
@@ -957,6 +946,7 @@ function mapProds(list){
     cond:COND_ES[p.condition]||p.condition||'Usado',
     type:p.listingType||'buy',
     img:p.image||'https://images.unsplash.com/photo-1496181133206-80ce9b88a853?w=600',
+    images:(p.images&&p.images.length?p.images:[p.image]).filter(Boolean),
     description:''
   })).filter(p=>!SOLD.includes(p.id));
 }
@@ -1063,7 +1053,7 @@ function cardHTML(p,i){
   const badge=p.type==='offer'?'<span class="card-type-badge ctb-offer">Oferta especial</span>':'<span class="card-type-badge ctb-buy">Disponible</span>';
   return `<div class="card" style="animation-delay:${(i%12)*.04}s" onclick="openProd('${p.id}')">
     <div class="card-img">
-      <img src="${p.img}" alt="" loading="lazy" onerror="this.src='https://images.unsplash.com/photo-1496181133206-80ce9b88a853?w=600'">
+      <img src="${p.img}" alt="" loading="lazy" draggable="false" oncontextmenu="return false" style="-webkit-touch-callout:none;-webkit-user-select:none;user-select:none" onerror="this.src='https://images.unsplash.com/photo-1496181133206-80ce9b88a853?w=600'">
       <button class="card-save${isFav?' saved':''}" onclick="event.stopPropagation();handleFavCard(this,'${p.id}')"><svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg></button>
     </div>
     <div class="card-body">
@@ -1143,7 +1133,7 @@ function renderCarousel(images){
   const track=$('pImgCarousel');
   const dots=$('pImgDots');
   const imgs=images&&images.length?images:['https://images.unsplash.com/photo-1496181133206-80ce9b88a853?w=600'];
-  track.innerHTML=imgs.map(src=>`<div class="carousel-slide"><img src="${src}" onerror="this.src='https://images.unsplash.com/photo-1496181133206-80ce9b88a853?w=600'"></div>`).join('');
+  track.innerHTML=imgs.map(src=>`<div class="carousel-slide"><img src="${src}" draggable="false" oncontextmenu="return false" style="-webkit-touch-callout:none;-webkit-user-select:none;user-select:none;pointer-events:none" onerror="this.src='https://images.unsplash.com/photo-1496181133206-80ce9b88a853?w=600'"></div>`).join('');
   track.scrollLeft=0;
   if(imgs.length>1){
     dots.innerHTML=imgs.map((_,i)=>`<div class="carousel-dot${i===0?' on':''}"></div>`).join('');
