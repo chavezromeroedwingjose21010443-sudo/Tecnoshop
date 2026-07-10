@@ -69,7 +69,7 @@ onAuthStateChanged(auth, async (fbUser) => {
   --border:#2a2a4a;--border2:#222240;--blue-l:#1a2a5e;
 }
 html{scroll-behavior:smooth}
-body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);-webkit-font-smoothing:antialiased;font-size:14px;transition:background .3s,color .3s}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);-webkit-font-smoothing:antialiased;font-size:14px;transition:background .3s,color .3s;overflow-x:hidden}
 a{text-decoration:none;color:var(--blue)}
 button{font-family:inherit;cursor:pointer}
 input,select{font-family:inherit}
@@ -106,7 +106,7 @@ input,select{font-family:inherit}
 .f2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 
 /* NAV */
-nav{background:var(--white);border-bottom:1px solid var(--border2);padding:10px 24px;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:900;box-shadow:var(--sh);width:100%;box-sizing:border-box;overflow-x:hidden}
+nav{background:var(--white);border-bottom:1px solid var(--border2);padding:10px 24px;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:900;box-shadow:var(--sh);width:100%;box-sizing:border-box}
 .brand{display:flex;align-items:center;text-decoration:none;flex-shrink:0}
 .nav-search{flex:1;min-width:0;max-width:640px;display:flex;border:2px solid var(--text);border-radius:var(--pill);overflow:hidden}
 .nav-search:focus-within{border-color:var(--blue)}
