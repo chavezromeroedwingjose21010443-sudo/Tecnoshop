@@ -1,8 +1,18 @@
 // api/ebay.js
 // Busca productos en eBay Browse API y devuelve datos limpios para TecnoShop.
+// Solo muestra productos de vendedores de confianza previamente seleccionados.
 // Incluye imagen principal + imágenes adicionales (para carrusel en el frontend).
 
 const https = require('https');
+
+// ── VENDEDORES DE CONFIANZA (app de prueba) ──
+// Ajusta esta lista si agregas o quitas vendedores verificados.
+const TRUSTED_SELLERS = [
+  'discounttechdirect',
+  'merresale',
+  'paymore_doraville',
+  'dtd_electronicsplus'
+];
 
 function request(options, body) {
   return new Promise((resolve, reject) => {
@@ -29,6 +39,17 @@ module.exports = async (req, res) => {
   const limit = Math.min(parseInt(req.query.limit) || 50, 200);
   const offset = parseInt(req.query.offset) || 0;
 
+  // ── FILTROS OPCIONALES (vienen del panel de filtros del frontend) ──
+  // sort: newlyListed | price | -price  (best_match es el default de eBay, no se envía)
+  // buying: FIXED_PRICE | AUCTION | BEST_OFFER  (formato de compra)
+  // condition: NEW | USED
+  // priceMin / priceMax: rango de precio en USD
+  const sort = req.query.sort || '';
+  const buying = req.query.buying || '';
+  const condition = req.query.condition || '';
+  const priceMin = req.query.priceMin || '';
+  const priceMax = req.query.priceMax || '';
+
   try {
     // 1. Token OAuth
     const creds = Buffer.from(ID + ':' + SECRET).toString('base64');
@@ -46,10 +67,19 @@ module.exports = async (req, res) => {
 
     if (!token.access_token) return res.status(500).json({ success: false, error: 'Token failed' });
 
-    // 2. Búsqueda de productos
-    const searchPath = '/buy/browse/v1/item_summary/search?q=' + encodeURIComponent(q) +
+    // 2. Construir filtros combinados — SIEMPRE incluye el filtro de vendedores de confianza
+    const filterParts = ['sellers:{' + TRUSTED_SELLERS.join('|') + '}'];
+    if (buying) filterParts.push('buyingOptions:{' + buying + '}');
+    if (condition) filterParts.push('conditionIds:{' + (condition === 'NEW' ? '1000' : '3000') + '}');
+    if (priceMin || priceMax) {
+      filterParts.push('price:[' + (priceMin || '0') + '..' + (priceMax || '') + ']');
+      filterParts.push('priceCurrency:USD');
+    }
+
+    let searchPath = '/buy/browse/v1/item_summary/search?q=' + encodeURIComponent(q) +
       '&limit=' + limit + '&offset=' + offset +
-      '&filter=' + encodeURIComponent('sellerAccountTypes:{BUSINESS},itemLocationCountry:US');
+      '&filter=' + encodeURIComponent(filterParts.join(','));
+    if (sort) searchPath += '&sort=' + encodeURIComponent(sort);
 
     const searchRes = await request({
       hostname: 'api.ebay.com',
@@ -72,14 +102,18 @@ module.exports = async (req, res) => {
         .filter(url => url && url !== mainImage);
       const allImages = mainImage ? [mainImage, ...extraImages] : extraImages;
 
+      // "Hacer oferta" solo aparece si el listado acepta BEST_OFFER en eBay
+      const listingType = (item.buyingOptions || []).includes('BEST_OFFER') ? 'offer' : 'buy';
+
       return {
         id: item.itemId,
         title: item.title,
         price: item.price ? parseFloat(item.price.value) : 0,
         condition: item.condition || 'Used',
-        listingType: (item.buyingOptions || []).includes('BEST_OFFER') ? 'offer' : 'buy',
+        listingType,
         image: mainImage,
-        images: allImages, // NUEVO: array completo para el carrusel
+        images: allImages, // array completo para el carrusel
+        seller: (item.seller && item.seller.username) || '',
         itemWebUrl: item.itemWebUrl || ''
       };
     });
