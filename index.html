@@ -106,16 +106,18 @@ input,select{font-family:inherit}
 .f2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 
 /* NAV */
-nav{background:var(--white);border-bottom:1px solid var(--border2);padding:10px 24px;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:300;box-shadow:var(--sh)}
+nav{background:var(--white);border-bottom:1px solid var(--border2);padding:10px 24px;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:300;box-shadow:var(--sh);width:100%;box-sizing:border-box;overflow-x:hidden}
 .brand{display:flex;align-items:center;text-decoration:none;flex-shrink:0}
-.nav-search{flex:1;max-width:640px;display:flex;border:2px solid var(--text);border-radius:var(--pill);overflow:hidden}
+.nav-search{flex:1;min-width:0;max-width:640px;display:flex;border:2px solid var(--text);border-radius:var(--pill);overflow:hidden}
 .nav-search:focus-within{border-color:var(--blue)}
 .nav-search input{flex:1;border:none;outline:none;padding:10px 14px;font-size:14px;background:var(--white);color:var(--text)}
 .nav-search input::placeholder{color:var(--text3)}
-.search-btn{background:var(--blue);color:white;border:none;padding:0 22px;font-weight:700;font-size:14px;cursor:pointer;display:flex;align-items:center;gap:6px}
+.search-btn{background:var(--blue);color:white;border:none;padding:0 22px;font-weight:700;font-size:14px;cursor:pointer;display:flex;align-items:center;gap:6px;flex-shrink:0}
 .search-btn:hover{background:var(--blue-d)}
 .search-btn svg{width:14px;height:14px;stroke:white;fill:none;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round}
-.nav-r{display:flex;align-items:center;gap:4px;margin-left:auto}
+.nav-r{display:flex;align-items:center;gap:4px;margin-left:auto;flex-shrink:0}
+.filter-btn{display:flex;align-items:center;gap:6px;background:var(--gray3);border:1.5px solid var(--border2);border-radius:var(--pill);padding:9px 14px;font-size:13px;font-weight:600;color:var(--text);cursor:pointer;flex-shrink:0;white-space:nowrap}
+.filter-btn:hover{border-color:var(--blue);color:var(--blue)}
 .theme-btn{background:none;border:1px solid var(--border2);border-radius:var(--pill);padding:6px 12px;font-size:12px;color:var(--text);cursor:pointer;transition:all .2s}
 .theme-btn:hover{border-color:var(--blue);color:var(--blue)}
 .uwrap{position:relative}
@@ -356,7 +358,7 @@ footer strong{color:rgba(255,255,255,.75)}
 .foot-links a:hover{color:rgba(255,255,255,.7)}
 
 @media(max-width:900px){.page{grid-template-columns:1fr}.filters{display:none}}
-@media(max-width:640px){nav{padding:8px 12px;gap:8px}.hero{padding:28px 12px 24px}.page{padding:14px 10px 40px}.grid{grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px}.ck-2{grid-template-columns:1fr}.brand-text{font-size:20px}}
+@media(max-width:640px){nav{padding:8px 10px;gap:6px}.hero{padding:28px 12px 24px}.page{padding:14px 10px 40px}.grid{grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px}.ck-2{grid-template-columns:1fr}.brand-text{font-size:18px}.search-btn-label,.filter-btn-label,#navNm{display:none}.search-btn{padding:0 14px}.filter-btn{padding:9px 11px}}
 </style>
 </head>
 <body>
@@ -434,14 +436,13 @@ footer strong{color:rgba(255,255,255,.75)}
   <div class="nav-search">
     <input type="text" id="sq" placeholder="Buscar productos, marcas, modelos..." onkeydown="if(event.key==='Enter')doSearch()">
     <button class="search-btn" onclick="doSearch()">
-      <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>Buscar
+      <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><span class="search-btn-label">Buscar</span>
     </button>
   </div>
-  <button onclick="openFilterPanel()" style="display:flex;align-items:center;gap:6px;background:var(--gray3);border:1.5px solid var(--border2);border-radius:var(--pill);padding:9px 16px;font-size:13px;font-weight:600;color:var(--text);cursor:pointer;margin-left:8px;white-space:nowrap">
+  <button class="filter-btn" onclick="openFilterPanel()">
     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="18" x2="20" y2="18"/><circle cx="8" cy="6" r="2" fill="var(--bg)"/><circle cx="16" cy="12" r="2" fill="var(--bg)"/><circle cx="10" cy="18" r="2" fill="var(--bg)"/></svg>
-    Filtrar
+    <span class="filter-btn-label">Filtrar</span>
   </button>
-  <span style="font-size:11px;color:var(--text3);white-space:nowrap;margin-left:8px" title="Solo vendedores verificados">✓ Proveedores verificados</span>
   <div class="nav-r">
     <div class="uwrap">
       <button class="ubtn" onclick="toggleNotifD()" title="Notificaciones" style="position:relative;padding:8px">
