@@ -13,6 +13,23 @@ function request(options, body) {
   });
 }
 
+// ── FILTRO DE MARCA: elimina eBay/USA/Estados Unidos antes de responder ──
+function cleanBrand(text) {
+  if (!text) return text;
+  return String(text)
+    .replace(/\beBay\b/gi, '')
+    .replace(/\be-?Bay\b/gi, '')
+    .replace(/\bUnited States\b/gi, '')
+    .replace(/\bU\.?S\.?A\.?\b/g, '')
+    .replace(/\bEstados Unidos\b/gi, '')
+    .replace(/\bshipping within the USA\b/gi, '')
+    .replace(/\bships? from (the )?USA\b/gi, '')
+    .replace(/\bmade in (the )?USA\b/gi, '')
+    .replace(/\s{2,}/g, ' ')
+    .replace(/\s+([.,;])/g, '$1')
+    .trim();
+}
+
 function stripHtml(h) {
   return (h || '')
     .replace(/<style[\s\S]*?<\/style>/gi, ' ')
@@ -174,15 +191,15 @@ module.exports = async (req, res) => {
       success: true,
       item: {
         id: item.itemId,
-        title: item.title,
+        title: cleanBrand(item.title),
         condition: conditionEs,
-        conditionDescription: condDescEs,
-        description: descEs,
-        specs,
+        conditionDescription: cleanBrand(condDescEs),
+        description: cleanBrand(descEs),
+        specs: specs.map(s => ({ name: cleanBrand(s.name), value: cleanBrand(s.value) })),
         minDelivery,
         maxDelivery,
         image: (item.image && item.image.imageUrl) || '',
-        itemUrl: item.itemWebUrl || ''
+        itemUrl: '' // nunca se expone el enlace de origen
       }
     });
   } catch (e) {
