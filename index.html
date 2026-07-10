@@ -228,6 +228,10 @@ nav{background:var(--white);border-bottom:1px solid var(--border2);padding:10px 
 /* PRODUCT DETAIL */
 .pd-img{height:280px;background:var(--gray3);overflow:hidden;position:relative;border-radius:var(--r12) var(--r12) 0 0}
 .pd-img img{width:100%;height:100%;object-fit:contain;padding:16px}
+.carousel-slide{flex:0 0 100%;scroll-snap-align:center;display:flex;align-items:center;justify-content:center;height:100%}
+.carousel-slide img{width:100%;height:100%;object-fit:contain;padding:16px}
+.carousel-dot{width:6px;height:6px;border-radius:50%;background:rgba(255,255,255,.5);transition:background .2s}
+.carousel-dot.on{background:var(--white)}
 .pd-close{position:absolute;top:12px;right:12px;background:var(--white);border:1px solid var(--border2);border-radius:50%;width:32px;height:32px;cursor:pointer;display:flex;align-items:center;justify-content:center}
 .pd-close svg{width:13px;height:13px;stroke:var(--text2);fill:none;stroke-width:2.2;stroke-linecap:round}
 .pd-fav{position:absolute;top:12px;right:52px;background:var(--white);border:1px solid var(--border2);border-radius:50%;width:32px;height:32px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s;color:var(--text3)}
@@ -543,7 +547,8 @@ footer strong{color:rgba(255,255,255,.75)}
 <div class="overlay" id="prodOv">
   <div class="sheet sheet-lg">
     <div class="pd-img">
-      <img id="pImg" src="" alt="">
+      <div id="pImgCarousel" style="display:flex;overflow-x:auto;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;width:100%;height:100%;scrollbar-width:none" onscroll="updateCarouselDots(this)"></div>
+      <div id="pImgDots" style="position:absolute;bottom:10px;left:0;right:0;display:flex;justify-content:center;gap:5px;pointer-events:none"></div>
       <button class="pd-close" onclick="closeOv('prodOv')"><svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
       <button class="pd-fav" id="pdFavBtn" onclick="toggleFavDetail()"><svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg></button>
     </div>
@@ -561,9 +566,6 @@ footer strong{color:rgba(255,255,255,.75)}
     <div class="sh-hd"><div class="sh-title">Hacer una oferta</div><button class="x-btn" onclick="closeOv('offerOv')"><svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div>
     <div class="offer-body">
       <div class="offer-cur"><div class="offer-cur-lbl">Precio actual</div><div class="offer-cur-price" id="offerCurP">—</div><div style="font-size:11px;color:var(--text3);margin-top:4px" id="offerMinHint"></div></div>
-      <div class="cf"><label>Nombre de usuario</label><input id="offName" placeholder="Nombre y apellidos"></div>
-      <div class="cf"><label>Cédula</label><div style="background:var(--gray3);border-radius:var(--r4);padding:10px 12px;font-size:14px;color:var(--text2)" id="offCedulaDisplay">—</div></div>
-      <div class="cf"><label>Celular</label><div style="background:var(--gray3);border-radius:var(--r4);padding:10px 12px;font-size:14px;color:var(--text2)" id="offPhoneDisplay">—</div></div>
       <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:6px;margin-top:6px">Tu oferta (USD)</div>
       <input class="offer-input" type="number" id="offerVal" placeholder="$0.00">
       <div class="msg msg-e" id="offerErr"></div>
@@ -979,9 +981,7 @@ function cardHTML(p,i){
       <div class="card-cond">${p.cond}</div>
       <div class="card-ship">🚚 Entrega en Managua, León y Chinandega</div>
       <div class="card-acts">
-        ${p.type==='offer'
-          ?`<button class="btn-main" onclick="event.stopPropagation();buyNow('${p.id}')">Comprar ahora</button><button class="btn-offer" onclick="event.stopPropagation();openOffer('${p.id}')">Hacer oferta</button><button class="btn-link" onclick="event.stopPropagation();quickAdd('${p.id}')">🛒 Agregar al carrito</button>`
-          :`<button class="btn-main" onclick="event.stopPropagation();quickAdd('${p.id}')">Agregar al carrito</button><button class="btn-offer" onclick="event.stopPropagation();openProd('${p.id}')">Ver detalles</button>`}
+        <button class="btn-main" onclick="event.stopPropagation();buyNow('${p.id}')">Comprar ahora</button>
       </div>
     </div>
   </div>`;
@@ -1045,10 +1045,32 @@ function buildAbout(rawInfo){
     ${desc?`<div style="font-size:15px;font-weight:800;color:var(--text);margin-bottom:8px">Descripción del artículo</div><div style="font-size:13px;color:var(--text2);line-height:1.7;margin-bottom:6px">${desc}</div>`:''}`;
 }
 
+// ═══ CARRUSEL DE IMÁGENES DEL PRODUCTO ═══
+function renderCarousel(images){
+  const track=$('pImgCarousel');
+  const dots=$('pImgDots');
+  const imgs=images&&images.length?images:['https://images.unsplash.com/photo-1496181133206-80ce9b88a853?w=600'];
+  track.innerHTML=imgs.map(src=>`<div class="carousel-slide"><img src="${src}" onerror="this.src='https://images.unsplash.com/photo-1496181133206-80ce9b88a853?w=600'"></div>`).join('');
+  track.scrollLeft=0;
+  if(imgs.length>1){
+    dots.innerHTML=imgs.map((_,i)=>`<div class="carousel-dot${i===0?' on':''}"></div>`).join('');
+  }else{
+    dots.innerHTML='';
+  }
+}
+
+function updateCarouselDots(track){
+  const dots=document.querySelectorAll('#pImgDots .carousel-dot');
+  if(!dots.length)return;
+  const idx=Math.round(track.scrollLeft/track.clientWidth);
+  dots.forEach((d,i)=>d.classList.toggle('on',i===idx));
+}
+
 function openProd(id){
   curProd=findProd(id);if(!curProd)return;
   selShip='free';
-  $('pImg').src=curProd.img;$('pTitle').textContent=cleanBrand(curProd.title);$('pCond').textContent=curProd.cond;
+  renderCarousel(curProd.images&&curProd.images.length?curProd.images:[curProd.img]);
+  $('pTitle').textContent=cleanBrand(curProd.title);$('pCond').textContent=curProd.cond;
   const tb=$('pTypeBadge');
   if(curProd.type==='offer'){tb.className='card-type-badge ctb-offer';tb.textContent='Oferta especial'}
   else{tb.className='card-type-badge ctb-buy';tb.textContent='Disponible'}
@@ -1084,7 +1106,8 @@ function openProd(id){
     </div>
     <div id="pdAbout" style="margin-bottom:14px"><div style="font-size:12px;color:var(--text3);text-align:center;padding:14px">Cargando información del producto…</div></div>
     <div class="pd-acts">
-      ${curProd.type==='offer'?`<button class="pd-btn-main" onclick="closeOv('prodOv');buyNow('${curProd.id}')">Comprar ahora</button><button class="pd-btn-offer" onclick="addCart()">🛒 Agregar al carrito</button>`:`<button class="pd-btn-main" onclick="addCart()">🛒 Agregar al carrito</button>`}
+      <button class="pd-btn-main" onclick="closeOv('prodOv');buyNow('${curProd.id}')">Comprar ahora</button>
+      <button class="pd-btn-offer" onclick="addCart()">🛒 Agregar al carrito</button>
       ${curProd.type==='offer'?`<button class="pd-btn-offer" onclick="closeOv('prodOv');openOffer('${curProd.id}')">Hacer oferta</button>`:''}
       <button class="pd-btn-back" onclick="closeOv('prodOv')">← Volver</button>
     </div>`;
@@ -1101,6 +1124,7 @@ function openProd(id){
         const pd=$('pDays');if(pd)pd.textContent='Llega '+fdate(dr2.p[0])+' – '+fdate(dr2.p[1]);
         const fd=$('fDays');if(fd)fd.textContent='Llega '+fdate(dr2.f[0])+' – '+fdate(dr2.f[1]);
         $('pdAbout').innerHTML=buildAbout(d.item);
+        if(d.item.images&&d.item.images.length>1){renderCarousel(d.item.images)}
       }else{
         $('pdAbout').innerHTML=buildAbout({condition:curProd.cond,description:curProd.description||''});
       }
@@ -1154,9 +1178,6 @@ function openOffer(id){
   $('offerCurP').textContent=fmt(calcTotal(curOfferProd.price,offerShip));
   $('offerMinHint').textContent='Oferta mínima aceptada: '+fmt(calcTotal(curOfferProd.price,offerShip)*0.95);
   $('offerVal').value='';
-  $('offName').value=USER?((USER.first||'')+' '+(USER.last||'')).trim():'';
-  $('offCedulaDisplay').textContent=USER?.cedula||'—';
-  $('offPhoneDisplay').textContent=USER?.phone||'—';
   $('offerErr').classList.remove('show');
   // Cuentas antiguas sin cédula guardada: se les pide UNA sola vez, luego queda bloqueada
   if(USER&&!USER.cedula){
@@ -1184,7 +1205,6 @@ async function saveLegacyCedula(){
   USER.cedula=cedula;
   await persistUser();
   closeOv('panelOv');
-  $('offCedulaDisplay').textContent=cedula;
   openOv('offerOv');
 }
 
@@ -1207,13 +1227,13 @@ function validCedula(c){
 
 async function submitOffer(){
   const v=parseFloat($('offerVal').value);
-  const name=$('offName').value.trim();
+  const name=USER?((USER.first||'')+' '+(USER.last||'')).trim():'';
   const cedula=USER?.cedula||''; // dato permanente, fijado al registrarse — nunca editable aquí
   const phone=USER?.phone||'';   // dato permanente, fijado al registrarse — nunca editable aquí
   const err=$('offerErr');
   err.classList.remove('show');
 
-  if(!name){err.textContent='Ingresa tu nombre de usuario';err.classList.add('show');return}
+  if(!name){err.textContent='Debes iniciar sesión para hacer una oferta';err.classList.add('show');return}
   if(!validCedula(cedula)){err.textContent='Tu cuenta no tiene una cédula válida registrada. Contacta soporte.';err.classList.add('show');return}
   if(!phone){err.textContent='Tu cuenta no tiene un celular registrado. Contacta soporte.';err.classList.add('show');return}
   if(!v||v<=0){err.textContent='Ingresa una oferta válida';err.classList.add('show');return}
@@ -1528,6 +1548,28 @@ function checkDevice(isRegister){
 // ═══════════ PANEL DE CONFIGURACIÓN ═══════════
 const CITIES=['Managua','León','Chinandega'];
 
+// Prefijos telefónicos internacionales (código ISO, nombre, prefijo)
+const PHONE_CODES=[
+['US','Estados Unidos','+1'],['CA','Canadá','+1'],['MX','México','+52'],['GT','Guatemala','+502'],
+['BZ','Belice','+501'],['SV','El Salvador','+503'],['HN','Honduras','+504'],['NI','Nicaragua','+505'],
+['CR','Costa Rica','+506'],['PA','Panamá','+507'],['CU','Cuba','+53'],['DO','Rep. Dominicana','+1'],
+['PR','Puerto Rico','+1'],['JM','Jamaica','+1'],['HT','Haití','+509'],['CO','Colombia','+57'],
+['VE','Venezuela','+58'],['EC','Ecuador','+593'],['PE','Perú','+51'],['BO','Bolivia','+591'],
+['PY','Paraguay','+595'],['UY','Uruguay','+598'],['AR','Argentina','+54'],['BR','Brasil','+55'],
+['CL','Chile','+56'],['GY','Guyana','+592'],['SR','Surinam','+597'],
+['ES','España','+34'],['PT','Portugal','+351'],['FR','Francia','+33'],['DE','Alemania','+49'],
+['IT','Italia','+39'],['GB','Reino Unido','+44'],['IE','Irlanda','+353'],['NL','Países Bajos','+31'],
+['BE','Bélgica','+32'],['CH','Suiza','+41'],['AT','Austria','+43'],['SE','Suecia','+46'],
+['NO','Noruega','+47'],['DK','Dinamarca','+45'],['FI','Finlandia','+358'],['PL','Polonia','+48'],
+['GR','Grecia','+30'],['RU','Rusia','+7'],['UA','Ucrania','+380'],['RO','Rumanía','+40'],
+['TR','Turquía','+90'],['CN','China','+86'],['JP','Japón','+81'],['KR','Corea del Sur','+82'],
+['IN','India','+91'],['PK','Pakistán','+92'],['ID','Indonesia','+62'],['PH','Filipinas','+63'],
+['VN','Vietnam','+84'],['TH','Tailandia','+66'],['MY','Malasia','+60'],['SG','Singapur','+65'],
+['AU','Australia','+61'],['NZ','Nueva Zelanda','+64'],['ZA','Sudáfrica','+27'],['EG','Egipto','+20'],
+['NG','Nigeria','+234'],['MA','Marruecos','+212'],['SA','Arabia Saudita','+966'],['AE','Emiratos Árabes','+971'],
+['IL','Israel','+972']
+];
+
 // ═══ SISTEMA DE DIRECCIONES GUARDADAS ═══
 function renderAddrList(){
   const addrs=USER?.addresses||[];
@@ -1556,7 +1598,14 @@ function openAddAddress(){
     </div>
     <div class="cf"><label>Dirección completa</label><input id="naAddr" placeholder="Barrio, calle, referencias…"></div>
     <div class="cf"><label>Código postal</label><input id="naZip" placeholder="Ej: 11001" maxlength="10"></div>
-    <div class="cf"><label>Teléfono de contacto</label><input id="naPhone" type="tel" placeholder="8888-0000"></div>
+    <div class="cf"><label>Teléfono de contacto</label>
+      <div style="display:flex;gap:8px">
+        <select id="naPhoneCode" style="width:130px;border:1.5px solid var(--border);border-radius:var(--r4);padding:10px 6px;font-size:13px;background:var(--white);color:var(--text);outline:none">
+          ${PHONE_CODES.map(([iso,name,code])=>`<option value="${code}" ${iso==='NI'?'selected':''}>${code} ${name}</option>`).join('')}
+        </select>
+        <input id="naPhone" type="tel" placeholder="8888-0000" style="flex:1">
+      </div>
+    </div>
     <div class="cf"><label>Descripción adicional (opcional)</label><input id="naDesc" placeholder="Punto de referencia, color de portón…"></div>
     <div class="msg msg-e" id="naErr"></div>
     <button class="abtn" onclick="saveNewAddress()">Guardar dirección</button>
@@ -1575,15 +1624,17 @@ async function saveNewAddress(){
   const city=$('naCity').value;
   const address=$('naAddr').value.trim();
   const zip=$('naZip').value.trim();
-  const phone=$('naPhone').value.trim();
+  const phoneCode=$('naPhoneCode').value;
+  const phoneNum=$('naPhone').value.trim();
   const desc=$('naDesc').value.trim();
   const err=$('naErr');
   err.classList.remove('show');
   if(!city){err.textContent='Selecciona una ciudad';err.classList.add('show');return}
   if(!address){err.textContent='Ingresa la dirección completa';err.classList.add('show');return}
   if(!zip){err.textContent='El código postal es obligatorio';err.classList.add('show');return}
-  if(!phone){err.textContent='El teléfono de contacto es obligatorio';err.classList.add('show');return}
+  if(!phoneNum){err.textContent='El teléfono de contacto es obligatorio';err.classList.add('show');return}
   if(!USER)return;
+  const phone=phoneCode+' '+phoneNum;
   USER.addresses=USER.addresses||[];
   USER.addresses.push({label:label||city,city,address,zip,phone,desc});
   await persistUser();
