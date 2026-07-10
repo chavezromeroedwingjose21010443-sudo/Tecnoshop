@@ -560,7 +560,7 @@ footer strong{color:rgba(255,255,255,.75)}
     <div class="offer-body">
       <div class="offer-cur"><div class="offer-cur-lbl">Precio actual</div><div class="offer-cur-price" id="offerCurP">—</div><div style="font-size:11px;color:var(--text3);margin-top:4px" id="offerMinHint"></div></div>
       <div class="cf"><label>Nombre completo</label><input id="offName" placeholder="Nombre y apellidos"></div>
-      <div class="cf"><label>Cédula (formato NIC)</label><input id="offCedula" placeholder="000-000000-0000A" maxlength="16" oninput="formatCedula(this)"></div>
+      <div class="cf"><label>Cédula (formato NIC)</label><input id="offCedula" placeholder="000-000000-0000A" maxlength="17" oninput="formatCedula(this)"></div>
       <div class="cf"><label>Número de celular</label><input id="offPhone" type="tel" placeholder="8888-0000"></div>
       <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:6px;margin-top:6px">Tu oferta (USD)</div>
       <input class="offer-input" type="number" id="offerVal" placeholder="$0.00">
@@ -750,11 +750,15 @@ async function doForgot(){
     const data=await res.json();
     if(data.success&&data.link){
       // Enviar el correo con diseño TecnoShop usando el link seguro que generó Firebase
-      await emailjs.send('service_7zfn94m','template_reset',{
-        email_title:'Recupera tu contraseña - TecnoShop',
-        to_email:email,
-        reset_link:data.link
-      });
+      try{
+        await emailjs.send('service_7zfn94m','template_jyx5ytk',{
+          email_title:'Recupera tu contraseña - TecnoShop',
+          to_email:email,
+          reset_link:data.link
+        });
+      }catch(mailErr){
+        console.error('EmailJS falló al enviar recuperación:',mailErr);
+      }
     }
     // Mensaje neutro siempre (no revela si el correo existe o no, por seguridad)
     so('fOk','✅ Si el correo está registrado, recibirás un enlace de recuperación en unos minutos.');
@@ -1147,17 +1151,18 @@ function openOffer(id){
 // Formatea automáticamente la cédula nicaragüense: 000-000000-0000A
 function formatCedula(input){
   let v=input.value.toUpperCase().replace(/[^0-9A-Z]/g,'');
-  if(v.length>13)v=v.slice(0,13);
+  if(v.length>14)v=v.slice(0,14);
   let out='';
   if(v.length>0)out=v.slice(0,3);
   if(v.length>3)out+='-'+v.slice(3,9);
-  if(v.length>9)out+='-'+v.slice(9,13);
+  if(v.length>9)out+='-'+v.slice(9,14);
   input.value=out;
 }
 
 function validCedula(c){
-  // Formato real Nicaragua: 3 dígitos - 6 dígitos - 4 dígitos + 1 letra  → 081-141002-1004K
-  return /^\d{3}-\d{6}-\d{4}[A-Z]$/.test(c);
+  // Formato Nicaragua flexible: 3 dígitos - 6 dígitos - 3 a 5 caracteres (dígitos + letra final)
+  // Cubre variantes de 12 a 14 caracteres totales, ej: 081-141002-1004K
+  return /^\d{3}-\d{6}-\d{3,4}[A-Z]$/.test(c);
 }
 
 async function submitOffer(){
@@ -1244,13 +1249,13 @@ async function submitOffer(){
           </table>
         </td></tr>
       </table>`;
-    emailjs.send('service_7zfn94m','template_notificacion',{
+    emailjs.send('service_7zfn94m','template_bb4894x',{
       email_title:'🔴 Nueva oferta recibida - TecnoShop',
       alerta_bg:'#fef2f2',alerta_borde:'#fecaca',alerta_color:'#dc2626',alerta_texto:'🔴 Nueva oferta recibida',
       cuerpo_html:cuerpoHtml,
       boton_texto:'Ir al panel de administración',
       panel_url:'https://tecnoshop-theta.vercel.app/admin.html'
-    });
+    }).catch(mailErr=>console.error('EmailJS falló al notificar oferta:',mailErr));
   }catch(e){}
 
   dispatchNotification('message','Oferta enviada 📨','Tu oferta de '+fmt(v)+' fue enviada. Te contactaremos en máximo 48 horas.');
@@ -1367,7 +1372,7 @@ async function placeOrder(){
           </table>
         </td></tr>
       </table>`;
-    emailjs.send('service_7zfn94m','template_notificacion',{
+    emailjs.send('service_7zfn94m','template_bb4894x',{
       email_title:'🟢 Nuevo pedido confirmado - TecnoShop',
       alerta_bg:'#f0fdf4',alerta_borde:'#bbf7d0',alerta_color:'#16a34a',alerta_texto:'🟢 Nuevo pedido confirmado',
       cuerpo_html:cuerpoHtml,
