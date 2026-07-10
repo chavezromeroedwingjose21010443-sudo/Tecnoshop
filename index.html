@@ -7,6 +7,51 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
 <script>emailjs.init('_81stFKr1MC_2-4-a');</script>
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged, sendPasswordResetEmail, updatePassword, EmailAuthProvider, reauthenticateWithCredential } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+import { getFirestore, doc, getDoc, setDoc, updateDoc, collection, addDoc, getDocs, query, where, orderBy, serverTimestamp, arrayUnion } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyBaNwGkiLDHGjjEDJo0x0NqYQou99MmBz0",
+  authDomain: "tecnoshop-498f9.firebaseapp.com",
+  projectId: "tecnoshop-498f9",
+  storageBucket: "tecnoshop-498f9.firebasestorage.app",
+  messagingSenderId: "465825489652",
+  appId: "1:465825489652:web:6b28fcdfd66b95e72c74a1"
+};
+
+const fbApp = initializeApp(firebaseConfig);
+const auth = getAuth(fbApp);
+const db = getFirestore(fbApp);
+
+window._fb = {
+  auth, db, doc, getDoc, setDoc, updateDoc, collection, addDoc, getDocs, query, where, orderBy, serverTimestamp, arrayUnion,
+  createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, sendPasswordResetEmail, updatePassword, EmailAuthProvider, reauthenticateWithCredential
+};
+
+// Timeout de seguridad: si Firebase no responde en 3s, muestra login igual
+const _authTimeout = setTimeout(() => { if (window._fbReady) return; window._fbReady = true; window.showAuthScreen && window.showAuthScreen(); }, 3000);
+
+onAuthStateChanged(auth, async (fbUser) => {
+  clearTimeout(_authTimeout);
+  if (window._fbReady) return;
+  window._fbReady = true;
+  if (fbUser) {
+    try {
+      const snap = await getDoc(doc(db, 'users', fbUser.uid));
+      window._fbUserData = snap.exists() ? snap.data() : { email: fbUser.email, first: fbUser.email.split('@')[0], last: '' };
+      window._fbUserData.uid = fbUser.uid;
+      window._fbUserData.email = fbUser.email;
+    } catch (e) {
+      window._fbUserData = { uid: fbUser.uid, email: fbUser.email, first: fbUser.email.split('@')[0], last: '' };
+    }
+    window.onFirebaseLogin && window.onFirebaseLogin();
+  } else {
+    window.showAuthScreen && window.showAuthScreen();
+  }
+});
+</script>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -308,8 +353,14 @@ footer strong{color:rgba(255,255,255,.75)}
 </head>
 <body>
 
+<div id="loadingScreen" style="position:fixed;inset:0;background:var(--bg);z-index:3000;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px">
+  <div style="font-size:28px;font-weight:900;letter-spacing:-1px;color:var(--text)">Tecno<em style="font-style:normal;color:var(--blue)">Shop</em></div>
+  <div style="width:32px;height:32px;border:3px solid #e0e0e0;border-top-color:var(--blue);border-radius:50%;animation:spin .8s linear infinite"></div>
+</div>
+<style>@keyframes spin{to{transform:rotate(360deg)}}</style>
+
 <!-- AUTH: LOGIN -->
-<div class="auth-screen active" id="scLogin">
+<div class="auth-screen" id="scLogin">
   <div class="auth-card">
     <div class="auth-logo"><div class="brand-text">Tecno<em>Shop</em></div></div>
     <div class="auth-title">Iniciar sesión</div>
@@ -576,8 +627,37 @@ let SOLD=LS.g('ts_sold')||[]; // artículos ya vendidos (unidad única)
 // THEME
 function toggleTheme(){darkMode=!darkMode;document.documentElement.setAttribute('data-theme',darkMode?'dark':'');$('themeBtn').textContent=darkMode?'☀️ Claro':'🌙 Oscuro'}
 
-// AUTH - usando localStorage (sin Firebase, funciona en cualquier navegador)
+// AUTH - Firebase Authentication + Firestore (seguro, con sesión en la nube)
 function ss(id){document.querySelectorAll('.auth-screen').forEach(s=>s.classList.remove('active'));$(id)&&$(id).classList.add('active')}
+
+// Se llama automáticamente cuando Firebase confirma que NO hay sesión activa
+window.showAuthScreen=function(){
+  $('loadingScreen')&&($('loadingScreen').style.display='none');
+  $('app').style.display='none';
+  ss('scLogin');
+}
+
+// Se llama automáticamente cuando Firebase confirma que SÍ hay sesión activa
+window.onFirebaseLogin=async function(){
+  $('loadingScreen')&&($('loadingScreen').style.display='none');
+  USER=window._fbUserData;
+  await loadUserCloudData();
+  checkDevice(false);
+  showApp();
+}
+
+async function loadUserCloudData(){
+  if(!USER)return;
+  try{
+    const ordersQ=window._fb.query(window._fb.collection(window._fb.db,'orders'),window._fb.where('uid','==',USER.uid));
+    const snap=await window._fb.getDocs(ordersQ);
+    ORDERS=snap.docs.map(d=>d.data());
+  }catch(e){ORDERS=[]}
+  FAVS=USER.favorites||[];
+  FAV_PRODS=USER.favProds||{};
+  cart=[];
+  loadNotifs();
+}
 
 function showApp(){
   document.querySelectorAll('.auth-screen').forEach(s=>s.classList.remove('active'));
@@ -588,30 +668,38 @@ function showApp(){
 
 function syncNav(){
   if(!USER)return;
-  const i=(USER.first[0]+(USER.last?USER.last[0]:'')).toUpperCase();
-  $('navAv').textContent=i;$('navNm').textContent=USER.first;
-  $('udN').textContent=USER.first+' '+(USER.last||'');$('udE').textContent=USER.email;
+  const i=((USER.first||'?')[0]+(USER.last?USER.last[0]:'')).toUpperCase();
+  $('navAv').textContent=i;$('navNm').textContent=USER.first||'Mi cuenta';
+  $('udN').textContent=(USER.first||'')+' '+(USER.last||'');$('udE').textContent=USER.email||'';
 }
 
 function se(id,m){const e=$(id);e.textContent=m;e.className='msg msg-e show';setTimeout(()=>e.className='msg msg-e',4500)}
 function so(id,m){const e=$(id);e.textContent=m;e.className='msg msg-s show'}
 
-function doLogin(){
+async function doLogin(){
   const email=$('lEmail').value.trim(),pass=$('lPass').value;
   if(!email||!pass){se('loginErr','Completa todos los campos');return}
-  const users=LS.g('ts_users')||[];
-  const found=users.find(u=>u.email===email&&u.pass===btoa(unescape(encodeURIComponent(pass))));
-  if(!found){se('loginErr','Correo o contraseña incorrectos');return}
-  USER=found;
-  ORDERS=LS.g('ts_ord_'+USER.email)||[];
-  FAVS=LS.g('ts_fav_'+USER.email)||[];
-  FAV_PRODS=LS.g('ts_favp_'+USER.email)||{};
-  cart=[];
-  loadNotifs();checkDevice(false);
-  showApp();toast('Bienvenido, '+USER.first+' 👋');
+  const btn=document.querySelector('#scLogin .abtn');
+  if(btn){btn.disabled=true;btn.textContent='Iniciando sesión...'}
+  try{
+    await window._fb.signInWithEmailAndPassword(window._fb.auth,email,pass);
+    // onAuthStateChanged se encarga del resto (onFirebaseLogin)
+    toast('Bienvenido 👋');
+  }catch(err){
+    const msgs={
+      'auth/user-not-found':'No existe una cuenta con este correo',
+      'auth/wrong-password':'Contraseña incorrecta',
+      'auth/invalid-credential':'Correo o contraseña incorrectos',
+      'auth/invalid-email':'Correo inválido',
+      'auth/too-many-requests':'Demasiados intentos. Espera un momento e intenta de nuevo',
+      'auth/network-request-failed':'Error de conexión. Verifica tu internet'
+    };
+    se('loginErr',msgs[err.code]||'Error al iniciar sesión');
+  }
+  if(btn){btn.disabled=false;btn.textContent='Iniciar sesión'}
 }
 
-function doRegister(){
+async function doRegister(){
   const first=$('rFirst').value.trim(),last=$('rLast').value.trim(),
         email=$('rEmail').value.trim(),phone=$('rPhone').value.trim(),
         pass=$('rPass').value,pass2=$('rPass2').value;
@@ -619,26 +707,43 @@ function doRegister(){
   if(!/\S+@\S+\.\S+/.test(email)){se('regErr','Correo inválido');return}
   if(pass.length<8){se('regErr','Mínimo 8 caracteres');return}
   if(pass!==pass2){se('regErr','Las contraseñas no coinciden');return}
-  const users=LS.g('ts_users')||[];
-  if(users.find(u=>u.email===email)){se('regErr','Ya existe una cuenta con este correo');return}
-  const newUser={first,last,email,phone,pass:btoa(unescape(encodeURIComponent(pass)))};
-  users.push(newUser);LS.s('ts_users',users);
-  USER=newUser;ORDERS=[];FAVS=[];FAV_PRODS={};cart=[];
-  loadNotifs();checkDevice(true);
-  dispatchNotification('promo','¡Bienvenido a TecnoShop! 🎉','Gracias por crear tu cuenta. Pronto recibirás promociones exclusivas.');
-  showApp();toast('¡Cuenta creada! Bienvenido, '+first+' 🎉');
+  const btn=document.querySelector('#scRegister .abtn');
+  if(btn){btn.disabled=true;btn.textContent='Creando cuenta...'}
+  try{
+    const cred=await window._fb.createUserWithEmailAndPassword(window._fb.auth,email,pass);
+    const newUser={uid:cred.user.uid,first,last,email,phone,city:'',address:'',favorites:[],favProds:{},linkedEmails:[],createdAt:window._fb.serverTimestamp()};
+    await window._fb.setDoc(window._fb.doc(window._fb.db,'users',cred.user.uid),newUser);
+    USER={...newUser};ORDERS=[];FAVS=[];FAV_PRODS={};cart=[];
+    checkDevice(true);
+    loadNotifs();
+    dispatchNotification('promo','¡Bienvenido a TecnoShop! 🎉','Gracias por crear tu cuenta. Pronto recibirás promociones exclusivas.');
+    showApp();toast('¡Cuenta creada! Bienvenido, '+first+' 🎉');
+  }catch(err){
+    const msgs={
+      'auth/email-already-in-use':'Ya existe una cuenta con este correo',
+      'auth/weak-password':'La contraseña es demasiado débil',
+      'auth/invalid-email':'Correo inválido',
+      'auth/network-request-failed':'Error de conexión. Verifica tu internet'
+    };
+    se('regErr',msgs[err.code]||'Error al crear la cuenta');
+  }
+  if(btn){btn.disabled=false;btn.textContent='Crear cuenta'}
 }
 
-function doForgot(){
+async function doForgot(){
   const email=$('fEmail').value.trim();
   if(!email||!/\S+@\S+\.\S+/.test(email)){se('fErr','Correo inválido');return}
-  const users=LS.g('ts_users')||[];
-  if(!users.find(u=>u.email===email)){se('fErr','No encontramos esa cuenta');return}
-  so('fOk','Cuenta encontrada. Contacta soporte: +505 8116-5033');
+  try{
+    await window._fb.sendPasswordResetEmail(window._fb.auth,email);
+    so('fOk','✅ Enlace de recuperación enviado a tu correo');
+  }catch(err){
+    se('fErr','No encontramos una cuenta con ese correo');
+  }
 }
 
-function doLogout(){
-  USER=null;cart=[];ORDERS=[];FAVS=[];FAV_PRODS=[];
+async function doLogout(){
+  try{await window._fb.signOut(window._fb.auth)}catch(e){}
+  USER=null;cart=[];ORDERS=[];FAVS=[];FAV_PRODS=[];window._fbUserData=null;
   $('app').style.display='none';window._inited=false;
   closeUD();$('cBadge').textContent='0';$('favBadge').textContent='0';NOTIFS=[];const nb=$('nBadge');if(nb)nb.style.display='none';
   ss('scLogin');toast('Sesión cerrada');
@@ -657,7 +762,7 @@ function toggleFav(id,prod){
   const idx=FAVS.indexOf(id);
   if(idx>-1){FAVS.splice(idx,1);delete FAV_PRODS[id]}
   else{FAVS.push(id);if(prod)FAV_PRODS[id]=prod}
-  if(USER){LS.s('ts_fav_'+USER.email,FAVS);LS.s('ts_favp_'+USER.email,FAV_PRODS)}
+  if(USER){USER.favorites=FAVS;USER.favProds=FAV_PRODS;persistUser()}
   updateFavBadge();
   return idx===-1;
 }
@@ -719,9 +824,38 @@ let curQuery='laptop';
 // Traducción de condiciones (nunca mostrar términos externos en inglés)
 const COND_ES={'New':'Nuevo','Used':'Usado','Refurbished':'Reacondicionado','Good - Refurbished':'Bueno - Reacondicionado','Very Good - Refurbished':'Muy Bueno - Reacondicionado','Excellent - Refurbished':'Excelente - Reacondicionado','Certified - Refurbished':'Certificado - Reacondicionado','Seller refurbished':'Reacondicionado','Open box':'Caja abierta','New other (see details)':'Nuevo (otro)','For parts or not working':'Para repuestos'};
 
+// ═══ FILTRO DE MARCA: elimina cualquier mención a eBay/USA/Estados Unidos ═══
+// Se aplica a TODO texto que provenga del API antes de mostrarse en pantalla.
+function cleanBrand(text){
+  if(!text)return text;
+  return String(text)
+    .replace(/\beBay\b/gi,'')
+    .replace(/\be-?Bay\b/gi,'')
+    .replace(/\bUnited States\b/gi,'')
+    .replace(/\bU\.?S\.?A\.?\b/g,'')
+    .replace(/\bEstados Unidos\b/gi,'')
+    .replace(/\bshipping within the USA\b/gi,'')
+    .replace(/\bships? from (the )?USA\b/gi,'')
+    .replace(/\bmade in (the )?USA\b/gi,'')
+    .replace(/\s{2,}/g,' ')
+    .replace(/\s+([.,;])/g,'$1')
+    .trim();
+}
+
+function cleanBrandDeep(obj){
+  if(typeof obj==='string')return cleanBrand(obj);
+  if(Array.isArray(obj))return obj.map(cleanBrandDeep);
+  if(obj&&typeof obj==='object'){
+    const out={};
+    for(const k in obj)out[k]=cleanBrandDeep(obj[k]);
+    return out;
+  }
+  return obj;
+}
+
 function mapProds(list){
   return list.map(p=>({
-    id:String(p.id),title:p.title,price:Number(p.price)||0,
+    id:String(p.id),title:cleanBrand(p.title),price:Number(p.price)||0,
     cond:COND_ES[p.condition]||p.condition||'Usado',
     type:p.listingType||'buy',
     img:p.image||'https://images.unsplash.com/photo-1496181133206-80ce9b88a853?w=600',
@@ -860,7 +994,8 @@ function deliveryRanges(maxISO){
   return{p:[addDays(base,6),addDays(base,10)],f:[addDays(base,15),addDays(base,30)]};
 }
 
-function buildAbout(info){
+function buildAbout(rawInfo){
+  const info=cleanBrandDeep(rawInfo);
   const rows=[];
   rows.push(['Estado',info.condition||(curProd?curProd.cond:'')]);
   if(info.conditionDescription)rows.push(['Descripción del estado',info.conditionDescription]);
@@ -875,7 +1010,7 @@ function buildAbout(info){
 function openProd(id){
   curProd=findProd(id);if(!curProd)return;
   selShip='free';
-  $('pImg').src=curProd.img;$('pTitle').textContent=curProd.title;$('pCond').textContent=curProd.cond;
+  $('pImg').src=curProd.img;$('pTitle').textContent=cleanBrand(curProd.title);$('pCond').textContent=curProd.cond;
   const tb=$('pTypeBadge');
   if(curProd.type==='offer'){tb.className='card-type-badge ctb-offer';tb.textContent='Oferta especial'}
   else{tb.className='card-type-badge ctb-buy';tb.textContent='Disponible'}
@@ -1035,16 +1170,18 @@ function openCheckout(){
   openOv('ckOv');
 }
 
-function placeOrder(){
+async function placeOrder(){
   const fn=$('ckFn')?.value,addr=$('ckAddr')?.value,cityV=$('ckCity')?.value;
   if(!fn||!addr||!cityV){toast('Completa todos los campos (incluye la ciudad)');return}
   const ref='TS-'+Date.now().toString(36).toUpperCase().slice(-8);
   const total=cart.reduce((s,i)=>s+i.total,0);
   const payMethod=document.querySelector('input[name="pay"]:checked')?.value||'paypal';
-  const order={id:ref,date:new Date().toISOString(),items:[...cart],total,payMethod,status:'pending',
+  const order={id:ref,uid:USER?.uid||'',date:new Date().toISOString(),items:[...cart],total,payMethod,status:'pending',
     customer:{name:fn+' '+($('ckLn')?.value||''),phone:$('ckPhone')?.value||'',address:($('ckAddr')?.value||'')+', '+($('ckCity')?.value||'')}};
   ORDERS.unshift(order);
-  if(USER)LS.s('ts_ord_'+USER.email,ORDERS);
+  try{
+    await window._fb.setDoc(window._fb.doc(window._fb.db,'orders',ref),order);
+  }catch(e){toast('⚠️ No se pudo sincronizar el pedido con la nube');}
   dispatchNotification('purchase','Compra realizada 🛒','Tu compra '+ref+' por '+fmt(total)+' fue registrada exitosamente.');
   dispatchNotification('confirmed','Pedido confirmado ✅','Tu pedido '+ref+' fue confirmado y pasará a procesamiento.');
   try{emailjs.send('service_7zfn94m','template_adbhhh7',{to_email:'edwingjosechavezromero@gmail.com',to_name:'TecnoShop Admin',otp_code:ref,email_title:'Nueva orden: '+ref,email_subtitle:'Total: '+fmt(total)+' · Cliente: '+fn+' · Pago: '+payMethod,shop_url:'https://tecnoshop-theta.vercel.app/admin.html'})}catch(e){}
@@ -1180,43 +1317,52 @@ function openPanel(type){
   openOv('panelOv');
 }
 
-function persistUser(){
-  const users=LS.g('ts_users')||[];
-  const idx=users.findIndex(x=>x.email===USER.email);
-  if(idx>-1){users[idx]=USER;LS.s('ts_users',users)}
+// ═══ PERSISTENCIA DE DATOS DE USUARIO (Firebase Firestore) ═══
+async function persistUser(){
+  if(!USER||!USER.uid)return;
+  try{
+    await window._fb.setDoc(window._fb.doc(window._fb.db,'users',USER.uid),USER,{merge:true});
+  }catch(e){toast('⚠️ No se pudo sincronizar con la nube');}
 }
 
-function savePersonal(){
+async function savePersonal(){
   if(!USER)return;
   USER.first=$('spFirst').value.trim()||USER.first;
   USER.last=$('spLast').value.trim()||USER.last;
   USER.phone=$('spPhone').value.trim();
   USER.city=$('spCity').value;
   USER.address=$('spAddr').value.trim();
-  persistUser();syncNav();closeOv('panelOv');
+  await persistUser();syncNav();closeOv('panelOv');
   toast('✅ Datos guardados correctamente');
 }
 
-function changePassword(){
+async function changePassword(){
   if(!USER)return;
   const oldP=$('spPassOld').value,newP=$('spPassNew').value,newP2=$('spPassNew2').value;
-  if(USER.pass!==btoa(unescape(encodeURIComponent(oldP)))){toast('❌ Contraseña actual incorrecta');return}
+  if(!oldP||!newP){toast('Completa todos los campos');return}
   if(newP.length<8){toast('La nueva contraseña debe tener mínimo 8 caracteres');return}
   if(newP!==newP2){toast('Las contraseñas nuevas no coinciden');return}
-  USER.pass=btoa(unescape(encodeURIComponent(newP)));
-  persistUser();closeOv('panelOv');
-  dispatchNotification('security','Contraseña actualizada 🔐','Tu contraseña fue cambiada exitosamente.');
-  toast('✅ Contraseña actualizada');
+  try{
+    const cred=window._fb.EmailAuthProvider.credential(USER.email,oldP);
+    await window._fb.reauthenticateWithCredential(window._fb.auth.currentUser,cred);
+    await window._fb.updatePassword(window._fb.auth.currentUser,newP);
+    closeOv('panelOv');
+    dispatchNotification('security','Contraseña actualizada 🔐','Tu contraseña fue cambiada exitosamente.');
+    toast('✅ Contraseña actualizada');
+  }catch(err){
+    const msgs={'auth/wrong-password':'Contraseña actual incorrecta','auth/invalid-credential':'Contraseña actual incorrecta','auth/weak-password':'La nueva contraseña es muy débil'};
+    toast('❌ '+(msgs[err.code]||'Error al cambiar la contraseña'));
+  }
 }
 
-function addLinkedEmail(){
+async function addLinkedEmail(){
   if(!USER)return;
   const e=$('spNewEmail').value.trim();
   if(!/\S+@\S+\.\S+/.test(e)){toast('Correo inválido');return}
   USER.linkedEmails=USER.linkedEmails||[];
   if(USER.linkedEmails.includes(e)||e===USER.email){toast('Ese correo ya está vinculado');return}
   USER.linkedEmails.push(e);
-  persistUser();openPanel('emails');
+  await persistUser();openPanel('emails');
   toast('✅ Correo vinculado');
 }
 </script>
