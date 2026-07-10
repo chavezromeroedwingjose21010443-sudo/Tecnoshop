@@ -1378,8 +1378,8 @@ async function placeOrder(){
       cuerpo_html:cuerpoHtml,
       boton_texto:'Gestionar pedido en el panel',
       panel_url:'https://tecnoshop-theta.vercel.app/admin.html'
-    });
-  }catch(e){}
+    }).catch(mailErr=>console.error('EmailJS falló al notificar pedido:',mailErr));
+  }catch(e){console.error('Error general en placeOrder:',e)}
   // Marcar artículos como vendidos y quitarlos de la tienda
   order.items.forEach(i=>{const pid=String(i.prod.id);if(!SOLD.includes(pid))SOLD.push(pid)});
   LS.s('ts_sold',SOLD);
