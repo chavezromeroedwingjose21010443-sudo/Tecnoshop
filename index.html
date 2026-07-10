@@ -1119,7 +1119,13 @@ function buildAbout(rawInfo){
   const info=cleanBrandDeep(rawInfo);
   const rows=[];
   rows.push(['Estado',info.condition||(curProd?curProd.cond:'')]);
-  if(info.conditionDescription)rows.push(['Descripción del estado',info.conditionDescription]);
+  // Nota de origen (requisito de transparencia): se agrega DESPUÉS del filtro de marca,
+  // integrada dentro de la misma descripción del estado que ya trae el producto.
+  const condDescBase=info.conditionDescription||'';
+  const condDescFinal=condDescBase
+    ? condDescBase+(/\.\s*$/.test(condDescBase)?' ':'. ')+'Producto internacional eBay.'
+    : 'Producto internacional eBay.';
+  rows.push(['Descripción del estado',condDescFinal]);
   (info.specs||[]).slice(0,14).forEach(s=>{if(s&&s.name&&s.value)rows.push([s.name,s.value])});
   const tbl=rows.map(r=>`<tr><td style="color:var(--text3);padding:8px 12px;border-bottom:1px solid var(--border2);font-size:13px;width:42%;vertical-align:top">${r[0]}</td><td style="padding:8px 12px;border-bottom:1px solid var(--border2);font-size:13px;font-weight:500;color:var(--text)">${r[1]}</td></tr>`).join('');
   const desc=info.description||info.shortDescription||'';
