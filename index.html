@@ -394,6 +394,8 @@ footer strong{color:rgba(255,255,255,.75)}
       <div class="iw"><span class="fi"><svg viewBox="0 0 24 24"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg></span>
       <input type="email" id="rEmail" placeholder="correo@ejemplo.com"></div></div>
     <div class="fg"><label>Teléfono</label><input type="tel" id="rPhone" placeholder="8888-0000"></div>
+    <div class="fg"><label>Cédula (formato NIC)</label><input id="rCedula" placeholder="000-000000-0000A" maxlength="17" oninput="formatCedula(this)"></div>
+    <div style="font-size:11px;color:var(--text3);margin-top:-8px;margin-bottom:12px">⚠️ Este dato no podrá modificarse después de registrarte</div>
     <div class="fg"><label>Contraseña</label><input type="password" id="rPass" placeholder="Mínimo 8 caracteres"></div>
     <div class="fg"><label>Confirmar contraseña</label><input type="password" id="rPass2" placeholder="Repite tu contraseña"></div>
     <button class="abtn" onclick="doRegister()">Crear cuenta</button>
@@ -559,9 +561,9 @@ footer strong{color:rgba(255,255,255,.75)}
     <div class="sh-hd"><div class="sh-title">Hacer una oferta</div><button class="x-btn" onclick="closeOv('offerOv')"><svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div>
     <div class="offer-body">
       <div class="offer-cur"><div class="offer-cur-lbl">Precio actual</div><div class="offer-cur-price" id="offerCurP">—</div><div style="font-size:11px;color:var(--text3);margin-top:4px" id="offerMinHint"></div></div>
-      <div class="cf"><label>Nombre completo</label><input id="offName" placeholder="Nombre y apellidos"></div>
-      <div class="cf"><label>Cédula (formato NIC)</label><input id="offCedula" placeholder="000-000000-0000A" maxlength="17" oninput="formatCedula(this)"></div>
-      <div class="cf"><label>Número de celular</label><input id="offPhone" type="tel" placeholder="8888-0000"></div>
+      <div class="cf"><label>Nombre de usuario</label><input id="offName" placeholder="Nombre y apellidos"></div>
+      <div class="cf"><label>Cédula</label><div style="background:var(--gray3);border-radius:var(--r4);padding:10px 12px;font-size:14px;color:var(--text2)" id="offCedulaDisplay">—</div></div>
+      <div class="cf"><label>Celular</label><div style="background:var(--gray3);border-radius:var(--r4);padding:10px 12px;font-size:14px;color:var(--text2)" id="offPhoneDisplay">—</div></div>
       <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:6px;margin-top:6px">Tu oferta (USD)</div>
       <input class="offer-input" type="number" id="offerVal" placeholder="$0.00">
       <div class="msg msg-e" id="offerErr"></div>
@@ -708,16 +710,19 @@ async function doLogin(){
 async function doRegister(){
   const first=$('rFirst').value.trim(),last=$('rLast').value.trim(),
         email=$('rEmail').value.trim(),phone=$('rPhone').value.trim(),
+        cedula=$('rCedula').value.trim(),
         pass=$('rPass').value,pass2=$('rPass2').value;
-  if(!first||!last||!email||!phone||!pass){se('regErr','Completa todos los campos');return}
+  if(!first||!last||!email||!phone||!cedula||!pass){se('regErr','Completa todos los campos');return}
   if(!/\S+@\S+\.\S+/.test(email)){se('regErr','Correo inválido');return}
+  if(!validCedula(cedula)){se('regErr','Cédula inválida. Formato: 000-000000-0000A');return}
   if(pass.length<8){se('regErr','Mínimo 8 caracteres');return}
   if(pass!==pass2){se('regErr','Las contraseñas no coinciden');return}
   const btn=document.querySelector('#scRegister .abtn');
   if(btn){btn.disabled=true;btn.textContent='Creando cuenta...'}
   try{
     const cred=await window._fb.createUserWithEmailAndPassword(window._fb.auth,email,pass);
-    const newUser={uid:cred.user.uid,first,last,email,phone,city:'',address:'',favorites:[],favProds:{},linkedEmails:[],createdAt:window._fb.serverTimestamp()};
+    // cedula y phone quedan fijos permanentemente: no hay función de edición para ellos en el panel de Configuración
+    const newUser={uid:cred.user.uid,first,last,email,phone,cedula,city:'',address:'',favorites:[],favProds:{},linkedEmails:[],createdAt:window._fb.serverTimestamp()};
     await window._fb.setDoc(window._fb.doc(window._fb.db,'users',cred.user.uid),newUser);
     USER={...newUser};ORDERS=[];FAVS=[];FAV_PRODS={};cart=[];
     checkDevice(true);
@@ -860,7 +865,13 @@ function cleanBrand(text){
     .replace(/\be-?Bay\b/gi,'')
     .replace(/\bUnited States\b/gi,'')
     .replace(/\bU\.?S\.?A\.?\b/g,'')
+    .replace(/\bEE\.?\s?UU\.?\b/gi,'')
     .replace(/\bEstados Unidos\b/gi,'')
+    .replace(/\bFedEx\b/gi,'')
+    .replace(/\bUSPS\b/gi,'')
+    .replace(/\bUPS\b/g,'')
+    .replace(/\bExtranjero\b/gi,'')
+    .replace(/\bFuera\b/gi,'')
     .replace(/\bshipping within the USA\b/gi,'')
     .replace(/\bships? from (the )?USA\b/gi,'')
     .replace(/\bmade in (the )?USA\b/gi,'')
@@ -1138,26 +1149,43 @@ function updBadge(){$('cBadge').textContent=cart.length}
 // OFFER
 function openOffer(id){
   curOfferProd=findProd(id);if(!curOfferProd)return;
-  offerShip='free';
-  document.querySelectorAll('#offShipPriority,#offShipFree').forEach(o=>o.classList.remove('on'));
-  $('offShipFree').classList.add('on');
+  offerShip='free'; // la oferta se calcula siempre sobre el precio con Envío Gratis;
+                     // el cliente elige el tipo de envío después, al facturar, si le aceptan la oferta
   $('offerCurP').textContent=fmt(calcTotal(curOfferProd.price,offerShip));
   $('offerMinHint').textContent='Oferta mínima aceptada: '+fmt(calcTotal(curOfferProd.price,offerShip)*0.95);
   $('offerVal').value='';
   $('offName').value=USER?((USER.first||'')+' '+(USER.last||'')).trim():'';
-  $('offCedula').value=USER?.cedula||'';
-  $('offPhone').value=USER?.phone||'';
+  $('offCedulaDisplay').textContent=USER?.cedula||'—';
+  $('offPhoneDisplay').textContent=USER?.phone||'—';
   $('offerErr').classList.remove('show');
-  openOv('offerOv');
+  // Cuentas antiguas sin cédula guardada: se les pide UNA sola vez, luego queda bloqueada
+  if(USER&&!USER.cedula){
+    askLegacyCedula();
+  }else{
+    openOv('offerOv');
+  }
 }
 
-function selectOfferShip(type){
-  offerShip=type;
-  document.querySelectorAll('#offShipPriority,#offShipFree').forEach(o=>o.classList.remove('on'));
-  $(type==='priority'?'offShipPriority':'offShipFree').classList.add('on');
-  const total=calcTotal(curOfferProd.price,type);
-  $('offerCurP').textContent=fmt(total);
-  $('offerMinHint').textContent='Oferta mínima aceptada: '+fmt(total*0.95);
+// Para cuentas creadas antes de exigir cédula: se solicita una única vez y queda fija para siempre
+function askLegacyCedula(){
+  $('panelTitle').textContent='Completa tu registro';
+  $('panelBody').innerHTML=`
+    <p style="font-size:13px;color:var(--text2);margin-bottom:14px;line-height:1.6">Antes de continuar, necesitamos tu cédula. Este dato se guardará de forma permanente y no podrá modificarse después.</p>
+    <div class="cf"><label>Cédula (formato NIC)</label><input id="legacyCedula" placeholder="000-000000-0000A" maxlength="17" oninput="formatCedula(this)"></div>
+    <div class="msg msg-e" id="legacyCedulaErr"></div>
+    <button class="abtn" onclick="saveLegacyCedula()">Guardar y continuar</button>`;
+  openOv('panelOv');
+}
+
+async function saveLegacyCedula(){
+  const cedula=$('legacyCedula').value.trim();
+  const err=$('legacyCedulaErr');
+  if(!validCedula(cedula)){err.textContent='Cédula inválida. Formato: 000-000000-0000A';err.classList.add('show');return}
+  USER.cedula=cedula;
+  await persistUser();
+  closeOv('panelOv');
+  $('offCedulaDisplay').textContent=cedula;
+  openOv('offerOv');
 }
 
 // Formatea automáticamente la cédula nicaragüense: 000-000000-0000A
@@ -1180,17 +1208,17 @@ function validCedula(c){
 async function submitOffer(){
   const v=parseFloat($('offerVal').value);
   const name=$('offName').value.trim();
-  const cedula=$('offCedula').value.trim();
-  const phone=$('offPhone').value.trim();
+  const cedula=USER?.cedula||''; // dato permanente, fijado al registrarse — nunca editable aquí
+  const phone=USER?.phone||'';   // dato permanente, fijado al registrarse — nunca editable aquí
   const err=$('offerErr');
   err.classList.remove('show');
 
-  if(!name){err.textContent='Ingresa tu nombre completo';err.classList.add('show');return}
-  if(!validCedula(cedula)){err.textContent='Cédula inválida. Formato: 000-000000-0000A';err.classList.add('show');return}
-  if(!phone){err.textContent='Ingresa tu número de celular';err.classList.add('show');return}
+  if(!name){err.textContent='Ingresa tu nombre de usuario';err.classList.add('show');return}
+  if(!validCedula(cedula)){err.textContent='Tu cuenta no tiene una cédula válida registrada. Contacta soporte.';err.classList.add('show');return}
+  if(!phone){err.textContent='Tu cuenta no tiene un celular registrado. Contacta soporte.';err.classList.add('show');return}
   if(!v||v<=0){err.textContent='Ingresa una oferta válida';err.classList.add('show');return}
 
-  const publishedPrice=calcTotal(curOfferProd.price,offerShip); // precio mostrado al cliente, según envío elegido
+  const publishedPrice=calcTotal(curOfferProd.price,offerShip); // precio con Envío Gratis (base de toda oferta)
   const minAllowed=publishedPrice*0.95; // monto mínimo permitido para ofertar: 95% del precio publicado
   if(v<minAllowed){
     err.textContent='La oferta no puede ser menor a '+fmt(minAllowed)+' (el monto mínimo permitido es el 95% del precio)';
@@ -1203,12 +1231,6 @@ async function submitOffer(){
   // La diferencia se resta del PRECIO DE EBAY (costo real), nunca de la ganancia TecnoShop
   const newEbayCost=curOfferProd.price-diff;
   const gananciaTecnoShop=MARKUP; // se mantiene intacta siempre
-
-  // Guardar cédula en el perfil del usuario para futuras ofertas (persistente)
-  if(USER){
-    USER.cedula=cedula;USER.phone=phone;
-    persistUser();
-  }
 
   // Guardar la oferta en Firestore, vinculada al panel de administración
   const offerId='OF-'+Date.now().toString(36).toUpperCase().slice(-8);
@@ -1300,21 +1322,39 @@ function renderCart(){
 function removeCart(uid){cart=cart.filter(i=>i.uid!==uid);updBadge();renderCart();toast('Producto eliminado')}
 
 // CHECKOUT
+function updateCkAddrPreview(){
+  const idx=$('ckAddrSel').value;
+  const prev=$('ckAddrPreview');
+  if(idx===''){prev.textContent='';return}
+  const a=(USER.addresses||[])[idx];
+  if(a)prev.textContent=a.address+' · '+a.city+' · C.P. '+a.zip+' · 📞 '+(a.phone||'—')+(a.desc?' · '+a.desc:'');
+}
+
 function openCheckout(){
   closeOv('cartOv');
   const u=USER||{};const total=cart.reduce((s,i)=>s+i.total,0);
+  const addrs=u.addresses||[];
+  const addrOptions=addrs.length
+    ? addrs.map((a,i)=>`<option value="${i}">${a.label||a.city} — ${a.address.slice(0,40)}</option>`).join('')
+    : '';
   $('ckContent').innerHTML=`<div class="ck-body">
     <div class="ck-sec">Información de entrega</div>
     <div style="background:var(--blue-l);border-radius:var(--r4);padding:8px 12px;font-size:12px;color:var(--blue);font-weight:600;margin-bottom:12px">📍 Por el momento solo realizamos entregas en Managua, León y Chinandega</div>
-    <div class="ck-2">
-      <div class="cf"><label>Nombre</label><input id="ckFn" value="${u.first||''}" placeholder="Nombre"></div>
-      <div class="cf"><label>Apellido</label><input id="ckLn" value="${u.last||''}" placeholder="Apellido"></div>
+    <div class="fg"><label>Nombre</label><div style="background:var(--gray3);border-radius:var(--r4);padding:10px 12px;font-size:14px;color:var(--text2)">${(u.first||'')+' '+(u.last||'')}</div></div>
+    ${addrs.length?`
+    <div class="cf"><label>Dirección de entrega</label>
+      <select id="ckAddrSel" onchange="updateCkAddrPreview()">
+        <option value="">Selecciona una dirección…</option>
+        ${addrOptions}
+      </select>
     </div>
-    <div class="cf"><label>Dirección</label><input id="ckAddr" value="${u.address||''}" placeholder="Tu dirección completa"></div>
-    <div class="ck-2">
-      <div class="cf"><label>Ciudad</label><select id="ckCity"><option value="">Selecciona…</option><option ${u.city==='Managua'?'selected':''}>Managua</option><option ${u.city==='León'?'selected':''}>León</option><option ${u.city==='Chinandega'?'selected':''}>Chinandega</option></select></div>
-      <div class="cf"><label>Teléfono</label><input id="ckPhone" value="${u.phone||''}" placeholder="8888-0000"></div>
+    <div id="ckAddrPreview" style="font-size:12px;color:var(--text3);margin-bottom:12px"></div>
+    `:`
+    <div style="background:#fef2f2;border:1px solid #fecaca;border-radius:var(--r8);padding:12px;margin-bottom:14px;font-size:12px;color:#dc2626">
+      No tienes direcciones guardadas. <button onclick="closeOv('ckOv');openPanel('personal')" style="color:#dc2626;font-weight:700;text-decoration:underline;background:none;border:none;cursor:pointer;font-size:12px">Agrega una en Configuración →</button>
     </div>
+    `}
+    <div class="cf"><label>Teléfono</label><div style="background:var(--gray3);border-radius:var(--r4);padding:10px 12px;font-size:14px;color:var(--text2)">${u.phone||'No registrado'}</div></div>
     <div class="ck-sec" style="margin-top:14px">Método de pago</div>
     <div class="pay-opts">
       <label class="popt on" onclick="this.closest('.pay-opts').querySelectorAll('.popt').forEach(p=>p.classList.remove('on'));this.classList.add('on')">
@@ -1339,13 +1379,16 @@ function openCheckout(){
 }
 
 async function placeOrder(){
-  const fn=$('ckFn')?.value,addr=$('ckAddr')?.value,cityV=$('ckCity')?.value;
-  if(!fn||!addr||!cityV){toast('Completa todos los campos (incluye la ciudad)');return}
+  const fn=USER?.first||'',ln=USER?.last||'';
+  const addrIdx=$('ckAddrSel')?.value;
+  if(!addrIdx&&addrIdx!==0){toast('Selecciona una dirección de entrega');return}
+  const savedAddr=(USER.addresses||[])[addrIdx];
+  if(!savedAddr){toast('Selecciona una dirección de entrega');return}
   const ref='TS-'+Date.now().toString(36).toUpperCase().slice(-8);
   const total=cart.reduce((s,i)=>s+i.total,0);
   const payMethod=document.querySelector('input[name="pay"]:checked')?.value||'paypal';
   const order={id:ref,uid:USER?.uid||'',date:new Date().toISOString(),items:[...cart],total,payMethod,status:'pending',
-    customer:{name:fn+' '+($('ckLn')?.value||''),phone:$('ckPhone')?.value||'',address:($('ckAddr')?.value||'')+', '+($('ckCity')?.value||'')}};
+    customer:{name:fn+' '+ln,phone:savedAddr.phone||USER?.phone||'',address:savedAddr.address+', '+savedAddr.city+' (C.P. '+savedAddr.zip+')'+(savedAddr.desc?' — '+savedAddr.desc:'')}};
   ORDERS.unshift(order);
   try{
     await window._fb.setDoc(window._fb.doc(window._fb.db,'orders',ref),order);
@@ -1384,9 +1427,9 @@ async function placeOrder(){
       <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#eef3ff;border-radius:10px;">
         <tr><td style="padding:14px 16px;">
           <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
-            <tr><td style="font-size:13px;color:#555;padding:4px 0;width:38%;">Cliente</td><td style="font-size:13px;color:#111820;font-weight:700;padding:4px 0;">${fn+' '+($('ckLn')?.value||'')}</td></tr>
-            <tr><td style="font-size:13px;color:#555;padding:4px 0;">Teléfono</td><td style="font-size:13px;color:#111820;font-weight:700;padding:4px 0;">${$('ckPhone')?.value||''}</td></tr>
-            <tr><td style="font-size:13px;color:#555;padding:4px 0;">Dirección</td><td style="font-size:13px;color:#111820;font-weight:700;padding:4px 0;">${($('ckAddr')?.value||'')+', '+($('ckCity')?.value||'')}</td></tr>
+            <tr><td style="font-size:13px;color:#555;padding:4px 0;width:38%;">Cliente</td><td style="font-size:13px;color:#111820;font-weight:700;padding:4px 0;">${order.customer.name}</td></tr>
+            <tr><td style="font-size:13px;color:#555;padding:4px 0;">Teléfono</td><td style="font-size:13px;color:#111820;font-weight:700;padding:4px 0;">${order.customer.phone}</td></tr>
+            <tr><td style="font-size:13px;color:#555;padding:4px 0;">Dirección</td><td style="font-size:13px;color:#111820;font-weight:700;padding:4px 0;">${order.customer.address}</td></tr>
             <tr><td style="font-size:13px;color:#555;padding:4px 0;">Pago</td><td style="font-size:13px;color:#111820;font-weight:700;padding:4px 0;">${payMethod==='paypal'?'PayPal':'Transferencia bancaria'}</td></tr>
           </table>
         </td></tr>
@@ -1485,6 +1528,77 @@ function checkDevice(isRegister){
 // ═══════════ PANEL DE CONFIGURACIÓN ═══════════
 const CITIES=['Managua','León','Chinandega'];
 
+// ═══ SISTEMA DE DIRECCIONES GUARDADAS ═══
+function renderAddrList(){
+  const addrs=USER?.addresses||[];
+  if(!addrs.length)return `<div style="font-size:12px;color:var(--text3);padding:14px;background:var(--gray3);border-radius:var(--r8);text-align:center">Aún no tienes direcciones guardadas</div>`;
+  return addrs.map((a,i)=>`
+    <div style="background:var(--gray3);border-radius:var(--r8);padding:12px 14px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:flex-start;gap:10px">
+      <div style="flex:1">
+        <div style="font-size:13px;font-weight:700;color:var(--text)">${a.label||a.city}</div>
+        <div style="font-size:12px;color:var(--text2);margin-top:2px">${a.address}</div>
+        <div style="font-size:11px;color:var(--text3);margin-top:2px">${a.city} · C.P. ${a.zip} · 📞 ${a.phone||'—'}</div>
+        ${a.desc?`<div style="font-size:11px;color:var(--text3);margin-top:2px;font-style:italic">${a.desc}</div>`:''}
+      </div>
+      <button onclick="deleteAddress(${i})" style="background:none;border:none;color:var(--red);font-size:11px;font-weight:700;cursor:pointer;flex-shrink:0">Eliminar</button>
+    </div>`).join('');
+}
+
+function openAddAddress(){
+  $('panelTitle').textContent='Nueva dirección';
+  $('panelBody').innerHTML=`
+    <div class="cf"><label>Nombre de la dirección</label><input id="naLabel" placeholder="Ej: Casa, Trabajo…"></div>
+    <div class="cf"><label>Ciudad</label>
+      <div style="display:flex;gap:8px">
+        ${CITIES.map(c=>`<button type="button" onclick="selectAddrCity(this,'${c}')" class="city-btn" style="flex:1;padding:10px;border:1.5px solid var(--border);border-radius:var(--r8);background:var(--white);font-size:13px;font-weight:600;color:var(--text);cursor:pointer">${c}</button>`).join('')}
+      </div>
+      <input type="hidden" id="naCity" value="">
+    </div>
+    <div class="cf"><label>Dirección completa</label><input id="naAddr" placeholder="Barrio, calle, referencias…"></div>
+    <div class="cf"><label>Código postal</label><input id="naZip" placeholder="Ej: 11001" maxlength="10"></div>
+    <div class="cf"><label>Teléfono de contacto</label><input id="naPhone" type="tel" placeholder="8888-0000"></div>
+    <div class="cf"><label>Descripción adicional (opcional)</label><input id="naDesc" placeholder="Punto de referencia, color de portón…"></div>
+    <div class="msg msg-e" id="naErr"></div>
+    <button class="abtn" onclick="saveNewAddress()">Guardar dirección</button>
+    <button class="abtn" style="background:var(--gray3);color:var(--text);margin-top:8px" onclick="openPanel('personal')">← Volver</button>`;
+  openOv('panelOv');
+}
+
+function selectAddrCity(btn,city){
+  document.querySelectorAll('.city-btn').forEach(b=>{b.style.background='var(--white)';b.style.borderColor='var(--border)';b.style.color='var(--text)'});
+  btn.style.background='var(--blue-l)';btn.style.borderColor='var(--blue)';btn.style.color='var(--blue)';
+  $('naCity').value=city;
+}
+
+async function saveNewAddress(){
+  const label=$('naLabel').value.trim();
+  const city=$('naCity').value;
+  const address=$('naAddr').value.trim();
+  const zip=$('naZip').value.trim();
+  const phone=$('naPhone').value.trim();
+  const desc=$('naDesc').value.trim();
+  const err=$('naErr');
+  err.classList.remove('show');
+  if(!city){err.textContent='Selecciona una ciudad';err.classList.add('show');return}
+  if(!address){err.textContent='Ingresa la dirección completa';err.classList.add('show');return}
+  if(!zip){err.textContent='El código postal es obligatorio';err.classList.add('show');return}
+  if(!phone){err.textContent='El teléfono de contacto es obligatorio';err.classList.add('show');return}
+  if(!USER)return;
+  USER.addresses=USER.addresses||[];
+  USER.addresses.push({label:label||city,city,address,zip,phone,desc});
+  await persistUser();
+  toast('✅ Dirección guardada');
+  openPanel('personal');
+}
+
+async function deleteAddress(idx){
+  if(!USER||!USER.addresses)return;
+  USER.addresses.splice(idx,1);
+  await persistUser();
+  openPanel('personal');
+  toast('Dirección eliminada');
+}
+
 function openPanel(type){
   closeUD();
   const u=USER||{};
@@ -1493,17 +1607,21 @@ function openPanel(type){
   let body='';
   if(type==='personal'){
     body=`
-      <div class="fg"><label>Nombre</label><input id="spFirst" value="${u.first||''}" style="width:100%;border:1.5px solid var(--border);border-radius:var(--r4);padding:10px 12px;font-size:14px;background:var(--white);color:var(--text);outline:none"></div>
+      <div class="fg"><label>Nombre de usuario</label><input id="spFirst" value="${u.first||''}" style="width:100%;border:1.5px solid var(--border);border-radius:var(--r4);padding:10px 12px;font-size:14px;background:var(--white);color:var(--text);outline:none"></div>
       <div class="fg"><label>Apellido</label><input id="spLast" value="${u.last||''}" style="width:100%;border:1.5px solid var(--border);border-radius:var(--r4);padding:10px 12px;font-size:14px;background:var(--white);color:var(--text);outline:none"></div>
-      <div class="fg"><label>Teléfono</label><input id="spPhone" value="${u.phone||''}" style="width:100%;border:1.5px solid var(--border);border-radius:var(--r4);padding:10px 12px;font-size:14px;background:var(--white);color:var(--text);outline:none"></div>
+      <div class="fg"><label>Cédula</label><div style="background:var(--gray3);border-radius:var(--r4);padding:10px 12px;font-size:14px;color:var(--text2)">${u.cedula||'No registrada'}</div></div>
+      <div class="fg"><label>Teléfono</label><div style="background:var(--gray3);border-radius:var(--r4);padding:10px 12px;font-size:14px;color:var(--text2)">${u.phone||'No registrado'}</div></div>
+      <div style="font-size:11px;color:var(--text3);margin-top:-8px;margin-bottom:14px">🔒 Cédula y teléfono no pueden modificarse una vez registrados</div>
       <div class="fg"><label>Ciudad (solo zonas de entrega)</label>
-        <select id="spCity" style="width:100%;border:1.5px solid var(--border);border-radius:var(--r4);padding:10px 12px;font-size:14px;background:var(--white);color:var(--text);outline:none">
-          <option value="">Selecciona tu ciudad…</option>
-          ${CITIES.map(c=>`<option ${u.city===c?'selected':''}>${c}</option>`).join('')}
-        </select>
-      </div>
-      <div class="fg"><label>Dirección de entrega</label><input id="spAddr" value="${u.address||''}" placeholder="Barrio, calle, referencias…" style="width:100%;border:1.5px solid var(--border);border-radius:var(--r4);padding:10px 12px;font-size:14px;background:var(--white);color:var(--text);outline:none"></div>
-      <button class="abtn" onclick="savePersonal()">Guardar cambios</button>`;
+      <div class="fg"><label>Cédula</label><div style="background:var(--gray3);border-radius:var(--r4);padding:10px 12px;font-size:14px;color:var(--text2)">${u.cedula||'No registrada'}</div></div>
+      <div class="fg"><label>Teléfono</label><div style="background:var(--gray3);border-radius:var(--r4);padding:10px 12px;font-size:14px;color:var(--text2)">${u.phone||'No registrado'}</div></div>
+      <div style="font-size:11px;color:var(--text3);margin-top:-8px;margin-bottom:14px">🔒 Cédula y teléfono no pueden modificarse una vez registrados</div>
+      <button class="abtn" onclick="savePersonal()">Guardar cambios</button>
+      <div style="height:1px;background:var(--border2);margin:20px 0"></div>
+      <div style="font-size:13px;font-weight:800;color:var(--text);margin-bottom:4px">Mis direcciones de entrega</div>
+      <div style="font-size:11px;color:var(--text3);margin-bottom:12px">Guarda tus direcciones para elegirlas rápido al comprar</div>
+      <div id="addrList">${renderAddrList()}</div>
+      <button class="abtn" style="background:var(--white);color:var(--blue);border:1.5px solid var(--blue);margin-top:10px" onclick="openAddAddress()">+ Agregar nueva dirección</button>`;
   }else if(type==='security'){
     const devs=(LS.g('ts_dev_'+u.email)||[]).length;
     body=`
@@ -1543,9 +1661,8 @@ async function savePersonal(){
   if(!USER)return;
   USER.first=$('spFirst').value.trim()||USER.first;
   USER.last=$('spLast').value.trim()||USER.last;
-  USER.phone=$('spPhone').value.trim();
-  USER.city=$('spCity').value;
-  USER.address=$('spAddr').value.trim();
+  // Cédula y teléfono son permanentes, no se tocan aquí
+  // Ciudad y dirección ahora se manejan como direcciones guardadas (ver addrList)
   await persistUser();syncNav();closeOv('panelOv');
   toast('✅ Datos guardados correctamente');
 }
