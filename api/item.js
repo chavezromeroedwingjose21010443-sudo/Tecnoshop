@@ -21,7 +21,13 @@ function cleanBrand(text) {
     .replace(/\be-?Bay\b/gi, '')
     .replace(/\bUnited States\b/gi, '')
     .replace(/\bU\.?S\.?A\.?\b/g, '')
+    .replace(/\bEE\.?\s?UU\.?\b/gi, '')
     .replace(/\bEstados Unidos\b/gi, '')
+    .replace(/\bFedEx\b/gi, '')
+    .replace(/\bUSPS\b/gi, '')
+    .replace(/\bUPS\b/g, '')
+    .replace(/\bExtranjero\b/gi, '')
+    .replace(/\bFuera\b/gi, '')
     .replace(/\bshipping within the USA\b/gi, '')
     .replace(/\bships? from (the )?USA\b/gi, '')
     .replace(/\bmade in (the )?USA\b/gi, '')
@@ -187,6 +193,11 @@ module.exports = async (req, res) => {
       value: a.value
     }));
 
+    // Imagen principal + todas las imágenes adicionales del producto (para carrusel)
+    const mainImage = (item.image && item.image.imageUrl) || '';
+    const extraImages = (item.additionalImages || []).map(im => im.imageUrl).filter(Boolean);
+    const allImages = mainImage ? [mainImage, ...extraImages] : extraImages;
+
     return res.status(200).json({
       success: true,
       item: {
@@ -198,7 +209,8 @@ module.exports = async (req, res) => {
         specs: specs.map(s => ({ name: cleanBrand(s.name), value: cleanBrand(s.value) })),
         minDelivery,
         maxDelivery,
-        image: (item.image && item.image.imageUrl) || '',
+        image: mainImage,
+        images: allImages, // NUEVO: todas las fotos del producto
         itemUrl: '' // nunca se expone el enlace de origen
       }
     });
