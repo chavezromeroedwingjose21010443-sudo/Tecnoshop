@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TecnoShop — Panel de administración</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+import { getFirestore, doc, getDoc, collection, getDocs, updateDoc, query, orderBy } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyBaNwGkiLDHGjjEDJo0x0NqYQou99MmBz0",
+  authDomain: "tecnoshop-498f9.firebaseapp.com",
+  projectId: "tecnoshop-498f9",
+  storageBucket: "tecnoshop-498f9.firebasestorage.app",
+  messagingSenderId: "465825489652",
+  appId: "1:465825489652:web:6b28fcdfd66b95e72c74a1"
+};
+
+const fbApp = initializeApp(firebaseConfig);
+const auth = getAuth(fbApp);
+const db = getFirestore(fbApp);
+
+window._fb = { auth, db, doc, getDoc, collection, getDocs, updateDoc, query, orderBy, signInWithEmailAndPassword, signOut };
+
+onAuthStateChanged(auth, async (fbUser) => {
+  if (fbUser) {
+    try {
+      const snap = await window._fb.getDoc(window._fb.doc(db, 'users', fbUser.uid));
+      const data = snap.exists() ? snap.data() : null;
+      if (data && data.role === 'admin') {
+        window._adminUser = { uid: fbUser.uid, email: fbUser.email, ...data };
+        window.onAdminLogin && window.onAdminLogin();
+      } else {
+        // Usuario válido en Firebase pero SIN rol de administrador: acceso denegado
+        window.onAccessDenied && window.onAccessDenied();
+      }
+    } catch (e) {
+      window.onAccessDenied && window.onAccessDenied();
+    }
+  } else {
+    window.onAdminLogout && window.onAdminLogout();
+  }
+});
+</script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --blue:#3665f3;--blue-d:#2952c4;--blue-l:#e8eefb;
+  --red:#dc2626;--green:#16a34a;--orange:#ea580c;--purple:#7c3aed;
+  --gray3:#f7f7f7;--gray2:#eeeef0;--border:#e0e0e0;
+  --text:#111820;--text2:#555;--text3:#888;--white:#fff;--bg:#f5f6f8;
+  --r8:8px;--r12:12px;--pill:50px;
+}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);font-size:14px;min-height:100vh}
+a{text-decoration:none;color:var(--blue)}
+button{font-family:inherit;cursor:pointer}
+input{font-family:inherit}
+
+/* LOGIN */
+.login-wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#0a0a1e,#1a1a4e,#2952c4);padding:20px}
+.login-card{background:var(--white);border-radius:16px;padding:36px;width:100%;max-width:400px;box-shadow:0 24px 60px rgba(0,0,0,.3)}
+.login-logo{text-align:center;font-size:24px;font-weight:900;letter-spacing:-1px;margin-bottom:6px}
+.login-logo em{font-style:normal;color:var(--blue)}
+.login-sub{text-align:center;font-size:12px;color:var(--text3);margin-bottom:24px;text-transform:uppercase;letter-spacing:1px;font-weight:700}
+.fg{margin-bottom:14px}
+.fg label{display:block;font-size:12px;font-weight:700;color:var(--text2);margin-bottom:5px}
+.fg input{width:100%;border:1.5px solid var(--border);border-radius:var(--r8);padding:11px 14px;font-size:14px;outline:none}
+.fg input:focus{border-color:var(--blue)}
+.login-btn{width:100%;background:var(--blue);color:white;border:none;border-radius:var(--r8);padding:13px;font-size:14px;font-weight:700;margin-top:6px}
+.login-btn:hover{background:var(--blue-d)}
+.login-btn:disabled{opacity:.5}
+.login-err{background:#fef2f2;border:1px solid #fecaca;color:#dc2626;border-radius:var(--r8);padding:10px 14px;font-size:13px;font-weight:600;margin-bottom:14px;display:none}
+.login-err.show{display:block}
+
+/* ACCESS DENIED */
+.denied-wrap{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;text-align:center;padding:20px}
+.denied-wrap h2{font-size:20px;font-weight:800;color:var(--red)}
+.denied-wrap p{color:var(--text2);font-size:14px;max-width:320px}
+.denied-btn{background:var(--gray2);border:none;border-radius:var(--pill);padding:10px 24px;font-size:13px;font-weight:700;color:var(--text)}
+
+/* APP */
+#app{display:none}
+.topbar{background:var(--white);border-bottom:1px solid var(--border);padding:14px 24px;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:100}
+.topbar-logo{font-size:18px;font-weight:900;letter-spacing:-.5px}
+.topbar-logo em{font-style:normal;color:var(--blue)}
+.topbar-badge{background:var(--gray2);color:var(--text2);font-size:10px;font-weight:800;padding:3px 10px;border-radius:var(--pill);text-transform:uppercase;letter-spacing:.5px}
+.topbar-r{margin-left:auto;display:flex;align-items:center;gap:12px}
+.topbar-email{font-size:12px;color:var(--text3)}
+.logout-btn{background:var(--gray3);border:1px solid var(--border);border-radius:var(--pill);padding:7px 16px;font-size:12px;font-weight:700;color:var(--text)}
+.logout-btn:hover{background:var(--gray2)}
+
+.page{max-width:1100px;margin:0 auto;padding:24px 16px 60px}
+
+/* STATS */
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:14px;margin-bottom:24px}
+.stat-card{background:var(--white);border:1px solid var(--border);border-radius:var(--r12);padding:16px}
+.stat-num{font-size:26px;font-weight:800;color:var(--text)}
+.stat-lbl{font-size:12px;color:var(--text3);margin-top:2px}
+
+/* FILTERS */
+.tabs{display:flex;gap:6px;margin-bottom:16px;flex-wrap:wrap}
+.tab{background:var(--white);border:1.5px solid var(--border);border-radius:var(--pill);padding:7px 16px;font-size:12px;font-weight:700;color:var(--text2);cursor:pointer}
+.tab.on{background:var(--blue);border-color:var(--blue);color:white}
+
+/* ORDER CARD */
+.ord{background:var(--white);border:1px solid var(--border);border-radius:var(--r12);padding:18px;margin-bottom:12px}
+.ord-top{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:12px;flex-wrap:wrap}
+.ord-id{font-family:monospace;font-weight:800;color:var(--blue);font-size:14px}
+.ord-date{font-size:11px;color:var(--text3);margin-top:2px}
+.ord-total{font-size:20px;font-weight:800}
+.status-sel{border:1.5px solid var(--border);border-radius:var(--r8);padding:6px 10px;font-size:12px;font-weight:700;font-family:inherit;outline:none}
+.st-pending{color:var(--orange)}.st-confirmed{color:var(--blue)}.st-processing{color:var(--purple)}.st-shipped{color:#0891b2}.st-delivered{color:var(--green)}.st-cancelled{color:var(--red)}
+.ord-cust{background:var(--gray3);border-radius:var(--r8);padding:10px 12px;margin-bottom:10px;font-size:12px;color:var(--text2)}
+.ord-cust b{color:var(--text)}
+.ord-items{font-size:12px;color:var(--text2)}
+.ord-item-row{display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--gray3)}
+.ord-item-row:last-child{border-bottom:none}
+.empty{text-align:center;padding:60px 20px;color:var(--text3)}
+
+.loading{text-align:center;padding:60px;color:var(--text3)}
+</style>
+</head>
+<body>
+
+<div class="login-wrap" id="loginWrap">
+  <div class="login-card">
+    <div class="login-logo">Tecno<em>Shop</em></div>
+    <div class="login-sub">Panel de administración</div>
+    <div class="login-err" id="loginErr"></div>
+    <div class="fg"><label>Correo</label><input type="email" id="aEmail" placeholder="admin@tecnoshop.com"></div>
+    <div class="fg"><label>Contraseña</label><input type="password" id="aPass" placeholder="Tu contraseña" onkeydown="if(event.key==='Enter')doAdminLogin()"></div>
+    <button class="login-btn" id="loginBtn" onclick="doAdminLogin()">Iniciar sesión</button>
+  </div>
+</div>
+
+<div class="denied-wrap" id="deniedWrap" style="display:none">
+  <h2>🔒 Acceso denegado</h2>
+  <p>Tu cuenta no tiene permisos de administrador en TecnoShop.</p>
+  <button class="denied-btn" onclick="adminLogout()">Volver al login</button>
+</div>
+
+<div id="app">
+  <div class="topbar">
+    <div class="topbar-logo">Tecno<em>Shop</em></div>
+    <span class="topbar-badge">Admin</span>
+    <div class="topbar-r">
+      <span class="topbar-email" id="topbarEmail"></span>
+      <button class="logout-btn" onclick="adminLogout()">Cerrar sesión</button>
+    </div>
+  </div>
+  <div class="page">
+    <div class="stats" id="stats"></div>
+    <div class="tabs" id="tabs">
+      <button class="tab on" onclick="filterStatus('all')">Todos</button>
+      <button class="tab" onclick="filterStatus('pending')">Pendientes</button>
+      <button class="tab" onclick="filterStatus('confirmed')">Confirmados</button>
+      <button class="tab" onclick="filterStatus('processing')">Procesando</button>
+      <button class="tab" onclick="filterStatus('shipped')">Enviados</button>
+      <button class="tab" onclick="filterStatus('delivered')">Entregados</button>
+      <button class="tab" onclick="filterStatus('cancelled')">Cancelados</button>
+    </div>
+    <div id="ordersList"><div class="loading">Cargando pedidos…</div></div>
+  </div>
+</div>
+
+<script>
+const $=id=>document.getElementById(id);
+const fmt=n=>'$'+Number(n).toFixed(2);
+let ALL_ORDERS=[],curFilter='all';
+
+const STATUS_LABELS={pending:'Pendiente',confirmed:'Confirmado',processing:'Procesando',shipped:'Enviado',delivered:'Entregado',cancelled:'Cancelado'};
+
+function seErr(m){const e=$('loginErr');e.textContent=m;e.classList.add('show')}
+
+async function doAdminLogin(){
+  const email=$('aEmail').value.trim(),pass=$('aPass').value;
+  if(!email||!pass){seErr('Completa todos los campos');return}
+  const btn=$('loginBtn');btn.disabled=true;btn.textContent='Verificando...';
+  try{
+    await window._fb.signInWithEmailAndPassword(window._fb.auth,email,pass);
+    // onAuthStateChanged en el head decide si entra o se le niega el acceso
+  }catch(err){
+    const msgs={'auth/wrong-password':'Contraseña incorrecta','auth/invalid-credential':'Correo o contraseña incorrectos','auth/user-not-found':'No existe esa cuenta','auth/too-many-requests':'Demasiados intentos, espera un momento'};
+    seErr(msgs[err.code]||'Error al iniciar sesión');
+  }
+  btn.disabled=false;btn.textContent='Iniciar sesión';
+}
+
+window.onAdminLogin=function(){
+  $('loginWrap').style.display='none';
+  $('deniedWrap').style.display='none';
+  $('app').style.display='block';
+  $('topbarEmail').textContent=window._adminUser.email;
+  loadOrders();
+}
+
+window.onAccessDenied=function(){
+  $('loginWrap').style.display='none';
+  $('app').style.display='none';
+  $('deniedWrap').style.display='flex';
+}
+
+window.onAdminLogout=function(){
+  $('app').style.display='none';
+  $('deniedWrap').style.display='none';
+  $('loginWrap').style.display='flex';
+}
+
+async function adminLogout(){
+  try{await window._fb.signOut(window._fb.auth)}catch(e){}
+}
+
+async function loadOrders(){
+  $('ordersList').innerHTML='<div class="loading">Cargando pedidos…</div>';
+  try{
+    const snap=await window._fb.getDocs(window._fb.collection(window._fb.db,'orders'));
+    ALL_ORDERS=snap.docs.map(d=>d.data()).sort((a,b)=>new Date(b.date)-new Date(a.date));
+    renderStats();
+    renderOrders();
+  }catch(e){
+    $('ordersList').innerHTML='<div class="empty">Error al cargar pedidos. Verifica tu conexión.</div>';
+  }
+}
+
+function renderStats(){
+  const total=ALL_ORDERS.length;
+  const pending=ALL_ORDERS.filter(o=>o.status==='pending').length;
+  const revenue=ALL_ORDERS.reduce((s,o)=>s+(o.total||0),0);
+  const delivered=ALL_ORDERS.filter(o=>o.status==='delivered').length;
+  $('stats').innerHTML=`
+    <div class="stat-card"><div class="stat-num">${total}</div><div class="stat-lbl">Total de pedidos</div></div>
+    <div class="stat-card"><div class="stat-num" style="color:var(--orange)">${pending}</div><div class="stat-lbl">Pendientes</div></div>
+    <div class="stat-card"><div class="stat-num" style="color:var(--green)">${delivered}</div><div class="stat-lbl">Entregados</div></div>
+    <div class="stat-card"><div class="stat-num">${fmt(revenue)}</div><div class="stat-lbl">Ingresos totales</div></div>
+  `;
+}
+
+function filterStatus(s){
+  curFilter=s;
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('on'));
+  event.target.classList.add('on');
+  renderOrders();
+}
+
+function renderOrders(){
+  const list=curFilter==='all'?ALL_ORDERS:ALL_ORDERS.filter(o=>o.status===curFilter);
+  const el=$('ordersList');
+  if(!list.length){el.innerHTML='<div class="empty">No hay pedidos en esta categoría</div>';return}
+  el.innerHTML=list.map(o=>`
+    <div class="ord">
+      <div class="ord-top">
+        <div><div class="ord-id">${o.id}</div><div class="ord-date">${new Date(o.date).toLocaleString('es-NI')}</div></div>
+        <div style="text-align:right">
+          <div class="ord-total">${fmt(o.total)}</div>
+          <select class="status-sel st-${o.status}" onchange="updateStatus('${o.id}',this.value)">
+            ${Object.entries(STATUS_LABELS).map(([k,v])=>`<option value="${k}" ${o.status===k?'selected':''}>${v}</option>`).join('')}
+          </select>
+        </div>
+      </div>
+      <div class="ord-cust">
+        <b>${o.customer?.name||'—'}</b> · ${o.customer?.phone||'—'}<br>
+        📍 ${o.customer?.address||'—'}<br>
+        💳 ${o.payMethod==='paypal'?'PayPal':'Transferencia bancaria'}
+      </div>
+      <div class="ord-items">
+        ${(o.items||[]).map(i=>`<div class="ord-item-row"><span>${(i.prod?.title||'').slice(0,50)}</span><span>${fmt(i.total)}</span></div>`).join('')}
+      </div>
+    </div>
+  `).join('');
+}
+
+async function updateStatus(orderId,newStatus){
+  try{
+    await window._fb.updateDoc(window._fb.doc(window._fb.db,'orders',orderId),{status:newStatus});
+    const o=ALL_ORDERS.find(x=>x.id===orderId);
+    if(o)o.status=newStatus;
+    renderStats();
+  }catch(e){
+    alert('Error al actualizar el estado. Intenta de nuevo.');
+  }
+}
+</script>
+</body>
+</html>
