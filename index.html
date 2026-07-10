@@ -31,12 +31,10 @@ window._fb = {
 };
 
 // Timeout de seguridad: si Firebase no responde en 3s, muestra login igual
-const _authTimeout = setTimeout(() => { if (window._fbReady) return; window._fbReady = true; window.showAuthScreen && window.showAuthScreen(); }, 3000);
+const _authTimeout = setTimeout(() => { window.showAuthScreen && window.showAuthScreen(); }, 3000);
 
 onAuthStateChanged(auth, async (fbUser) => {
   clearTimeout(_authTimeout);
-  if (window._fbReady) return;
-  window._fbReady = true;
   if (fbUser) {
     try {
       const snap = await getDoc(doc(db, 'users', fbUser.uid));
@@ -48,6 +46,7 @@ onAuthStateChanged(auth, async (fbUser) => {
     }
     window.onFirebaseLogin && window.onFirebaseLogin();
   } else {
+    window._fbUserData = null;
     window.showAuthScreen && window.showAuthScreen();
   }
 });
@@ -204,6 +203,7 @@ nav{background:var(--white);border-bottom:1px solid var(--border2);padding:10px 
 .btn-main{width:100%;background:var(--blue);color:white;border:none;border-radius:var(--pill);padding:8px;font-size:13px;font-weight:700;cursor:pointer;transition:background .15s;font-family:inherit}
 .btn-main:hover{background:var(--blue-d)}
 .btn-offer{width:100%;background:var(--white);color:var(--blue);border:2px solid var(--blue);border-radius:var(--pill);padding:7px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit}
+.btn-link{width:100%;background:none;color:var(--text2);border:none;padding:5px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;text-decoration:underline}
 .btn-offer:hover{background:var(--blue-l)}
 .skel-g{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:14px}
 .skel-c{background:var(--white);border:1px solid var(--border2);border-radius:var(--r8);overflow:hidden}
@@ -661,7 +661,9 @@ async function loadUserCloudData(){
 
 function showApp(){
   document.querySelectorAll('.auth-screen').forEach(s=>s.classList.remove('active'));
+  $('loadingScreen')&&($('loadingScreen').style.display='none');
   $('app').style.display='block';
+  window.scrollTo(0,0);
   syncNav();updateFavBadge();loadNotifs();updNotifBadge();
   if(!window._inited){window._inited=true;initApp()}
 }
@@ -942,7 +944,7 @@ function cardHTML(p,i){
       <div class="card-ship">🚚 Entrega en Managua, León y Chinandega</div>
       <div class="card-acts">
         ${p.type==='offer'
-          ?`<button class="btn-main" onclick="event.stopPropagation();openProd('${p.id}')">Ver detalles</button><button class="btn-offer" onclick="event.stopPropagation();openOffer('${p.id}')">Hacer oferta</button>`
+          ?`<button class="btn-main" onclick="event.stopPropagation();buyNow('${p.id}')">Comprar ahora</button><button class="btn-offer" onclick="event.stopPropagation();openOffer('${p.id}')">Hacer oferta</button><button class="btn-link" onclick="event.stopPropagation();quickAdd('${p.id}')">🛒 Agregar al carrito</button>`
           :`<button class="btn-main" onclick="event.stopPropagation();quickAdd('${p.id}')">Agregar al carrito</button><button class="btn-offer" onclick="event.stopPropagation();openProd('${p.id}')">Ver detalles</button>`}
       </div>
     </div>
@@ -1046,7 +1048,7 @@ function openProd(id){
     </div>
     <div id="pdAbout" style="margin-bottom:14px"><div style="font-size:12px;color:var(--text3);text-align:center;padding:14px">Cargando información del producto…</div></div>
     <div class="pd-acts">
-      <button class="pd-btn-main" onclick="addCart()">🛒 Agregar al carrito</button>
+      ${curProd.type==='offer'?`<button class="pd-btn-main" onclick="closeOv('prodOv');buyNow('${curProd.id}')">Comprar ahora</button><button class="pd-btn-offer" onclick="addCart()">🛒 Agregar al carrito</button>`:`<button class="pd-btn-main" onclick="addCart()">🛒 Agregar al carrito</button>`}
       ${curProd.type==='offer'?`<button class="pd-btn-offer" onclick="closeOv('prodOv');openOffer('${curProd.id}')">Hacer oferta</button>`:''}
       <button class="pd-btn-back" onclick="closeOv('prodOv')">← Volver</button>
     </div>`;
@@ -1095,6 +1097,15 @@ function quickAdd(id){
   if(cart.some(i=>String(i.prod.id)===String(p.id))){toast('⚠️ Este artículo ya está en tu carrito (unidad única)');return}
   cart.push({uid:Date.now(),prod:p,ship:'free',total:calcTotal(p.price,'free')});
   updBadge();toast('🛒 Agregado al carrito');
+}
+
+function buyNow(id){
+  const p=findProd(id);if(!p)return;
+  if(!cart.some(i=>String(i.prod.id)===String(p.id))){
+    cart.push({uid:Date.now(),prod:p,ship:'free',total:calcTotal(p.price,'free')});
+    updBadge();
+  }
+  openCheckout();
 }
 
 function updBadge(){$('cBadge').textContent=cart.length}
