@@ -624,7 +624,7 @@ const calcTotal=(price,ship)=>price+MARKUP+(SHIP[ship]||0);
 const LS={g:k=>{try{return JSON.parse(localStorage.getItem(k))}catch{return null}},s:(k,v)=>localStorage.setItem(k,JSON.stringify(v))};
 
 // STATE
-let darkMode=false,cart=[],curProd=null,selShip='priority',allProds=[],curOfferProd=null;
+let darkMode=false,cart=[],curProd=null,selShip='priority',allProds=[],curOfferProd=null,offerShip='free';
 let USER=null,ORDERS=[],FAVS=[],FAV_PRODS={};
 let SOLD=LS.g('ts_sold')||[]; // artículos ya vendidos (unidad única)
 
@@ -1138,14 +1138,26 @@ function updBadge(){$('cBadge').textContent=cart.length}
 // OFFER
 function openOffer(id){
   curOfferProd=findProd(id);if(!curOfferProd)return;
-  $('offerCurP').textContent=fmt(calcTotal(curOfferProd.price,'priority'));
-  $('offerMinHint').textContent='Oferta mínima aceptada: '+fmt(calcTotal(curOfferProd.price,'priority')*0.95);
+  offerShip='free';
+  document.querySelectorAll('#offShipPriority,#offShipFree').forEach(o=>o.classList.remove('on'));
+  $('offShipFree').classList.add('on');
+  $('offerCurP').textContent=fmt(calcTotal(curOfferProd.price,offerShip));
+  $('offerMinHint').textContent='Oferta mínima aceptada: '+fmt(calcTotal(curOfferProd.price,offerShip)*0.95);
   $('offerVal').value='';
   $('offName').value=USER?((USER.first||'')+' '+(USER.last||'')).trim():'';
   $('offCedula').value=USER?.cedula||'';
   $('offPhone').value=USER?.phone||'';
   $('offerErr').classList.remove('show');
   openOv('offerOv');
+}
+
+function selectOfferShip(type){
+  offerShip=type;
+  document.querySelectorAll('#offShipPriority,#offShipFree').forEach(o=>o.classList.remove('on'));
+  $(type==='priority'?'offShipPriority':'offShipFree').classList.add('on');
+  const total=calcTotal(curOfferProd.price,type);
+  $('offerCurP').textContent=fmt(total);
+  $('offerMinHint').textContent='Oferta mínima aceptada: '+fmt(total*0.95);
 }
 
 // Formatea automáticamente la cédula nicaragüense: 000-000000-0000A
@@ -1178,7 +1190,7 @@ async function submitOffer(){
   if(!phone){err.textContent='Ingresa tu número de celular';err.classList.add('show');return}
   if(!v||v<=0){err.textContent='Ingresa una oferta válida';err.classList.add('show');return}
 
-  const publishedPrice=calcTotal(curOfferProd.price,'priority'); // precio mostrado al cliente
+  const publishedPrice=calcTotal(curOfferProd.price,offerShip); // precio mostrado al cliente, según envío elegido
   const minAllowed=publishedPrice*0.95; // monto mínimo permitido para ofertar: 95% del precio publicado
   if(v<minAllowed){
     err.textContent='La oferta no puede ser menor a '+fmt(minAllowed)+' (el monto mínimo permitido es el 95% del precio)';
@@ -1255,8 +1267,15 @@ async function submitOffer(){
       cuerpo_html:cuerpoHtml,
       boton_texto:'Ir al panel de administración',
       panel_url:'https://tecnoshop-theta.vercel.app/admin.html'
-    }).catch(mailErr=>console.error('EmailJS falló al notificar oferta:',mailErr));
-  }catch(e){}
+    }).then(()=>{
+      console.log('Correo de oferta enviado OK');
+    }).catch(mailErr=>{
+      console.error('EmailJS falló al notificar oferta:',mailErr);
+      toast('⚠️ Oferta guardada, pero el correo interno falló: '+(mailErr?.text||mailErr?.message||'ver detalles'),8000);
+    });
+  }catch(e){
+    toast('⚠️ Error al preparar el correo: '+(e?.message||e));
+  }
 
   dispatchNotification('message','Oferta enviada 📨','Tu oferta de '+fmt(v)+' fue enviada. Te contactaremos en máximo 48 horas.');
   toast('📨 Oferta de '+fmt(v)+' enviada');
@@ -1402,7 +1421,7 @@ function closeOv(id){$(id).classList.remove('open');document.body.style.overflow
 document.querySelectorAll('.overlay').forEach(o=>o.addEventListener('click',e=>{if(e.target===o)closeOv(o.id)}));
 
 // TOAST
-function toast(msg){const t=$('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),3000)}
+function toast(msg,ms){const t=$('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),ms||3000)}
 
 // ═══════════ SISTEMA DE NOTIFICACIONES ═══════════
 // Tipos: purchase, confirmed, processing, shipped, delivered, message, device, security, promo
