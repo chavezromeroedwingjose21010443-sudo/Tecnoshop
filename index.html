@@ -560,7 +560,7 @@ footer strong{color:rgba(255,255,255,.75)}
     <div class="offer-body">
       <div class="offer-cur"><div class="offer-cur-lbl">Precio actual</div><div class="offer-cur-price" id="offerCurP">—</div></div>
       <div class="cf"><label>Nombre completo</label><input id="offName" placeholder="Nombre y apellidos"></div>
-      <div class="cf"><label>Cédula (formato NIC)</label><input id="offCedula" placeholder="081-141002-1004K" maxlength="16" oninput="formatCedula(this)"></div>
+      <div class="cf"><label>Cédula (formato NIC)</label><input id="offCedula" placeholder="000-000000-0000A" maxlength="16" oninput="formatCedula(this)"></div>
       <div class="cf"><label>Número de celular</label><input id="offPhone" type="tel" placeholder="8888-0000"></div>
       <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:6px;margin-top:6px">Tu oferta (USD)</div>
       <input class="offer-input" type="number" id="offerVal" placeholder="$0.00">
@@ -739,12 +739,29 @@ async function doRegister(){
 async function doForgot(){
   const email=$('fEmail').value.trim();
   if(!email||!/\S+@\S+\.\S+/.test(email)){se('fErr','Correo inválido');return}
+  const btn=document.querySelector('#scForgot .abtn');
+  if(btn){btn.disabled=true;btn.textContent='Enviando...'}
   try{
-    await window._fb.sendPasswordResetEmail(window._fb.auth,email);
-    so('fOk','✅ Enlace de recuperación enviado a tu correo');
+    const res=await fetch('/api/reset-password',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({email})
+    });
+    const data=await res.json();
+    if(data.success&&data.link){
+      // Enviar el correo con diseño TecnoShop usando el link seguro que generó Firebase
+      await emailjs.send('service_7zfn94m','template_reset',{
+        email_title:'Recupera tu contraseña - TecnoShop',
+        to_email:email,
+        reset_link:data.link
+      });
+    }
+    // Mensaje neutro siempre (no revela si el correo existe o no, por seguridad)
+    so('fOk','✅ Si el correo está registrado, recibirás un enlace de recuperación en unos minutos.');
   }catch(err){
-    se('fErr','No encontramos una cuenta con ese correo');
+    se('fErr','Error al procesar la solicitud. Intenta de nuevo.');
   }
+  if(btn){btn.disabled=false;btn.textContent='Recuperar contraseña'}
 }
 
 async function doLogout(){
@@ -1126,7 +1143,7 @@ function openOffer(id){
   openOv('offerOv');
 }
 
-// Formatea automáticamente la cédula nicaragüense: 081-141002-1004K
+// Formatea automáticamente la cédula nicaragüense: 000-000000-0000A
 function formatCedula(input){
   let v=input.value.toUpperCase().replace(/[^0-9A-Z]/g,'');
   if(v.length>13)v=v.slice(0,13);
@@ -1138,7 +1155,7 @@ function formatCedula(input){
 }
 
 function validCedula(c){
-  // Formato: 3 dígitos - 6 dígitos - 3 dígitos + 1 letra  → 081-141002-1004K
+  // Formato: 3 dígitos - 6 dígitos - 3 dígitos + 1 letra  → 000-000000-0000A
   return /^\d{3}-\d{6}-\d{3}[A-Z]$/.test(c);
 }
 
@@ -1151,7 +1168,7 @@ async function submitOffer(){
   err.classList.remove('show');
 
   if(!name){err.textContent='Ingresa tu nombre completo';err.classList.add('show');return}
-  if(!validCedula(cedula)){err.textContent='Cédula inválida. Formato: 081-141002-1004K';err.classList.add('show');return}
+  if(!validCedula(cedula)){err.textContent='Cédula inválida. Formato: 000-000000-0000A';err.classList.add('show');return}
   if(!phone){err.textContent='Ingresa tu número de celular';err.classList.add('show');return}
   if(!v||v<=0){err.textContent='Ingresa una oferta válida';err.classList.add('show');return}
 
@@ -1190,19 +1207,39 @@ async function submitOffer(){
   closeOv('offerOv');
 
   try{
-    emailjs.send('service_7zfn94m','template_oferta',{
+    const cuerpoHtml=`
+      <div style="font-size:11px;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;">Producto</div>
+      <div style="font-size:15px;font-weight:700;color:#111820;line-height:1.4;margin-bottom:16px;">${offerData.productTitle}</div>
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f7f7f9;border-radius:10px;">
+        <tr><td style="padding:16px;">
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+            <tr><td style="font-size:13px;color:#555;padding:4px 0;">Precio publicado</td><td style="font-size:13px;color:#111820;font-weight:600;text-align:right;padding:4px 0;">${fmt(publishedPrice)}</td></tr>
+            <tr><td style="font-size:13px;color:#555;padding:4px 0;">Precio original eBay</td><td style="font-size:13px;color:#111820;font-weight:600;text-align:right;padding:4px 0;">${fmt(curOfferProd.price)}</td></tr>
+            <tr><td colspan="2" style="border-top:1px solid #e0e0e0;padding-top:8px;"></td></tr>
+            <tr><td style="font-size:14px;color:#2952c4;font-weight:800;padding:6px 0;">Oferta del cliente</td><td style="font-size:16px;color:#2952c4;font-weight:800;text-align:right;padding:6px 0;">${fmt(v)}</td></tr>
+            <tr><td style="font-size:13px;color:#dc2626;padding:4px 0;">Diferencia solicitada</td><td style="font-size:13px;color:#dc2626;font-weight:700;text-align:right;padding:4px 0;">-${fmt(diff)}</td></tr>
+            <tr><td colspan="2" style="border-top:1px solid #e0e0e0;padding-top:8px;"></td></tr>
+            <tr><td style="font-size:13px;color:#555;padding:4px 0;">Nuevo costo eBay</td><td style="font-size:13px;color:#111820;font-weight:600;text-align:right;padding:4px 0;">${fmt(newEbayCost)}</td></tr>
+            <tr><td style="font-size:13px;color:#16a34a;font-weight:700;padding:4px 0 12px;">Tu ganancia (intacta)</td><td style="font-size:14px;color:#16a34a;font-weight:800;text-align:right;padding:4px 0 12px;">${fmt(gananciaTecnoShop)}</td></tr>
+          </table>
+        </td></tr>
+      </table>
+      <div style="font-size:11px;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:.5px;margin:16px 0 10px;">Datos del cliente</div>
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#eef3ff;border-radius:10px;">
+        <tr><td style="padding:14px 16px;">
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+            <tr><td style="font-size:13px;color:#555;padding:4px 0;width:40%;">Nombre</td><td style="font-size:13px;color:#111820;font-weight:700;padding:4px 0;">${name}</td></tr>
+            <tr><td style="font-size:13px;color:#555;padding:4px 0;">Cédula</td><td style="font-size:13px;color:#111820;font-weight:700;padding:4px 0;">${cedula}</td></tr>
+            <tr><td style="font-size:13px;color:#555;padding:4px 0;">Celular</td><td style="font-size:13px;color:#111820;font-weight:700;padding:4px 0;">${phone}</td></tr>
+            <tr><td style="font-size:13px;color:#555;padding:4px 0;">Correo</td><td style="font-size:13px;color:#111820;font-weight:700;padding:4px 0;">${USER?.email||'—'}</td></tr>
+          </table>
+        </td></tr>
+      </table>`;
+    emailjs.send('service_7zfn94m','template_notificacion',{
       email_title:'🔴 Nueva oferta recibida - TecnoShop',
-      producto:offerData.productTitle,
-      precio_publicado:fmt(publishedPrice),
-      precio_ebay_original:fmt(curOfferProd.price),
-      oferta:fmt(v),
-      diferencia:fmt(diff),
-      nuevo_costo_ebay:fmt(newEbayCost),
-      ganancia_tecnoshop:fmt(gananciaTecnoShop),
-      cliente_nombre:name,
-      cliente_cedula:cedula,
-      cliente_celular:phone,
-      cliente_email:USER?.email||'—',
+      alerta_bg:'#fef2f2',alerta_borde:'#fecaca',alerta_color:'#dc2626',alerta_texto:'🔴 Nueva oferta recibida',
+      cuerpo_html:cuerpoHtml,
+      boton_texto:'Ir al panel de administración',
       panel_url:'https://tecnoshop-theta.vercel.app/admin.html'
     });
   }catch(e){}
@@ -1284,27 +1321,48 @@ async function placeOrder(){
   dispatchNotification('confirmed','Pedido confirmado ✅','Tu pedido '+ref+' fue confirmado y pasará a procesamiento.');
 
   // Desglose por producto: Costo eBay + Ganancia TecnoShop + Envío = Total pagado
-  const desglose=order.items.map(i=>{
+  const desgloseHtml=order.items.map(i=>{
     const ebayCost=i.prod.price;
     const shipCost=i.ship==='priority'?SHIP.priority:SHIP.free;
     const shipLabel=shipCost>0?fmt(shipCost):'Gratis';
-    return cleanBrand(i.prod.title)+'\n'
-      +'  • Costo eBay: '+fmt(ebayCost)+'\n'
-      +'  • Ganancia TecnoShop: '+fmt(MARKUP)+'\n'
-      +'  • Envío: '+shipLabel+'\n'
-      +'  • Total: '+fmt(i.total);
-  }).join('\n\n');
+    return `<div style="margin-bottom:10px;padding-bottom:10px;border-bottom:1px solid #e0e0e0;">
+      <div style="font-size:13px;font-weight:700;color:#111820;margin-bottom:4px;">${cleanBrand(i.prod.title)}</div>
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+        <tr><td style="font-size:12px;color:#555;padding:2px 0;">Costo eBay</td><td style="font-size:12px;color:#111820;text-align:right;padding:2px 0;">${fmt(ebayCost)}</td></tr>
+        <tr><td style="font-size:12px;color:#555;padding:2px 0;">Ganancia TecnoShop</td><td style="font-size:12px;color:#111820;text-align:right;padding:2px 0;">${fmt(MARKUP)}</td></tr>
+        <tr><td style="font-size:12px;color:#555;padding:2px 0;">Envío</td><td style="font-size:12px;color:#111820;text-align:right;padding:2px 0;">${shipLabel}</td></tr>
+        <tr><td style="font-size:13px;color:#2952c4;font-weight:800;padding:4px 0 0;">Total</td><td style="font-size:13px;color:#2952c4;font-weight:800;text-align:right;padding:4px 0 0;">${fmt(i.total)}</td></tr>
+      </table>
+    </div>`;
+  }).join('');
 
   try{
-    emailjs.send('service_7zfn94m','template_pedido',{
+    const cuerpoHtml=`
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f7f7f9;border-radius:10px;margin-bottom:16px;">
+        <tr><td style="padding:16px;">
+          <div style="font-size:11px;color:#888;text-transform:uppercase;letter-spacing:.5px;">Número de pedido</div>
+          <div style="font-size:16px;color:#2952c4;font-weight:800;font-family:monospace;margin-bottom:6px;">${ref}</div>
+          <div style="font-size:22px;color:#111820;font-weight:800;">${fmt(total)}</div>
+        </td></tr>
+      </table>
+      <div style="font-size:11px;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;">Productos y desglose</div>
+      <div style="background:#f7f7f9;border-radius:10px;padding:14px 16px;margin-bottom:16px;">${desgloseHtml}</div>
+      <div style="font-size:11px;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px;">Datos de entrega</div>
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#eef3ff;border-radius:10px;">
+        <tr><td style="padding:14px 16px;">
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+            <tr><td style="font-size:13px;color:#555;padding:4px 0;width:38%;">Cliente</td><td style="font-size:13px;color:#111820;font-weight:700;padding:4px 0;">${fn+' '+($('ckLn')?.value||'')}</td></tr>
+            <tr><td style="font-size:13px;color:#555;padding:4px 0;">Teléfono</td><td style="font-size:13px;color:#111820;font-weight:700;padding:4px 0;">${$('ckPhone')?.value||''}</td></tr>
+            <tr><td style="font-size:13px;color:#555;padding:4px 0;">Dirección</td><td style="font-size:13px;color:#111820;font-weight:700;padding:4px 0;">${($('ckAddr')?.value||'')+', '+($('ckCity')?.value||'')}</td></tr>
+            <tr><td style="font-size:13px;color:#555;padding:4px 0;">Pago</td><td style="font-size:13px;color:#111820;font-weight:700;padding:4px 0;">${payMethod==='paypal'?'PayPal':'Transferencia bancaria'}</td></tr>
+          </table>
+        </td></tr>
+      </table>`;
+    emailjs.send('service_7zfn94m','template_notificacion',{
       email_title:'🟢 Nuevo pedido confirmado - TecnoShop',
-      pedido_id:ref,
-      total:fmt(total),
-      cliente_nombre:fn+' '+($('ckLn')?.value||''),
-      cliente_telefono:$('ckPhone')?.value||'',
-      cliente_direccion:($('ckAddr')?.value||'')+', '+($('ckCity')?.value||''),
-      metodo_pago:payMethod==='paypal'?'PayPal':'Transferencia bancaria',
-      productos:desglose,
+      alerta_bg:'#f0fdf4',alerta_borde:'#bbf7d0',alerta_color:'#16a34a',alerta_texto:'🟢 Nuevo pedido confirmado',
+      cuerpo_html:cuerpoHtml,
+      boton_texto:'Gestionar pedido en el panel',
       panel_url:'https://tecnoshop-theta.vercel.app/admin.html'
     });
   }catch(e){}
