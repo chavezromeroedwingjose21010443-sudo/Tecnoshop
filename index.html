@@ -558,7 +558,7 @@ footer strong{color:rgba(255,255,255,.75)}
   <div class="sheet sheet-sm">
     <div class="sh-hd"><div class="sh-title">Hacer una oferta</div><button class="x-btn" onclick="closeOv('offerOv')"><svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div>
     <div class="offer-body">
-      <div class="offer-cur"><div class="offer-cur-lbl">Precio actual</div><div class="offer-cur-price" id="offerCurP">—</div></div>
+      <div class="offer-cur"><div class="offer-cur-lbl">Precio actual</div><div class="offer-cur-price" id="offerCurP">—</div><div style="font-size:11px;color:var(--text3);margin-top:4px" id="offerMinHint"></div></div>
       <div class="cf"><label>Nombre completo</label><input id="offName" placeholder="Nombre y apellidos"></div>
       <div class="cf"><label>Cédula (formato NIC)</label><input id="offCedula" placeholder="000-000000-0000A" maxlength="16" oninput="formatCedula(this)"></div>
       <div class="cf"><label>Número de celular</label><input id="offPhone" type="tel" placeholder="8888-0000"></div>
@@ -1135,6 +1135,7 @@ function updBadge(){$('cBadge').textContent=cart.length}
 function openOffer(id){
   curOfferProd=findProd(id);if(!curOfferProd)return;
   $('offerCurP').textContent=fmt(calcTotal(curOfferProd.price,'priority'));
+  $('offerMinHint').textContent='Oferta mínima aceptada: '+fmt(calcTotal(curOfferProd.price,'priority')*0.95);
   $('offerVal').value='';
   $('offName').value=USER?((USER.first||'')+' '+(USER.last||'')).trim():'';
   $('offCedula').value=USER?.cedula||'';
@@ -1155,8 +1156,8 @@ function formatCedula(input){
 }
 
 function validCedula(c){
-  // Formato: 3 dígitos - 6 dígitos - 3 dígitos + 1 letra  → 000-000000-0000A
-  return /^\d{3}-\d{6}-\d{3}[A-Z]$/.test(c);
+  // Formato real Nicaragua: 3 dígitos - 6 dígitos - 4 dígitos + 1 letra  → 081-141002-1004K
+  return /^\d{3}-\d{6}-\d{4}[A-Z]$/.test(c);
 }
 
 async function submitOffer(){
@@ -1173,6 +1174,14 @@ async function submitOffer(){
   if(!v||v<=0){err.textContent='Ingresa una oferta válida';err.classList.add('show');return}
 
   const publishedPrice=calcTotal(curOfferProd.price,'priority'); // precio mostrado al cliente
+  const minAllowed=publishedPrice*0.95; // monto mínimo permitido para ofertar: 95% del precio publicado
+  if(v<minAllowed){
+    err.textContent='La oferta no puede ser menor a '+fmt(minAllowed)+' (el monto mínimo permitido es el 95% del precio)';
+    err.classList.add('show');
+    return;
+  }
+  if(v>=publishedPrice){err.textContent='Tu oferta debe ser menor al precio publicado ('+fmt(publishedPrice)+')';err.classList.add('show');return}
+
   const diff=publishedPrice-v; // cuánto está pidiendo de descuento
   // La diferencia se resta del PRECIO DE EBAY (costo real), nunca de la ganancia TecnoShop
   const newEbayCost=curOfferProd.price-diff;
