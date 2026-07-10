@@ -559,8 +559,12 @@ footer strong{color:rgba(255,255,255,.75)}
     <div class="sh-hd"><div class="sh-title">Hacer una oferta</div><button class="x-btn" onclick="closeOv('offerOv')"><svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div>
     <div class="offer-body">
       <div class="offer-cur"><div class="offer-cur-lbl">Precio actual</div><div class="offer-cur-price" id="offerCurP">—</div></div>
-      <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:6px">Tu oferta (USD)</div>
+      <div class="cf"><label>Nombre completo</label><input id="offName" placeholder="Nombre y apellidos"></div>
+      <div class="cf"><label>Cédula (formato NIC)</label><input id="offCedula" placeholder="081-141002-1004K" maxlength="16" oninput="formatCedula(this)"></div>
+      <div class="cf"><label>Número de celular</label><input id="offPhone" type="tel" placeholder="8888-0000"></div>
+      <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:6px;margin-top:6px">Tu oferta (USD)</div>
       <input class="offer-input" type="number" id="offerVal" placeholder="$0.00">
+      <div class="msg msg-e" id="offerErr"></div>
       <button class="offer-submit" onclick="submitOffer()">Enviar oferta</button>
       <p style="font-size:11px;color:var(--text3);margin-top:10px;text-align:center">Respuesta en máximo 48 horas</p>
     </div>
@@ -1114,13 +1118,96 @@ function updBadge(){$('cBadge').textContent=cart.length}
 function openOffer(id){
   curOfferProd=findProd(id);if(!curOfferProd)return;
   $('offerCurP').textContent=fmt(calcTotal(curOfferProd.price,'priority'));
-  $('offerVal').value='';openOv('offerOv');
+  $('offerVal').value='';
+  $('offName').value=USER?((USER.first||'')+' '+(USER.last||'')).trim():'';
+  $('offCedula').value=USER?.cedula||'';
+  $('offPhone').value=USER?.phone||'';
+  $('offerErr').classList.remove('show');
+  openOv('offerOv');
 }
-function submitOffer(){
+
+// Formatea automáticamente la cédula nicaragüense: 081-141002-1004K
+function formatCedula(input){
+  let v=input.value.toUpperCase().replace(/[^0-9A-Z]/g,'');
+  if(v.length>13)v=v.slice(0,13);
+  let out='';
+  if(v.length>0)out=v.slice(0,3);
+  if(v.length>3)out+='-'+v.slice(3,9);
+  if(v.length>9)out+='-'+v.slice(9,13);
+  input.value=out;
+}
+
+function validCedula(c){
+  // Formato: 3 dígitos - 6 dígitos - 3 dígitos + 1 letra  → 081-141002-1004K
+  return /^\d{3}-\d{6}-\d{3}[A-Z]$/.test(c);
+}
+
+async function submitOffer(){
   const v=parseFloat($('offerVal').value);
-  if(!v||v<=0){toast('Ingresa una oferta válida');return}
+  const name=$('offName').value.trim();
+  const cedula=$('offCedula').value.trim();
+  const phone=$('offPhone').value.trim();
+  const err=$('offerErr');
+  err.classList.remove('show');
+
+  if(!name){err.textContent='Ingresa tu nombre completo';err.classList.add('show');return}
+  if(!validCedula(cedula)){err.textContent='Cédula inválida. Formato: 081-141002-1004K';err.classList.add('show');return}
+  if(!phone){err.textContent='Ingresa tu número de celular';err.classList.add('show');return}
+  if(!v||v<=0){err.textContent='Ingresa una oferta válida';err.classList.add('show');return}
+
+  const publishedPrice=calcTotal(curOfferProd.price,'priority'); // precio mostrado al cliente
+  const diff=publishedPrice-v; // cuánto está pidiendo de descuento
+  // La diferencia se resta del PRECIO DE EBAY (costo real), nunca de la ganancia TecnoShop
+  const newEbayCost=curOfferProd.price-diff;
+  const gananciaTecnoShop=MARKUP; // se mantiene intacta siempre
+
+  // Guardar cédula en el perfil del usuario para futuras ofertas (persistente)
+  if(USER){
+    USER.cedula=cedula;USER.phone=phone;
+    persistUser();
+  }
+
+  // Guardar la oferta en Firestore, vinculada al panel de administración
+  const offerId='OF-'+Date.now().toString(36).toUpperCase().slice(-8);
+  const offerData={
+    id:offerId,
+    date:new Date().toISOString(),
+    status:'pending',
+    productId:curOfferProd.id,
+    productTitle:cleanBrand(curOfferProd.title),
+    productImg:curOfferProd.img,
+    publishedPrice,
+    ebayOriginalPrice:curOfferProd.price,
+    offerAmount:v,
+    diff,
+    newEbayCost,
+    customer:{name,cedula,phone,email:USER?.email||'',uid:USER?.uid||''}
+  };
+  try{
+    await window._fb.setDoc(window._fb.doc(window._fb.db,'offers',offerId),offerData);
+  }catch(e){}
+
   closeOv('offerOv');
-  try{emailjs.send('service_7zfn94m','template_adbhhh7',{to_email:'Solutionstechpmca@gmail.com',to_name:'TecnoShop',otp_code:'OFERTA',email_title:'🔴 ATENCIÓN: Nueva oferta recibida',email_subtitle:'Oferta: '+fmt(v)+' para: '+(curOfferProd?.title||''),shop_url:'https://tecnoshop-theta.vercel.app'})}catch(e){}
+
+  try{
+    emailjs.send('service_7zfn94m','template_oferta',{
+      email_title:'🔴 Nueva oferta recibida - TecnoShop',
+      producto:offerData.productTitle,
+      precio_publicado:fmt(publishedPrice),
+      precio_ebay_original:fmt(curOfferProd.price),
+      oferta:fmt(v),
+      diferencia:fmt(diff),
+      nuevo_costo_ebay:fmt(newEbayCost),
+      ganancia_tecnoshop:fmt(gananciaTecnoShop),
+      cliente_nombre:name,
+      cliente_cedula:cedula,
+      cliente_celular:phone,
+      cliente_email:USER?.email||'—',
+      panel_url:'https://tecnoshop-theta.vercel.app/admin.html'
+    });
+  }catch(e){}
+
+  dispatchNotification('message','Oferta enviada 📨','Tu oferta de '+fmt(v)+' fue enviada. Te contactaremos en máximo 48 horas.');
   toast('📨 Oferta de '+fmt(v)+' enviada');
 }
 
@@ -1195,7 +1282,32 @@ async function placeOrder(){
   }catch(e){toast('⚠️ No se pudo sincronizar el pedido con la nube');}
   dispatchNotification('purchase','Compra realizada 🛒','Tu compra '+ref+' por '+fmt(total)+' fue registrada exitosamente.');
   dispatchNotification('confirmed','Pedido confirmado ✅','Tu pedido '+ref+' fue confirmado y pasará a procesamiento.');
-  try{emailjs.send('service_7zfn94m','template_adbhhh7',{to_email:'Solutionstechpmca@gmail.com',to_name:'TecnoShop Admin',otp_code:ref,email_title:'🟢 NUEVO PEDIDO: '+ref,email_subtitle:'Total: '+fmt(total)+' · Cliente: '+fn+' · Pago: '+payMethod,shop_url:'https://tecnoshop-theta.vercel.app/admin.html'})}catch(e){}
+
+  // Desglose por producto: Costo eBay + Ganancia TecnoShop + Envío = Total pagado
+  const desglose=order.items.map(i=>{
+    const ebayCost=i.prod.price;
+    const shipCost=i.ship==='priority'?SHIP.priority:SHIP.free;
+    const shipLabel=shipCost>0?fmt(shipCost):'Gratis';
+    return cleanBrand(i.prod.title)+'\n'
+      +'  • Costo eBay: '+fmt(ebayCost)+'\n'
+      +'  • Ganancia TecnoShop: '+fmt(MARKUP)+'\n'
+      +'  • Envío: '+shipLabel+'\n'
+      +'  • Total: '+fmt(i.total);
+  }).join('\n\n');
+
+  try{
+    emailjs.send('service_7zfn94m','template_pedido',{
+      email_title:'🟢 Nuevo pedido confirmado - TecnoShop',
+      pedido_id:ref,
+      total:fmt(total),
+      cliente_nombre:fn+' '+($('ckLn')?.value||''),
+      cliente_telefono:$('ckPhone')?.value||'',
+      cliente_direccion:($('ckAddr')?.value||'')+', '+($('ckCity')?.value||''),
+      metodo_pago:payMethod==='paypal'?'PayPal':'Transferencia bancaria',
+      productos:desglose,
+      panel_url:'https://tecnoshop-theta.vercel.app/admin.html'
+    });
+  }catch(e){}
   // Marcar artículos como vendidos y quitarlos de la tienda
   order.items.forEach(i=>{const pid=String(i.prod.id);if(!SOLD.includes(pid))SOLD.push(pid)});
   LS.s('ts_sold',SOLD);
