@@ -1494,8 +1494,27 @@ function updateCkAddrPreview(){
   if(a)prev.textContent=a.address+' · '+a.city+' · C.P. '+a.zip+' · 📞 '+(a.phone||'—')+(a.desc?' · '+a.desc:'');
 }
 
+function toggleTransferProof(){
+  const isTransfer=document.querySelector('input[name="pay"]:checked')?.value==='transfer';
+  const block=$('transferProofBlock');
+  if(block)block.style.display=isTransfer?'block':'none';
+}
+
+let transferImgBase64=null;
+function previewTransferImg(input){
+  const file=input.files[0];
+  if(!file)return;
+  const reader=new FileReader();
+  reader.onload=e=>{
+    transferImgBase64=e.target.result;
+    $('transferImgPreview').innerHTML=`<img src="${e.target.result}" style="max-width:100%;max-height:160px;border-radius:var(--r8);border:1px solid var(--border2)">`;
+  };
+  reader.readAsDataURL(file);
+}
+
 function openCheckout(){
   closeOv('cartOv');
+  transferImgBase64=null;
   const u=USER||{};const total=cart.reduce((s,i)=>s+i.total,0);
   const addrs=u.addresses||[];
   const addrOptions=addrs.length
@@ -1521,16 +1540,32 @@ function openCheckout(){
     <div class="cf"><label>Teléfono</label><div style="background:var(--gray3);border-radius:var(--r4);padding:10px 12px;font-size:14px;color:var(--text2)">${u.phone||'No registrado'}</div></div>
     <div class="ck-sec" style="margin-top:14px">Método de pago</div>
     <div class="pay-opts">
-      <label class="popt on" onclick="this.closest('.pay-opts').querySelectorAll('.popt').forEach(p=>p.classList.remove('on'));this.classList.add('on')">
+      <label class="popt on" onclick="this.closest('.pay-opts').querySelectorAll('.popt').forEach(p=>p.classList.remove('on'));this.classList.add('on');toggleTransferProof()">
         <input type="radio" name="pay" value="paypal" checked>
         <div class="popt-ico"><svg viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg></div>
         <div><div class="popt-name">PayPal</div><div class="popt-desc">Pago seguro con PayPal</div></div>
       </label>
-      <label class="popt" onclick="this.closest('.pay-opts').querySelectorAll('.popt').forEach(p=>p.classList.remove('on'));this.classList.add('on')">
+      <label class="popt" onclick="this.closest('.pay-opts').querySelectorAll('.popt').forEach(p=>p.classList.remove('on'));this.classList.add('on');toggleTransferProof()">
         <input type="radio" name="pay" value="transfer">
         <div class="popt-ico"><svg viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg></div>
         <div><div class="popt-name">Transferencia bancaria</div><div class="popt-desc">BAC, Banpro, Lafise</div></div>
       </label>
+    </div>
+    <div id="transferProofBlock" style="display:none;margin-top:14px">
+      <div class="ck-sec">Comprobante de transferencia</div>
+      <div style="background:#fef3c7;border:1px solid #fde68a;border-radius:var(--r8);padding:12px 14px;font-size:12px;color:#92400e;line-height:1.6;margin-bottom:14px">
+        ⚠️ El monto depositado debe coincidir <b>exactamente</b> con el total del pedido (${fmt(total)}).<br>
+        Si el monto es <b>inferior</b>, el pedido se <b>cancelará automáticamente</b>.<br>
+        Si el monto es <b>superior</b>, el pedido también se cancelará y el dinero se <b>reembolsará en 2–5 días hábiles</b>.
+      </div>
+      <div class="cf"><label>Monto total debitado (USD)</label><input type="number" id="ckTransferAmount" placeholder="0.00" step="0.01"></div>
+      <div class="cf"><label>Número de autorización / referencia</label><input id="ckTransferAuth" placeholder="Ej: 0004821193"></div>
+      <div class="cf">
+        <label>Imagen del comprobante</label>
+        <input type="file" id="ckTransferImg" accept="image/*" onchange="previewTransferImg(this)" style="width:100%;border:1.5px solid var(--border);border-radius:var(--r4);padding:8px;font-size:13px">
+        <div id="transferImgPreview" style="margin-top:8px"></div>
+      </div>
+      <div class="msg msg-e" id="transferErr"></div>
     </div>
     <div class="order-mini">
       <div class="om-title">Resumen</div>
@@ -1538,6 +1573,7 @@ function openCheckout(){
       <div class="om-row tot"><span>Total</span><span>${fmt(total)}</span></div>
     </div>
     <button class="btn-place" onclick="placeOrder()">Confirmar pedido · ${fmt(total)}</button>
+    <button class="abtn" style="background:var(--gray3);color:var(--text);margin-top:8px" onclick="closeOv('ckOv')">Cancelar</button>
   </div>`;
   openOv('ckOv');
 }
@@ -1551,14 +1587,31 @@ async function placeOrder(){
   const ref='TS-'+Date.now().toString(36).toUpperCase().slice(-8);
   const total=cart.reduce((s,i)=>s+i.total,0);
   const payMethod=document.querySelector('input[name="pay"]:checked')?.value||'paypal';
-  const order={id:ref,uid:USER?.uid||'',date:new Date().toISOString(),items:[...cart],total,payMethod,status:'pending',
+
+  // Validación del comprobante de transferencia
+  let transferData=null;
+  let autoCancel=false;
+  if(payMethod==='transfer'){
+    const amount=parseFloat($('ckTransferAmount')?.value);
+    const auth=$('ckTransferAuth')?.value.trim();
+    const err=$('transferErr');
+    err.classList.remove('show');
+    if(!amount||amount<=0){err.textContent='Ingresa el monto depositado';err.classList.add('show');return}
+    if(!auth){err.textContent='Ingresa el número de autorización';err.classList.add('show');return}
+    if(!transferImgBase64){err.textContent='Sube la imagen del comprobante';err.classList.add('show');return}
+    // Comparación exacta (con tolerancia mínima de centavos por redondeo)
+    const diff=Math.abs(amount-total);
+    autoCancel=diff>0.01;
+    transferData={amount,auth,image:transferImgBase64,expectedTotal:total,matched:!autoCancel};
+  }
+
+  const order={id:ref,uid:USER?.uid||'',date:new Date().toISOString(),items:[...cart],total,payMethod,status:autoCancel?'cancelled':'pending',
+    transferData,
     customer:{name:fn+' '+ln,phone:savedAddr.phone||USER?.phone||'',address:savedAddr.address+', '+savedAddr.city+' (C.P. '+savedAddr.zip+')'+(savedAddr.desc?' — '+savedAddr.desc:'')}};
   ORDERS.unshift(order);
   try{
     await window._fb.setDoc(window._fb.doc(window._fb.db,'orders',ref),order);
   }catch(e){toast('⚠️ No se pudo sincronizar el pedido con la nube');}
-  dispatchNotification('purchase','Compra realizada 🛒','Tu compra '+ref+' por '+fmt(total)+' fue registrada exitosamente.');
-  dispatchNotification('confirmed','Pedido confirmado ✅','Tu pedido '+ref+' fue confirmado y pasará a procesamiento.');
 
   // Desglose por producto: Costo eBay + Ganancia TecnoShop + Envío = Total pagado
   const desgloseHtml=order.items.map(i=>{
@@ -1598,14 +1651,47 @@ async function placeOrder(){
           </table>
         </td></tr>
       </table>`;
+    const transferInfoHtml=transferData?`
+      <div style="font-size:11px;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:.5px;margin:16px 0 10px;">Comprobante de transferencia</div>
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${transferData.matched?'#f0fdf4':'#fef2f2'};border-radius:10px;">
+        <tr><td style="padding:14px 16px;">
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+            <tr><td style="font-size:13px;color:#555;padding:4px 0;">Monto depositado</td><td style="font-size:13px;color:#111820;font-weight:700;padding:4px 0;">${fmt(transferData.amount)}</td></tr>
+            <tr><td style="font-size:13px;color:#555;padding:4px 0;">Total esperado</td><td style="font-size:13px;color:#111820;font-weight:700;padding:4px 0;">${fmt(transferData.expectedTotal)}</td></tr>
+            <tr><td style="font-size:13px;color:#555;padding:4px 0;">N° de autorización</td><td style="font-size:13px;color:#111820;font-weight:700;padding:4px 0;">${transferData.auth}</td></tr>
+            <tr><td style="font-size:13px;color:${transferData.matched?'#16a34a':'#dc2626'};font-weight:800;padding:4px 0;">Estado</td><td style="font-size:13px;color:${transferData.matched?'#16a34a':'#dc2626'};font-weight:800;text-align:right;padding:4px 0;">${transferData.matched?'✅ Monto correcto':'⚠️ Monto NO coincide'}</td></tr>
+          </table>
+        </td></tr>
+      </table>`:'';
     emailjs.send('service_7zfn94m','template_bb4894x',{
-      email_title:'🟢 Nuevo pedido confirmado - TecnoShop',
-      alerta_bg:'#f0fdf4',alerta_borde:'#bbf7d0',alerta_color:'#16a34a',alerta_texto:'🟢 Nuevo pedido confirmado',
-      cuerpo_html:cuerpoHtml,
+      email_title:autoCancel?'🔴 Pedido CANCELADO (monto incorrecto) - TecnoShop':'🟢 Nuevo pedido confirmado - TecnoShop',
+      alerta_bg:autoCancel?'#fef2f2':'#f0fdf4',alerta_borde:autoCancel?'#fecaca':'#bbf7d0',alerta_color:autoCancel?'#dc2626':'#16a34a',alerta_texto:autoCancel?'🔴 Pedido cancelado — revisar reembolso':'🟢 Nuevo pedido confirmado',
+      cuerpo_html:cuerpoHtml+transferInfoHtml,
       boton_texto:'Gestionar pedido en el panel',
       panel_url:'https://tecnoshop-theta.vercel.app/admin.html'
     }).catch(mailErr=>console.error('EmailJS falló al notificar pedido:',mailErr));
   }catch(e){console.error('Error general en placeOrder:',e)}
+
+  if(autoCancel){
+    // Monto de transferencia no coincide: NO se marca el producto como vendido, pedido queda cancelado
+    cart=[];updBadge();
+    const isLess=transferData.amount<total;
+    dispatchNotification('cancelled','Pedido cancelado ⚠️','El monto depositado no coincide con el total de tu pedido '+ref+'.');
+    $('ckContent').innerHTML=`<div class="success-view">
+      <div class="s-check" style="background:#fef2f2;border-color:#fecaca"><svg viewBox="0 0 24 24" stroke="#dc2626"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></div>
+      <div class="s-title" style="color:#dc2626">Pedido cancelado</div>
+      <div class="s-ref">${ref}</div>
+      <div class="s-detail">
+        El monto depositado (${fmt(transferData.amount)}) no coincide con el total del pedido (${fmt(total)}).
+        ${isLess?' El pedido fue cancelado automáticamente.':' El pedido fue cancelado y el excedente será reembolsado en un plazo de 2 a 5 días hábiles.'}
+      </div>
+      <button class="btn-cont" onclick="closeOv('ckOv')">Entendido</button>
+    </div>`;
+    return;
+  }
+
+  dispatchNotification('purchase','Compra realizada 🛒','Tu compra '+ref+' por '+fmt(total)+' fue registrada exitosamente.');
+  dispatchNotification('confirmed','Pedido confirmado ✅','Tu pedido '+ref+' fue confirmado y pasará a procesamiento.');
   // Marcar artículos como vendidos y quitarlos de la tienda
   order.items.forEach(i=>{const pid=String(i.prod.id);if(!SOLD.includes(pid))SOLD.push(pid)});
   LS.s('ts_sold',SOLD);
