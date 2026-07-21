@@ -336,7 +336,7 @@ nav{background:var(--white);border-bottom:1px solid var(--border2);padding:10px 
 .ord-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:7px}
 .ord-id{font-family:monospace;font-weight:700;color:var(--blue);font-size:12px}
 .ord-st{font-size:10px;font-weight:700;padding:2px 8px;border-radius:var(--pill);color:white}
-.st-pending{background:var(--orange)}.st-confirmed{background:var(--blue)}.st-delivered{background:var(--green)}.st-cancelled{background:var(--red)}
+.st-pending{background:var(--orange)}.st-confirmed{background:var(--blue)}.st-processing{background:#7c3aed}.st-shipped{background:#0891b2}.st-delivered{background:var(--green)}.st-cancelled{background:var(--red)}
 
 /* TOAST */
 .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(40px);background:#111820;color:white;padding:10px 20px;border-radius:var(--pill);font-size:13px;font-weight:600;box-shadow:var(--sh2);opacity:0;transition:all .28s cubic-bezier(.34,1.4,.64,1);z-index:9999;white-space:nowrap;pointer-events:none}
@@ -882,15 +882,76 @@ function openOrders(){
   if(!ORDERS.length){
     el.innerHTML='<div style="text-align:center;padding:50px;color:var(--text3)"><p style="font-size:14px;font-weight:600">No tienes pedidos aún</p></div>';
   }else{
-    const stLbl={pending:'Pendiente',confirmed:'Confirmado',shipped:'Enviado',delivered:'Entregado',cancelled:'Cancelado'};
-    el.innerHTML=ORDERS.map(o=>`<div class="ord-card">
-      <div class="ord-head"><span class="ord-id">${o.id}</span><span class="ord-st st-${o.status||'pending'}">${stLbl[o.status]||'Pendiente'}</span></div>
-      <div style="font-size:12px;color:var(--text2);margin-bottom:5px">${o.items?.length||0} producto(s) · ${o.payMethod||'PayPal'}</div>
-      <div style="font-size:15px;font-weight:800;color:var(--blue)">${fmt(o.total)}</div>
-      <div style="font-size:10px;color:var(--text3);margin-top:3px">${new Date(o.date).toLocaleDateString('es')}</div>
-    </div>`).join('');
+    const stLbl={pending:'Pendiente',confirmed:'Confirmado',processing:'Procesando',shipped:'Enviado',delivered:'Entregado',cancelled:'Cancelado'};
+    el.innerHTML=ORDERS.map((o,idx)=>{
+      const firstItem=(o.items||[])[0];
+      const thumb=firstItem?.prod?.img||'https://images.unsplash.com/photo-1496181133206-80ce9b88a853?w=200';
+      const extra=(o.items||[]).length>1?' +'+((o.items.length)-1)+' más':'';
+      return `<div class="ord-card" onclick="openOrderDetail(${idx})" style="cursor:pointer;display:flex;gap:12px;align-items:flex-start">
+        <img src="${thumb}" alt="" style="width:56px;height:56px;object-fit:contain;background:var(--gray3);border-radius:var(--r8);flex-shrink:0;padding:4px">
+        <div style="flex:1;min-width:0">
+          <div class="ord-head"><span class="ord-id">${o.id}</span><span class="ord-st st-${o.status||'pending'}">${stLbl[o.status]||'Pendiente'}</span></div>
+          <div style="font-size:12px;color:var(--text2);margin-bottom:5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${(firstItem?.prod?.title||'').slice(0,40)}${extra}</div>
+          <div style="font-size:15px;font-weight:800;color:var(--blue)">${fmt(o.total)}</div>
+          <div style="font-size:10px;color:var(--text3);margin-top:3px">${new Date(o.date).toLocaleDateString('es')}</div>
+        </div>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text3)" stroke-width="2" style="flex-shrink:0;margin-top:8px"><polyline points="9 18 15 12 9 6"/></svg>
+      </div>`;
+    }).join('');
   }
   openOv('ordersOv');
+}
+
+function openOrderDetail(idx){
+  const o=ORDERS[idx];
+  if(!o)return;
+  const stLbl={pending:'Pendiente',confirmed:'Confirmado',processing:'Procesando',shipped:'Enviado',delivered:'Entregado',cancelled:'Cancelado'};
+  const stSteps=['pending','confirmed','processing','shipped','delivered'];
+  const curStepIdx=stSteps.indexOf(o.status||'pending');
+  $('panelTitle').textContent='Pedido '+o.id;
+  $('panelBody').innerHTML=`
+    <div style="text-align:center;margin-bottom:18px">
+      <span class="ord-st st-${o.status||'pending'}" style="font-size:13px;padding:6px 16px">${stLbl[o.status]||'Pendiente'}</span>
+    </div>
+    ${o.status!=='cancelled'?`
+    <div style="display:flex;justify-content:space-between;margin-bottom:22px;position:relative">
+      <div style="position:absolute;top:9px;left:5%;right:5%;height:2px;background:var(--border2);z-index:0"></div>
+      <div style="position:absolute;top:9px;left:5%;height:2px;background:var(--blue);z-index:1;width:${Math.max(0,curStepIdx)*22.5}%;transition:width .3s"></div>
+      ${['Pendiente','Confirmado','Procesando','Enviado','Entregado'].map((s,i)=>`
+        <div style="position:relative;z-index:2;display:flex;flex-direction:column;align-items:center;flex:1">
+          <div style="width:18px;height:18px;border-radius:50%;background:${i<=curStepIdx?'var(--blue)':'var(--border2)'};display:flex;align-items:center;justify-content:center">
+            ${i<=curStepIdx?'<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>':''}
+          </div>
+          <div style="font-size:9px;color:${i<=curStepIdx?'var(--blue)':'var(--text3)'};margin-top:4px;text-align:center;font-weight:600">${s}</div>
+        </div>
+      `).join('')}
+    </div>`:''}
+    <div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.4px;margin-bottom:10px">Productos</div>
+    ${(o.items||[]).map(i=>`
+      <div style="display:flex;gap:10px;padding:10px 0;border-bottom:1px solid var(--gray3)">
+        <img src="${i.prod?.img||''}" alt="" style="width:48px;height:48px;object-fit:contain;background:var(--gray3);border-radius:var(--r8);flex-shrink:0;padding:3px">
+        <div style="flex:1;min-width:0">
+          <div style="font-size:12px;font-weight:600;color:var(--text);line-height:1.4">${cleanBrand(i.prod?.title||'')}</div>
+          <div style="font-size:12px;color:var(--blue);font-weight:700;margin-top:2px">${fmt(i.total)}</div>
+        </div>
+      </div>
+    `).join('')}
+    <div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.4px;margin:18px 0 10px">Información de entrega</div>
+    <div style="background:var(--gray3);border-radius:var(--r8);padding:12px 14px;font-size:12px;color:var(--text2);line-height:1.8">
+      <b style="color:var(--text)">${o.customer?.name||'—'}</b><br>
+      📞 ${o.customer?.phone||'—'}<br>
+      📍 ${o.customer?.address||'—'}<br>
+      💳 ${o.payMethod==='paypal'?'PayPal':'Transferencia bancaria'}
+    </div>
+    <div style="display:flex;justify-content:space-between;margin-top:18px;padding-top:14px;border-top:1px solid var(--border2)">
+      <span style="font-size:14px;font-weight:800">Total</span>
+      <span style="font-size:18px;font-weight:800;color:var(--blue)">${fmt(o.total)}</span>
+    </div>
+    <div style="font-size:10px;color:var(--text3);margin-top:10px;text-align:center">Pedido realizado el ${new Date(o.date).toLocaleString('es-NI')}</div>
+    <button class="abtn" style="background:var(--gray3);color:var(--text);margin-top:16px" onclick="closeOv('panelOv');openOrders()">← Volver a mis pedidos</button>
+  `;
+  closeOv('ordersOv');
+  openOv('panelOv');
 }
 
 // APP INIT
