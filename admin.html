@@ -379,6 +379,13 @@ function renderOrders(){
         📍 ${o.customer?.address||'—'}<br>
         💳 ${o.payMethod==='paypal'?'PayPal':'Transferencia bancaria'}
       </div>
+      ${o.transferData?`
+      <div style="background:${o.transferData.matched?'#f0fdf4':'#fef2f2'};border:1px solid ${o.transferData.matched?'#bbf7d0':'#fecaca'};border-radius:var(--r8);padding:10px 12px;margin-bottom:10px;font-size:12px">
+        <b style="color:${o.transferData.matched?'var(--green)':'var(--red)'}">${o.transferData.matched?'✅ Comprobante verificado':'⚠️ Monto no coincide'}</b><br>
+        Depositado: ${fmt(o.transferData.amount)} · Esperado: ${fmt(o.transferData.expectedTotal)}<br>
+        N° autorización: ${o.transferData.auth}<br>
+        ${o.transferData.image?`<img src="${o.transferData.image}" style="max-width:160px;margin-top:6px;border-radius:6px;border:1px solid var(--border);cursor:pointer" onclick="window.open(this.src,'_blank')">`:''}
+      </div>`:''}
       <div class="card-items">
         ${(o.items||[]).map((i,idx)=>{
           const bought=(o.itemsBought&&o.itemsBought[idx])||false;
