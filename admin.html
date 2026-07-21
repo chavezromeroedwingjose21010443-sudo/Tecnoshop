@@ -364,7 +364,7 @@ function renderOrders(){
         <div><div class="card-id">${o.id}</div><div class="card-date">${new Date(o.date).toLocaleString('es-NI')}</div></div>
         <div style="text-align:right">
           <div class="card-total">${fmt(o.total)}</div>
-          <select class="status-sel st-${o.status}" onchange="updateStatus('${o.id}',this.value)">
+          <select class="status-sel st-${o.status}" onchange="updateStatus('${o.id}',this.value,this)">
             ${Object.entries(STATUS_LABELS).map(([k,v])=>`<option value="${k}" ${o.status===k?'selected':''}>${v}</option>`).join('')}
           </select>
         </div>
@@ -396,14 +396,22 @@ function renderOrders(){
   }).join('');
 }
 
-async function updateStatus(orderId,newStatus){
+async function updateStatus(orderId,newStatus,selectEl){
+  const o=ALL_ORDERS.find(x=>x.id===orderId);
+  const prevStatus=o?o.status:null;
+  const ok=confirm('¿Confirmas cambiar el pedido '+orderId+' a estado: "'+STATUS_LABELS[newStatus]+'"?');
+  if(!ok){
+    if(selectEl&&prevStatus)selectEl.value=prevStatus;
+    return;
+  }
   try{
     await window._fb.updateDoc(window._fb.doc(window._fb.db,'orders',orderId),{status:newStatus});
-    const o=ALL_ORDERS.find(x=>x.id===orderId);
     if(o)o.status=newStatus;
     renderStats();
+    renderOrders();
   }catch(e){
     alert('Error al actualizar el estado. Intenta de nuevo.');
+    if(selectEl&&prevStatus)selectEl.value=prevStatus;
   }
 }
 
@@ -452,7 +460,7 @@ function renderOffers(){
         <div><div class="card-id">${o.id}</div><div class="card-date">${new Date(o.date).toLocaleString('es-NI')}</div></div>
         <div style="text-align:right">
           <div class="card-total">${fmt(o.offerAmount)}</div>
-          <select class="status-sel" style="${stColors[st]}" onchange="updateOfferStatus('${o.id}',this.value)">
+          <select class="status-sel" style="${stColors[st]}" onchange="updateOfferStatus('${o.id}',this.value,this)">
             ${Object.entries(OFFER_LABELS).map(([k,v])=>`<option value="${k}" ${st===k?'selected':''}>${v}</option>`).join('')}
           </select>
         </div>
@@ -468,13 +476,21 @@ function renderOffers(){
   }).join('');
 }
 
-async function updateOfferStatus(offerId,newStatus){
+async function updateOfferStatus(offerId,newStatus,selectEl){
+  const o=ALL_OFFERS.find(x=>x.id===offerId);
+  const prevStatus=o?(o.status||'pending'):null;
+  const ok=confirm('¿Confirmas cambiar la oferta '+offerId+' a estado: "'+OFFER_LABELS[newStatus]+'"?');
+  if(!ok){
+    if(selectEl&&prevStatus)selectEl.value=prevStatus;
+    return;
+  }
   try{
     await window._fb.updateDoc(window._fb.doc(window._fb.db,'offers',offerId),{status:newStatus});
-    const o=ALL_OFFERS.find(x=>x.id===offerId);
     if(o)o.status=newStatus;
+    renderOffers();
   }catch(e){
     alert('Error al actualizar la oferta. Intenta de nuevo.');
+    if(selectEl&&prevStatus)selectEl.value=prevStatus;
   }
 }
 
