@@ -214,6 +214,8 @@ nav{background:var(--white);border-bottom:1px solid var(--border2);padding:10px 
 .overlay.open .sheet{transform:none}
 .sheet-sm{max-width:460px}
 .sheet-lg{max-width:640px}
+.sheet-full{max-width:900px;width:96%;max-height:96vh}
+@media(max-width:640px){.sheet-full{width:100%;max-width:100%;height:100vh;max-height:100vh;border-radius:0}}
 .sh-hd{padding:18px 20px 14px;border-bottom:1px solid var(--border2);display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;background:var(--white);z-index:2;border-radius:var(--r12) var(--r12) 0 0}
 .sh-title{font-size:16px;font-weight:700;color:var(--text)}
 .x-btn{background:var(--gray3);border:none;border-radius:50%;width:28px;height:28px;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--text2)}
@@ -221,6 +223,7 @@ nav{background:var(--white);border-bottom:1px solid var(--border2);padding:10px 
 
 /* PRODUCT DETAIL */
 .pd-img{height:280px;background:var(--gray3);overflow:hidden;position:relative;border-radius:var(--r12) var(--r12) 0 0}
+@media(min-width:641px){.pd-img{height:420px}}
 .pd-img img{width:100%;height:100%;object-fit:contain;padding:16px}
 .carousel-slide{flex:0 0 100%;scroll-snap-align:center;display:flex;align-items:center;justify-content:center;height:100%}
 .carousel-slide img{width:100%;height:100%;object-fit:contain;padding:16px}
@@ -233,7 +236,7 @@ nav{background:var(--white);border-bottom:1px solid var(--border2);padding:10px 
 .pd-fav.saved{border-color:var(--red);color:var(--red)}
 .pd-fav.saved svg{fill:var(--red)}
 .pd-fav svg{width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:2}
-.pd-body{padding:20px}
+.pd-body{padding:20px;max-width:640px;margin:0 auto}
 .pd-type-row{display:flex;align-items:center;gap:8px;margin-bottom:8px}
 .pd-cond{font-size:12px;color:var(--text3)}
 .pd-title{font-size:17px;font-weight:700;color:var(--text);line-height:1.3;margin-bottom:12px}
@@ -544,7 +547,7 @@ footer strong{color:rgba(255,255,255,.75)}
 
 <!-- PRODUCT OVERLAY -->
 <div class="overlay" id="prodOv">
-  <div class="sheet sheet-lg">
+  <div class="sheet sheet-full">
     <div class="pd-img">
       <div id="pImgCarousel" style="display:flex;overflow-x:auto;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;width:100%;height:100%;scrollbar-width:none" onscroll="updateCarouselDots(this)"></div>
       <div id="pImgDots" style="position:absolute;bottom:10px;left:0;right:0;display:flex;justify-content:center;gap:5px;pointer-events:none"></div>
@@ -585,9 +588,9 @@ footer strong{color:rgba(255,255,255,.75)}
 
 <!-- CHECKOUT OVERLAY -->
 <div class="overlay" id="ckOv">
-  <div class="sheet sheet-sm">
+  <div class="sheet sheet-full">
     <div class="sh-hd"><div class="sh-title">Finalizar pedido</div><button class="x-btn" onclick="closeOv('ckOv')"><svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div>
-    <div id="ckContent"></div>
+    <div id="ckContent" style="max-width:640px;margin:0 auto"></div>
   </div>
 </div>
 
@@ -611,6 +614,13 @@ footer strong{color:rgba(255,255,255,.75)}
   <div class="sheet sheet-sm">
     <div class="sh-hd"><div class="sh-title" id="panelTitle">Configuración</div><button class="x-btn" onclick="closeOv('panelOv')"><svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div>
     <div id="panelBody" style="padding:18px 20px;max-height:540px;overflow-y:auto"></div>
+  </div>
+</div>
+
+<div class="overlay" id="orderDetailOv">
+  <div class="sheet sheet-full">
+    <div class="sh-hd"><div class="sh-title" id="orderDetailTitle">Pedido</div><button class="x-btn" onclick="closeOv('orderDetailOv')"><svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div>
+    <div id="orderDetailBody" style="padding:24px;max-height:calc(96vh - 60px);overflow-y:auto"></div>
   </div>
 </div>
 
@@ -908,13 +918,14 @@ function openOrderDetail(idx){
   const stLbl={pending:'Pendiente',confirmed:'Confirmado',processing:'Procesando',shipped:'Enviado',delivered:'Entregado',cancelled:'Cancelado'};
   const stSteps=['pending','confirmed','processing','shipped','delivered'];
   const curStepIdx=stSteps.indexOf(o.status||'pending');
-  $('panelTitle').textContent='Pedido '+o.id;
-  $('panelBody').innerHTML=`
-    <div style="text-align:center;margin-bottom:18px">
-      <span class="ord-st st-${o.status||'pending'}" style="font-size:13px;padding:6px 16px">${stLbl[o.status]||'Pendiente'}</span>
+  $('orderDetailTitle').textContent='Pedido '+o.id;
+  $('orderDetailBody').innerHTML=`
+    <div style="max-width:640px;margin:0 auto">
+    <div style="text-align:center;margin-bottom:24px">
+      <span class="ord-st st-${o.status||'pending'}" style="font-size:13px;padding:7px 18px">${stLbl[o.status]||'Pendiente'}</span>
     </div>
     ${o.status!=='cancelled'?`
-    <div style="display:flex;justify-content:space-between;margin-bottom:22px;position:relative">
+    <div style="display:flex;justify-content:space-between;margin-bottom:28px;position:relative">
       <div style="position:absolute;top:9px;left:5%;right:5%;height:2px;background:var(--border2);z-index:0"></div>
       <div style="position:absolute;top:9px;left:5%;height:2px;background:var(--blue);z-index:1;width:${Math.max(0,curStepIdx)*22.5}%;transition:width .3s"></div>
       ${['Pendiente','Confirmado','Procesando','Enviado','Entregado'].map((s,i)=>`
@@ -922,36 +933,44 @@ function openOrderDetail(idx){
           <div style="width:18px;height:18px;border-radius:50%;background:${i<=curStepIdx?'var(--blue)':'var(--border2)'};display:flex;align-items:center;justify-content:center">
             ${i<=curStepIdx?'<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>':''}
           </div>
-          <div style="font-size:9px;color:${i<=curStepIdx?'var(--blue)':'var(--text3)'};margin-top:4px;text-align:center;font-weight:600">${s}</div>
+          <div style="font-size:10px;color:${i<=curStepIdx?'var(--blue)':'var(--text3)'};margin-top:5px;text-align:center;font-weight:600">${s}</div>
         </div>
       `).join('')}
     </div>`:''}
-    <div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.4px;margin-bottom:10px">Productos</div>
-    ${(o.items||[]).map(i=>`
-      <div style="display:flex;gap:10px;padding:10px 0;border-bottom:1px solid var(--gray3)">
-        <img src="${i.prod?.img||''}" alt="" style="width:48px;height:48px;object-fit:contain;background:var(--gray3);border-radius:var(--r8);flex-shrink:0;padding:3px">
+    <div style="font-size:12px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.4px;margin-bottom:12px">Productos</div>
+    ${(o.items||[]).map(i=>{
+      const pid=i.prod?.id;
+      const stillExists=pid&&allProds.some(p=>String(p.id)===String(pid));
+      const clickAction=pid?`viewOrderProduct('${pid}',${JSON.stringify(i.prod).replace(/"/g,'&quot;')})`:'';
+      return `
+      <div style="display:flex;gap:12px;padding:14px 0;border-bottom:1px solid var(--gray3);${pid?'cursor:pointer':''}" ${pid?`onclick="${clickAction}"`:''}>
+        <img src="${i.prod?.img||''}" alt="" style="width:60px;height:60px;object-fit:contain;background:var(--gray3);border-radius:var(--r8);flex-shrink:0;padding:4px">
         <div style="flex:1;min-width:0">
-          <div style="font-size:12px;font-weight:600;color:var(--text);line-height:1.4">${cleanBrand(i.prod?.title||'')}</div>
-          <div style="font-size:12px;color:var(--blue);font-weight:700;margin-top:2px">${fmt(i.total)}</div>
+          <div style="font-size:13px;font-weight:600;color:var(--text);line-height:1.4">${cleanBrand(i.prod?.title||'')}</div>
+          <div style="font-size:13px;color:var(--blue);font-weight:700;margin-top:4px">${fmt(i.total)}</div>
+          ${!stillExists?'<div style="font-size:10px;color:var(--text3);margin-top:2px">Ya no disponible en la tienda</div>':''}
         </div>
+        ${pid?'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text3)" stroke-width="2" style="flex-shrink:0;margin-top:22px"><polyline points="9 18 15 12 9 6"/></svg>':''}
       </div>
-    `).join('')}
-    <div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.4px;margin:18px 0 10px">Información de entrega</div>
-    <div style="background:var(--gray3);border-radius:var(--r8);padding:12px 14px;font-size:12px;color:var(--text2);line-height:1.8">
+    `;
+    }).join('')}
+    <div style="font-size:12px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.4px;margin:22px 0 12px">Información de entrega</div>
+    <div style="background:var(--gray3);border-radius:var(--r8);padding:14px 16px;font-size:13px;color:var(--text2);line-height:1.9">
       <b style="color:var(--text)">${o.customer?.name||'—'}</b><br>
       📞 ${o.customer?.phone||'—'}<br>
       📍 ${o.customer?.address||'—'}<br>
       💳 ${o.payMethod==='paypal'?'PayPal':'Transferencia bancaria'}
     </div>
-    <div style="display:flex;justify-content:space-between;margin-top:18px;padding-top:14px;border-top:1px solid var(--border2)">
-      <span style="font-size:14px;font-weight:800">Total</span>
-      <span style="font-size:18px;font-weight:800;color:var(--blue)">${fmt(o.total)}</span>
+    <div style="display:flex;justify-content:space-between;margin-top:22px;padding-top:16px;border-top:1px solid var(--border2)">
+      <span style="font-size:15px;font-weight:800">Total</span>
+      <span style="font-size:20px;font-weight:800;color:var(--blue)">${fmt(o.total)}</span>
     </div>
-    <div style="font-size:10px;color:var(--text3);margin-top:10px;text-align:center">Pedido realizado el ${new Date(o.date).toLocaleString('es-NI')}</div>
-    <button class="abtn" style="background:var(--gray3);color:var(--text);margin-top:16px" onclick="closeOv('panelOv');openOrders()">← Volver a mis pedidos</button>
+    <div style="font-size:11px;color:var(--text3);margin-top:12px;text-align:center">Pedido realizado el ${new Date(o.date).toLocaleString('es-NI')}</div>
+    <button class="abtn" style="background:var(--gray3);color:var(--text);margin-top:20px" onclick="closeOv('orderDetailOv');openOrders()">← Volver a mis pedidos</button>
+    </div>
   `;
   closeOv('ordersOv');
-  openOv('panelOv');
+  openOv('orderDetailOv');
 }
 
 // APP INIT
@@ -1208,6 +1227,48 @@ function updateCarouselDots(track){
   if(!dots.length)return;
   const idx=Math.round(track.scrollLeft/track.clientWidth);
   dots.forEach((d,i)=>d.classList.toggle('on',i===idx));
+}
+
+// Abre el detalle de un producto desde un pedido pasado.
+// Usa los datos GUARDADOS EN EL PEDIDO (no el catálogo activo), así el comprador
+// siempre puede ver qué compró, incluso si el producto ya se vendió/desapareció.
+function viewOrderProduct(id,savedProd){
+  const stillActive=allProds.find(p=>String(p.id)===String(id));
+  curProd=stillActive||savedProd;
+  if(!curProd)return;
+  selShip='free';
+  renderCarousel(curProd.images&&curProd.images.length?curProd.images:[curProd.img]);
+  $('pTitle').textContent=cleanBrand(curProd.title);$('pCond').textContent=curProd.cond||'';
+  const tb=$('pTypeBadge');
+  if(!stillActive){
+    tb.className='card-type-badge';tb.style.background='var(--gray2)';tb.style.color='var(--text2)';tb.textContent='Ya no disponible';
+  }else if(curProd.type==='offer'){
+    tb.className='card-type-badge ctb-offer';tb.textContent='Oferta especial';
+  }else{
+    tb.className='card-type-badge ctb-buy';tb.textContent='Disponible';
+  }
+  const favBtn=$('pdFavBtn');favBtn.classList.toggle('saved',FAVS.includes(curProd.id));
+
+  const total=calcTotal(curProd.price,'free');
+  const dr=deliveryRanges(curProd.maxDelivery);
+
+  if(!stillActive){
+    // Vista de solo lectura: ya no se puede comprar/ofertar, solo consultar qué era
+    $('pdBuyBlock').innerHTML=`
+      <div style="background:#fef3c7;border:1px solid #fde68a;border-radius:var(--r8);padding:12px 14px;margin-bottom:14px;font-size:12px;color:#92400e">
+        Este producto ya no está disponible en la tienda. Esta es la información de lo que compraste.
+      </div>
+      <div style="background:var(--gray3);border-radius:var(--r8);padding:14px;margin-bottom:14px">
+        <div style="font-size:20px;font-weight:800;color:var(--text)">${fmt(curProd.price?total:(savedProd?.total||0))}</div>
+      </div>
+    `;
+  }else{
+    openProd(id);
+    return;
+  }
+  const pdAbout=$('pdAbout');
+  if(pdAbout)pdAbout.innerHTML=buildAbout({condition:curProd.cond,description:curProd.description||''});
+  openOv('prodOv');
 }
 
 function openProd(id){
@@ -1554,11 +1615,14 @@ function openCheckout(){
     <div id="transferProofBlock" style="display:none;margin-top:14px">
       <div class="ck-sec">Comprobante de transferencia</div>
       <div style="background:#fef3c7;border:1px solid #fde68a;border-radius:var(--r8);padding:12px 14px;font-size:12px;color:#92400e;line-height:1.6;margin-bottom:14px">
-        ⚠️ El monto depositado debe coincidir <b>exactamente</b> con el total del pedido (${fmt(total)}).<br>
-        Si el monto es <b>inferior</b>, el pedido se <b>cancelará automáticamente</b>.<br>
-        Si el monto es <b>superior</b>, el pedido también se cancelará y el dinero se <b>reembolsará en 2–5 días hábiles</b>.
+        ⚠️ Debes depositar <b>exactamente ${fmt(total)}</b>.<br>
+        Si depositas de <b>menos</b>, el pedido se <b>cancelará automáticamente</b>.<br>
+        Si depositas de <b>más</b>, el pedido también se cancelará y el dinero se <b>reembolsará en 2–5 días hábiles</b>.
       </div>
-      <div class="cf"><label>Monto total debitado (USD)</label><input type="number" id="ckTransferAmount" placeholder="0.00" step="0.01"></div>
+      <div class="cf"><label>Monto a transferir (fijo)</label>
+        <div style="background:var(--gray3);border-radius:var(--r4);padding:10px 12px;font-size:16px;font-weight:800;color:var(--blue)">${fmt(total)}</div>
+        <input type="hidden" id="ckTransferAmount" value="${total}">
+      </div>
       <div class="cf"><label>Número de autorización / referencia</label><input id="ckTransferAuth" placeholder="Ej: 0004821193"></div>
       <div class="cf">
         <label>Imagen del comprobante</label>
