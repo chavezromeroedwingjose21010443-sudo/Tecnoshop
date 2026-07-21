@@ -4,11 +4,16 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>TecnoShop — Panel de administración</title>
+<link rel="manifest" href="/admin-manifest.json">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="TecnoShop Admin">
+<meta name="theme-color" content="#3665f3">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-import { getFirestore, doc, getDoc, collection, getDocs, updateDoc, query, orderBy } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+import { getFirestore, doc, getDoc, collection, getDocs, updateDoc, deleteDoc, query, orderBy } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyBaNwGkiLDHGjjEDJo0x0NqYQou99MmBz0",
@@ -23,7 +28,7 @@ const fbApp = initializeApp(firebaseConfig);
 const auth = getAuth(fbApp);
 const db = getFirestore(fbApp);
 
-window._fb = { auth, db, doc, getDoc, collection, getDocs, updateDoc, query, orderBy, signInWithEmailAndPassword, signOut };
+window._fb = { auth, db, doc, getDoc, collection, getDocs, updateDoc, deleteDoc, query, orderBy, signInWithEmailAndPassword, signOut };
 
 onAuthStateChanged(auth, async (fbUser) => {
   if (fbUser) {
@@ -34,7 +39,6 @@ onAuthStateChanged(auth, async (fbUser) => {
         window._adminUser = { uid: fbUser.uid, email: fbUser.email, ...data };
         window.onAdminLogin && window.onAdminLogin();
       } else {
-        // Usuario válido en Firebase pero SIN rol de administrador: acceso denegado
         window.onAccessDenied && window.onAccessDenied();
       }
     } catch (e) {
@@ -59,7 +63,6 @@ a{text-decoration:none;color:var(--blue)}
 button{font-family:inherit;cursor:pointer}
 input{font-family:inherit}
 
-/* LOGIN */
 .login-wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#0a0a1e,#1a1a4e,#2952c4);padding:20px}
 .login-card{background:var(--white);border-radius:16px;padding:36px;width:100%;max-width:400px;box-shadow:0 24px 60px rgba(0,0,0,.3)}
 .login-logo{text-align:center;font-size:24px;font-weight:900;letter-spacing:-1px;margin-bottom:6px}
@@ -75,52 +78,79 @@ input{font-family:inherit}
 .login-err{background:#fef2f2;border:1px solid #fecaca;color:#dc2626;border-radius:var(--r8);padding:10px 14px;font-size:13px;font-weight:600;margin-bottom:14px;display:none}
 .login-err.show{display:block}
 
-/* ACCESS DENIED */
 .denied-wrap{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;text-align:center;padding:20px}
 .denied-wrap h2{font-size:20px;font-weight:800;color:var(--red)}
 .denied-wrap p{color:var(--text2);font-size:14px;max-width:320px}
 .denied-btn{background:var(--gray2);border:none;border-radius:var(--pill);padding:10px 24px;font-size:13px;font-weight:700;color:var(--text)}
 
-/* APP */
 #app{display:none}
-.topbar{background:var(--white);border-bottom:1px solid var(--border);padding:14px 24px;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:100}
-.topbar-logo{font-size:18px;font-weight:900;letter-spacing:-.5px}
-.topbar-logo em{font-style:normal;color:var(--blue)}
-.topbar-badge{background:var(--gray2);color:var(--text2);font-size:10px;font-weight:800;padding:3px 10px;border-radius:var(--pill);text-transform:uppercase;letter-spacing:.5px}
-.topbar-r{margin-left:auto;display:flex;align-items:center;gap:12px}
-.topbar-email{font-size:12px;color:var(--text3)}
-.logout-btn{background:var(--gray3);border:1px solid var(--border);border-radius:var(--pill);padding:7px 16px;font-size:12px;font-weight:700;color:var(--text)}
-.logout-btn:hover{background:var(--gray2)}
+.shell{display:flex;min-height:100vh}
 
+.sidebar{width:220px;background:#12132b;color:#fff;flex-shrink:0;display:flex;flex-direction:column;position:sticky;top:0;height:100vh}
+.sb-logo{padding:22px 20px;font-size:18px;font-weight:900;letter-spacing:-.5px;border-bottom:1px solid rgba(255,255,255,.08)}
+.sb-logo em{font-style:normal;color:#7ea8ff}
+.sb-nav{flex:1;padding:14px 10px;display:flex;flex-direction:column;gap:2px}
+.sb-item{display:flex;align-items:center;gap:10px;padding:11px 12px;border-radius:var(--r8);color:rgba(255,255,255,.7);font-size:13px;font-weight:600;cursor:pointer;border:none;background:none;text-align:left;width:100%}
+.sb-item:hover{background:rgba(255,255,255,.06);color:#fff}
+.sb-item.on{background:var(--blue);color:#fff}
+.sb-item svg{width:17px;height:17px;flex-shrink:0}
+.sb-foot{padding:14px 16px;border-top:1px solid rgba(255,255,255,.08)}
+.sb-email{font-size:11px;color:rgba(255,255,255,.5);margin-bottom:8px;word-break:break-all}
+.logout-btn{width:100%;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);border-radius:var(--r8);padding:9px;font-size:12px;font-weight:700;color:#fff}
+.logout-btn:hover{background:rgba(255,255,255,.15)}
+
+.mtopbar{display:none;background:#12132b;color:#fff;padding:12px 16px;align-items:center;gap:10px;position:sticky;top:0;z-index:200}
+.mtopbar-logo{font-size:16px;font-weight:900}
+.mtopbar-logo em{font-style:normal;color:#7ea8ff}
+.mtopbar button{background:none;border:none;color:#fff;padding:6px}
+.mtopbar button svg{width:22px;height:22px}
+
+.main{flex:1;min-width:0}
 .page{max-width:1100px;margin:0 auto;padding:24px 16px 60px}
 
-/* STATS */
 .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:14px;margin-bottom:24px}
 .stat-card{background:var(--white);border:1px solid var(--border);border-radius:var(--r12);padding:16px}
 .stat-num{font-size:26px;font-weight:800;color:var(--text)}
 .stat-lbl{font-size:12px;color:var(--text3);margin-top:2px}
 
-/* FILTERS */
+.page-title{font-size:20px;font-weight:800;margin-bottom:18px}
+
 .tabs{display:flex;gap:6px;margin-bottom:16px;flex-wrap:wrap}
 .tab{background:var(--white);border:1.5px solid var(--border);border-radius:var(--pill);padding:7px 16px;font-size:12px;font-weight:700;color:var(--text2);cursor:pointer}
 .tab.on{background:var(--blue);border-color:var(--blue);color:white}
 
-/* ORDER CARD */
-.ord{background:var(--white);border:1px solid var(--border);border-radius:var(--r12);padding:18px;margin-bottom:12px}
-.ord-top{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:12px;flex-wrap:wrap}
-.ord-id{font-family:monospace;font-weight:800;color:var(--blue);font-size:14px}
-.ord-date{font-size:11px;color:var(--text3);margin-top:2px}
-.ord-total{font-size:20px;font-weight:800}
+.card{background:var(--white);border:1px solid var(--border);border-radius:var(--r12);padding:18px;margin-bottom:12px}
+.card-top{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:12px;flex-wrap:wrap}
+.card-id{font-family:monospace;font-weight:800;color:var(--blue);font-size:14px}
+.card-date{font-size:11px;color:var(--text3);margin-top:2px}
+.card-total{font-size:20px;font-weight:800}
 .status-sel{border:1.5px solid var(--border);border-radius:var(--r8);padding:6px 10px;font-size:12px;font-weight:700;font-family:inherit;outline:none}
 .st-pending{color:var(--orange)}.st-confirmed{color:var(--blue)}.st-processing{color:var(--purple)}.st-shipped{color:#0891b2}.st-delivered{color:var(--green)}.st-cancelled{color:var(--red)}
-.ord-cust{background:var(--gray3);border-radius:var(--r8);padding:10px 12px;margin-bottom:10px;font-size:12px;color:var(--text2)}
-.ord-cust b{color:var(--text)}
-.ord-items{font-size:12px;color:var(--text2)}
-.ord-item-row{display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--gray3)}
-.ord-item-row:last-child{border-bottom:none}
+.card-cust{background:var(--gray3);border-radius:var(--r8);padding:10px 12px;margin-bottom:10px;font-size:12px;color:var(--text2)}
+.card-cust b{color:var(--text)}
+.card-items{font-size:12px;color:var(--text2)}
+.item-row{display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--gray3);align-items:center;gap:8px}
+.item-row:last-child{border-bottom:none}
 .empty{text-align:center;padding:60px 20px;color:var(--text3)}
-
 .loading{text-align:center;padding:60px;color:var(--text3)}
+.badge-pill{display:inline-block;padding:4px 10px;border-radius:var(--pill);font-size:11px;font-weight:800}
+
+.utable{width:100%;border-collapse:collapse;background:var(--white);border-radius:var(--r12);overflow:hidden;border:1px solid var(--border)}
+.utable th{text-align:left;padding:10px 14px;font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.4px;border-bottom:1px solid var(--border);background:var(--gray3)}
+.utable td{padding:12px 14px;font-size:13px;border-bottom:1px solid var(--gray3)}
+.utable tr:last-child td{border-bottom:none}
+.role-badge{padding:3px 9px;border-radius:var(--pill);font-size:10px;font-weight:800;text-transform:uppercase}
+.role-admin{background:#e8eefb;color:var(--blue)}
+.role-customer{background:var(--gray2);color:var(--text2)}
+
+@media(max-width:900px){
+  .sidebar{position:fixed;left:0;top:0;bottom:0;z-index:500;transform:translateX(-100%);transition:transform .2s}
+  .sidebar.open{transform:translateX(0)}
+  .mtopbar{display:flex}
+  .shell{display:block}
+  .sb-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:400}
+  .sb-overlay.show{display:block}
+}
 </style>
 </head>
 <body>
@@ -143,35 +173,91 @@ input{font-family:inherit}
 </div>
 
 <div id="app">
-  <div class="topbar">
-    <div class="topbar-logo">Tecno<em>Shop</em></div>
-    <span class="topbar-badge">Admin</span>
-    <div class="topbar-r">
-      <span class="topbar-email" id="topbarEmail"></span>
-      <button class="logout-btn" onclick="adminLogout()">Cerrar sesión</button>
+  <div class="shell">
+
+    <div class="mtopbar">
+      <button onclick="toggleSidebar()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="18" x2="20" y2="18"/></svg></button>
+      <div class="mtopbar-logo">Tecno<em>Shop</em> Admin</div>
     </div>
-  </div>
-  <div class="page">
-    <div class="stats" id="stats"></div>
-    <div class="tabs" id="tabs">
-      <button class="tab on" onclick="filterStatus('all')">Todos</button>
-      <button class="tab" onclick="filterStatus('pending')">Pendientes</button>
-      <button class="tab" onclick="filterStatus('confirmed')">Confirmados</button>
-      <button class="tab" onclick="filterStatus('processing')">Procesando</button>
-      <button class="tab" onclick="filterStatus('shipped')">Enviados</button>
-      <button class="tab" onclick="filterStatus('delivered')">Entregados</button>
-      <button class="tab" onclick="filterStatus('cancelled')">Cancelados</button>
+    <div class="sb-overlay" id="sbOverlay" onclick="toggleSidebar()"></div>
+
+    <div class="sidebar" id="sidebar">
+      <div class="sb-logo">Tecno<em>Shop</em><div style="font-size:10px;font-weight:700;color:rgba(255,255,255,.5);letter-spacing:1px;margin-top:2px">ADMIN</div></div>
+      <div class="sb-nav">
+        <button class="sb-item on" id="navOrders" onclick="switchSection('orders')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3h18v18H3z"/><path d="M3 9h18M9 21V9"/></svg>
+          Pedidos
+        </button>
+        <button class="sb-item" id="navOffers" onclick="switchSection('offers')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>
+          Ofertas
+        </button>
+        <button class="sb-item" id="navUsers" onclick="switchSection('users')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>
+          Usuarios
+        </button>
+        <button class="sb-item" id="navNotifs" onclick="switchSection('notifs')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg>
+          Notificaciones
+        </button>
+      </div>
+      <div class="sb-foot">
+        <div class="sb-email" id="topbarEmail"></div>
+        <button class="logout-btn" onclick="adminLogout()">Cerrar sesión</button>
+      </div>
     </div>
-    <div id="ordersList"><div class="loading">Cargando pedidos…</div></div>
+
+    <div class="main">
+      <div class="page">
+
+        <div id="sectionOrders">
+          <div class="page-title">Pedidos</div>
+          <div class="stats" id="stats"></div>
+          <div class="tabs" id="tabs">
+            <button class="tab on" onclick="filterStatus('all')">Todos</button>
+            <button class="tab" onclick="filterStatus('pending')">Pendientes</button>
+            <button class="tab" onclick="filterStatus('confirmed')">Confirmados</button>
+            <button class="tab" onclick="filterStatus('processing')">Procesando</button>
+            <button class="tab" onclick="filterStatus('shipped')">Enviados</button>
+            <button class="tab" onclick="filterStatus('delivered')">Entregados</button>
+            <button class="tab" onclick="filterStatus('cancelled')">Cancelados</button>
+          </div>
+          <div id="ordersList"><div class="loading">Cargando pedidos…</div></div>
+        </div>
+
+        <div id="sectionOffers" style="display:none">
+          <div class="page-title">Ofertas recibidas</div>
+          <div class="tabs" id="offerTabs">
+            <button class="tab on" onclick="filterOfferStatus('all')">Todas</button>
+            <button class="tab" onclick="filterOfferStatus('pending')">Pendientes</button>
+            <button class="tab" onclick="filterOfferStatus('accepted')">Aceptadas</button>
+            <button class="tab" onclick="filterOfferStatus('rejected')">Rechazadas</button>
+          </div>
+          <div id="offersList"><div class="loading">Cargando ofertas…</div></div>
+        </div>
+
+        <div id="sectionUsers" style="display:none">
+          <div class="page-title">Usuarios registrados</div>
+          <div id="usersList"><div class="loading">Cargando usuarios…</div></div>
+        </div>
+
+        <div id="sectionNotifs" style="display:none">
+          <div class="page-title">Actividad reciente</div>
+          <div id="notifsList"><div class="loading">Cargando actividad…</div></div>
+        </div>
+
+      </div>
+    </div>
   </div>
 </div>
 
 <script>
 const $=id=>document.getElementById(id);
 const fmt=n=>'$'+Number(n).toFixed(2);
-let ALL_ORDERS=[],curFilter='all';
+let ALL_ORDERS=[],ALL_OFFERS=[],ALL_USERS=[],curFilter='all',curOfferFilter='all',curSection='orders';
 
 const STATUS_LABELS={pending:'Pendiente',confirmed:'Confirmado',processing:'Procesando',shipped:'Enviado',delivered:'Entregado',cancelled:'Cancelado'};
+const OFFER_LABELS={pending:'Pendiente',accepted:'Aceptada',rejected:'Rechazada'};
 
 function seErr(m){const e=$('loginErr');e.textContent=m;e.classList.add('show')}
 
@@ -181,7 +267,6 @@ async function doAdminLogin(){
   const btn=$('loginBtn');btn.disabled=true;btn.textContent='Verificando...';
   try{
     await window._fb.signInWithEmailAndPassword(window._fb.auth,email,pass);
-    // onAuthStateChanged en el head decide si entra o se le niega el acceso
   }catch(err){
     const msgs={'auth/wrong-password':'Contraseña incorrecta','auth/invalid-credential':'Correo o contraseña incorrectos','auth/user-not-found':'No existe esa cuenta','auth/too-many-requests':'Demasiados intentos, espera un momento'};
     seErr(msgs[err.code]||'Error al iniciar sesión');
@@ -194,7 +279,7 @@ window.onAdminLogin=function(){
   $('deniedWrap').style.display='none';
   $('app').style.display='block';
   $('topbarEmail').textContent=window._adminUser.email;
-  loadOrders();
+  loadAll();
 }
 
 window.onAccessDenied=function(){
@@ -211,6 +296,26 @@ window.onAdminLogout=function(){
 
 async function adminLogout(){
   try{await window._fb.signOut(window._fb.auth)}catch(e){}
+}
+
+function toggleSidebar(){
+  $('sidebar').classList.toggle('open');
+  $('sbOverlay').classList.toggle('show');
+}
+
+function switchSection(sec){
+  curSection=sec;
+  ['orders','offers','users','notifs'].forEach(s=>{
+    $('section'+s.charAt(0).toUpperCase()+s.slice(1)).style.display=s===sec?'block':'none';
+    $('nav'+s.charAt(0).toUpperCase()+s.slice(1)).classList.toggle('on',s===sec);
+  });
+  $('sidebar').classList.remove('open');
+  $('sbOverlay').classList.remove('show');
+}
+
+async function loadAll(){
+  await Promise.all([loadOrders(),loadOffers(),loadUsers()]);
+  renderNotifsFeed();
 }
 
 async function loadOrders(){
@@ -240,7 +345,7 @@ function renderStats(){
 
 function filterStatus(s){
   curFilter=s;
-  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('on'));
+  document.querySelectorAll('#tabs .tab').forEach(t=>t.classList.remove('on'));
   event.target.classList.add('on');
   renderOrders();
 }
@@ -249,27 +354,46 @@ function renderOrders(){
   const list=curFilter==='all'?ALL_ORDERS:ALL_ORDERS.filter(o=>o.status===curFilter);
   const el=$('ordersList');
   if(!list.length){el.innerHTML='<div class="empty">No hay pedidos en esta categoría</div>';return}
-  el.innerHTML=list.map(o=>`
-    <div class="ord">
-      <div class="ord-top">
-        <div><div class="ord-id">${o.id}</div><div class="ord-date">${new Date(o.date).toLocaleString('es-NI')}</div></div>
+  el.innerHTML=list.map(o=>{
+    const totalItems=(o.items||[]).length;
+    const boughtCount=Object.values(o.itemsBought||{}).filter(Boolean).length;
+    const allBought=totalItems>0&&boughtCount===totalItems;
+    return `
+    <div class="card">
+      <div class="card-top">
+        <div><div class="card-id">${o.id}</div><div class="card-date">${new Date(o.date).toLocaleString('es-NI')}</div></div>
         <div style="text-align:right">
-          <div class="ord-total">${fmt(o.total)}</div>
+          <div class="card-total">${fmt(o.total)}</div>
           <select class="status-sel st-${o.status}" onchange="updateStatus('${o.id}',this.value)">
             ${Object.entries(STATUS_LABELS).map(([k,v])=>`<option value="${k}" ${o.status===k?'selected':''}>${v}</option>`).join('')}
           </select>
         </div>
       </div>
-      <div class="ord-cust">
+      <div style="margin-bottom:10px">
+        <span class="badge-pill" style="${allBought?'background:#f0fdf4;color:var(--green)':'background:#fef2f2;color:var(--red)'}">
+          ${allBought?'✅ Comprado en eBay':'🛒 Pendiente: '+boughtCount+'/'+totalItems+' comprado(s)'}
+        </span>
+      </div>
+      <div class="card-cust">
         <b>${o.customer?.name||'—'}</b> · ${o.customer?.phone||'—'}<br>
         📍 ${o.customer?.address||'—'}<br>
         💳 ${o.payMethod==='paypal'?'PayPal':'Transferencia bancaria'}
       </div>
-      <div class="ord-items">
-        ${(o.items||[]).map(i=>`<div class="ord-item-row"><span>${(i.prod?.title||'').slice(0,50)}</span><span>${fmt(i.total)}</span></div>`).join('')}
+      <div class="card-items">
+        ${(o.items||[]).map((i,idx)=>{
+          const bought=(o.itemsBought&&o.itemsBought[idx])||false;
+          return `<div class="item-row">
+            <label style="display:flex;align-items:center;gap:8px;flex:1;cursor:pointer">
+              <input type="checkbox" ${bought?'checked':''} onchange="toggleItemBought('${o.id}',${idx},this.checked)" style="width:16px;height:16px;flex-shrink:0">
+              <span style="${bought?'text-decoration:line-through;color:var(--text3)':''}">${(i.prod?.title||'').slice(0,45)}</span>
+            </label>
+            <span>${fmt(i.total)}</span>
+          </div>`;
+        }).join('')}
       </div>
     </div>
-  `).join('');
+    `;
+  }).join('');
 }
 
 async function updateStatus(orderId,newStatus){
@@ -281,6 +405,123 @@ async function updateStatus(orderId,newStatus){
   }catch(e){
     alert('Error al actualizar el estado. Intenta de nuevo.');
   }
+}
+
+async function toggleItemBought(orderId,itemIdx,checked){
+  const o=ALL_ORDERS.find(x=>x.id===orderId);
+  if(!o)return;
+  o.itemsBought=o.itemsBought||{};
+  o.itemsBought[itemIdx]=checked;
+  try{
+    await window._fb.updateDoc(window._fb.doc(window._fb.db,'orders',orderId),{itemsBought:o.itemsBought});
+    renderOrders();
+    renderStats();
+  }catch(e){
+    alert('Error al guardar. Intenta de nuevo.');
+  }
+}
+
+async function loadOffers(){
+  $('offersList').innerHTML='<div class="loading">Cargando ofertas…</div>';
+  try{
+    const snap=await window._fb.getDocs(window._fb.collection(window._fb.db,'offers'));
+    ALL_OFFERS=snap.docs.map(d=>d.data()).sort((a,b)=>new Date(b.date)-new Date(a.date));
+    renderOffers();
+  }catch(e){
+    $('offersList').innerHTML='<div class="empty">Error al cargar ofertas. Verifica tu conexión.</div>';
+  }
+}
+
+function filterOfferStatus(s){
+  curOfferFilter=s;
+  document.querySelectorAll('#offerTabs .tab').forEach(t=>t.classList.remove('on'));
+  event.target.classList.add('on');
+  renderOffers();
+}
+
+function renderOffers(){
+  const list=curOfferFilter==='all'?ALL_OFFERS:ALL_OFFERS.filter(o=>(o.status||'pending')===curOfferFilter);
+  const el=$('offersList');
+  if(!list.length){el.innerHTML='<div class="empty">No hay ofertas en esta categoría</div>';return}
+  el.innerHTML=list.map(o=>{
+    const st=o.status||'pending';
+    const stColors={pending:'background:#fef3c7;color:var(--orange)',accepted:'background:#f0fdf4;color:var(--green)',rejected:'background:#fef2f2;color:var(--red)'};
+    return `
+    <div class="card">
+      <div class="card-top">
+        <div><div class="card-id">${o.id}</div><div class="card-date">${new Date(o.date).toLocaleString('es-NI')}</div></div>
+        <div style="text-align:right">
+          <div class="card-total">${fmt(o.offerAmount)}</div>
+          <select class="status-sel" style="${stColors[st]}" onchange="updateOfferStatus('${o.id}',this.value)">
+            ${Object.entries(OFFER_LABELS).map(([k,v])=>`<option value="${k}" ${st===k?'selected':''}>${v}</option>`).join('')}
+          </select>
+        </div>
+      </div>
+      <div style="font-size:13px;font-weight:700;margin-bottom:8px">${o.productTitle||'—'}</div>
+      <div class="card-cust">
+        <b>${o.customer?.name||'—'}</b> · ${o.customer?.cedula||'—'} · ${o.customer?.phone||'—'}<br>
+        Precio publicado: ${fmt(o.publishedPrice)} · Oferta: <b>${fmt(o.offerAmount)}</b><br>
+        Costo eBay original: ${fmt(o.ebayOriginalPrice)} → Nuevo costo: ${fmt(o.newEbayCost)}
+      </div>
+    </div>
+    `;
+  }).join('');
+}
+
+async function updateOfferStatus(offerId,newStatus){
+  try{
+    await window._fb.updateDoc(window._fb.doc(window._fb.db,'offers',offerId),{status:newStatus});
+    const o=ALL_OFFERS.find(x=>x.id===offerId);
+    if(o)o.status=newStatus;
+  }catch(e){
+    alert('Error al actualizar la oferta. Intenta de nuevo.');
+  }
+}
+
+async function loadUsers(){
+  $('usersList').innerHTML='<div class="loading">Cargando usuarios…</div>';
+  try{
+    const snap=await window._fb.getDocs(window._fb.collection(window._fb.db,'users'));
+    ALL_USERS=snap.docs.map(d=>({docId:d.id,...d.data()}));
+    renderUsers();
+  }catch(e){
+    $('usersList').innerHTML='<div class="empty">Error al cargar usuarios. Verifica tu conexión.</div>';
+  }
+}
+
+function renderUsers(){
+  const el=$('usersList');
+  if(!ALL_USERS.length){el.innerHTML='<div class="empty">No hay usuarios registrados</div>';return}
+  el.innerHTML=`<table class="utable">
+    <thead><tr><th>Nombre</th><th>Correo</th><th>Teléfono</th><th>Cédula</th><th>Rol</th></tr></thead>
+    <tbody>
+      ${ALL_USERS.map(u=>`
+        <tr>
+          <td>${(u.first||'')+' '+(u.last||'')}</td>
+          <td>${u.email||'—'}</td>
+          <td>${u.phone||'—'}</td>
+          <td>${u.cedula||'—'}</td>
+          <td><span class="role-badge role-${u.role==='admin'?'admin':'customer'}">${u.role||'customer'}</span></td>
+        </tr>
+      `).join('')}
+    </tbody>
+  </table>`;
+}
+
+function renderNotifsFeed(){
+  const el=$('notifsList');
+  const events=[
+    ...ALL_ORDERS.map(o=>({date:o.date,text:'🟢 Nuevo pedido '+o.id+' — '+fmt(o.total),type:'order'})),
+    ...ALL_OFFERS.map(o=>({date:o.date,text:'🔴 Nueva oferta '+fmt(o.offerAmount)+' para '+(o.productTitle||'').slice(0,40),type:'offer'}))
+  ].sort((a,b)=>new Date(b.date)-new Date(a.date)).slice(0,40);
+
+  if(!events.length){el.innerHTML='<div class="empty">Sin actividad reciente</div>';return}
+  el.innerHTML=events.map(e=>`
+    <div class="card" style="padding:12px 16px">
+      <div style="font-size:13px;font-weight:600">${e.text}</div>
+      <div style="font-size:11px;color:var(--text3);margin-top:2px">${new Date(e.date).toLocaleString('es-NI')}</div>
+    </div>
+  `).join('');
 }
 </script>
 </body>
