@@ -6,12 +6,24 @@
 const https = require('https');
 
 // ── VENDEDORES DE CONFIANZA (app de prueba) ──
-// Ajusta esta lista si agregas o quitas vendedores verificados.
+// Lista temporal, sujeta a cambios mientras se define el sistema definitivo.
 const TRUSTED_SELLERS = [
-  'discounttechdirect',
-  'merresale',
-  'paymore_doraville',
-  'dtd_electronicsplus'
+  'paymoretaylor',
+  'tradingpostelectronics',
+  'electronicbuyandsell',
+  'paymoreirving',
+  'tpmresale',
+  'paymoremidtown',
+  'paymorecopperfield',
+  'paymoreellicottcity',
+  'paymore_fontana',
+  'paymorehelotes',
+  'paymore_irving',
+  'paymorelivonia',
+  'paymorelansing',
+  'paymoregrandrapids',
+  'paymoregreensboro',
+  'paymoreraleigh'
 ];
 
 function request(options, body) {
@@ -38,6 +50,11 @@ module.exports = async (req, res) => {
   const q = req.query.q || 'laptop';
   const limit = Math.min(parseInt(req.query.limit) || 50, 200);
   const offset = parseInt(req.query.offset) || 0;
+
+  // ── SEGMENTO INTERNO: solo artículos "BROKEN" (uso propio, búsqueda rápida) ──
+  // Activar con ?broken=true en la URL. Se combina con la palabra de búsqueda normal.
+  const brokenOnly = req.query.broken === 'true';
+  const searchQuery = brokenOnly ? (q + ' BROKEN') : q;
 
   // ── FILTROS OPCIONALES (vienen del panel de filtros del frontend) ──
   // sort: newlyListed | price | -price  (best_match es el default de eBay, no se envía)
@@ -76,7 +93,7 @@ module.exports = async (req, res) => {
       filterParts.push('priceCurrency:USD');
     }
 
-    let searchPath = '/buy/browse/v1/item_summary/search?q=' + encodeURIComponent(q) +
+    let searchPath = '/buy/browse/v1/item_summary/search?q=' + encodeURIComponent(searchQuery) +
       '&limit=' + limit + '&offset=' + offset +
       '&filter=' + encodeURIComponent(filterParts.join(','));
     if (sort) searchPath += '&sort=' + encodeURIComponent(sort);
@@ -93,7 +110,7 @@ module.exports = async (req, res) => {
 
     const items = searchRes.itemSummaries || [];
 
-    const products = items.map(item => {
+    let products = items.map(item => {
       // imagen principal
       const mainImage = (item.image && item.image.imageUrl) || '';
       // imágenes adicionales (thumbnailImages) -> para carrusel
@@ -114,12 +131,18 @@ module.exports = async (req, res) => {
         image: mainImage,
         images: allImages, // array completo para el carrusel
         seller: (item.seller && item.seller.username) || '',
-        itemWebUrl: item.itemWebUrl || ''
+        itemWebUrl: '' // nunca se expone el enlace de origen
       };
     });
 
+    // Segmento BROKEN: filtro adicional de seguridad por si eBay no fue exacto con la query
+    if (brokenOnly) {
+      products = products.filter(p => /broken/i.test(p.title));
+    }
+
     return res.status(200).json({
       success: true,
+      brokenMode: brokenOnly,
       total: searchRes.total || products.length,
       products
     });
