@@ -620,6 +620,13 @@ footer strong{color:rgba(255,255,255,.75)}
 </div>
 
 <!-- FAVS OVERLAY -->
+<div class="overlay" id="zoomOv" style="background:rgba(0,0,0,.92);z-index:2100">
+  <button class="page-back" onclick="closeZoom()" style="position:fixed;top:16px;right:16px;background:rgba(255,255,255,.15);z-index:2101"><svg viewBox="0 0 24 24" stroke="white"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+  <div id="zoomImgWrap" style="width:100%;height:100%;overflow:auto;display:flex;align-items:center;justify-content:center;touch-action:pinch-zoom pan-x pan-y">
+    <img id="zoomImg" src="" alt="" style="max-width:none;transition:transform .15s;touch-action:pinch-zoom">
+  </div>
+</div>
+
 <div class="overlay" id="favsOv">
   <div class="sheet sheet-lg">
     <div class="sh-hd"><div class="sh-title">❤️ Mis Favoritos</div><button class="x-btn" onclick="closeOv('favsOv')"><svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div>
@@ -889,21 +896,65 @@ function toggleFavDetail(){
 
 function openFavs(){
   closeUD();
+  renderFavsList();
+  openOv('favsOv');
+  checkFavsAvailability(); // verifica en segundo plano si siguen disponibles en eBay
+}
+
+function renderFavsList(){
   const el=$('favsList');
   const prods=FAVS.map(id=>FAV_PRODS[id]).filter(Boolean);
   if(!prods.length){
     el.innerHTML='<div style="text-align:center;padding:50px;color:var(--text3)"><div style="font-size:36px;margin-bottom:12px">❤️</div><p style="font-size:14px;font-weight:600">No tienes favoritos aún</p></div>';
-  }else{
-    el.innerHTML='<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px">'+
-      prods.map(p=>`<div style="background:var(--gray3);border-radius:var(--r8);overflow:hidden;cursor:pointer" onclick="closeOv('favsOv');openProd('${p.id}')">
-        <img src="${p.img}" style="width:100%;height:120px;object-fit:cover" onerror="this.src='https://images.unsplash.com/photo-1496181133206-80ce9b88a853?w=400'">
+    return;
+  }
+  el.innerHTML='<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px">'+
+    prods.map(p=>{
+      const sold=p.soldAt;
+      return `<div style="background:var(--gray3);border-radius:var(--r8);overflow:hidden;cursor:pointer;position:relative;${sold?'opacity:.7':''}" onclick="closeOv('favsOv');viewOrderProduct('${p.id}',${JSON.stringify(p).replace(/"/g,'&quot;')})">
+        ${sold?'<div style="position:absolute;top:8px;left:8px;background:var(--red);color:white;font-size:10px;font-weight:800;padding:3px 8px;border-radius:var(--pill);z-index:2">Ya no disponible</div>':''}
+        <img src="${p.img}" style="width:100%;height:120px;object-fit:cover;${sold?'filter:grayscale(.5)':''}" onerror="this.src='https://images.unsplash.com/photo-1496181133206-80ce9b88a853?w=400'">
         <div style="padding:9px">
           <div style="font-size:11px;font-weight:600;color:var(--text);margin-bottom:4px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">${p.title}</div>
-          <div style="font-size:13px;font-weight:800;color:var(--blue)">${fmt(calcTotal(p.price,'free'))}</div>
+          <div style="font-size:13px;font-weight:800;color:${sold?'var(--text3)':'var(--blue)'}">${fmt(calcTotal(p.price,'free'))}</div>
         </div>
-      </div>`).join('')+'</div>';
+      </div>`;
+    }).join('')+'</div>';
+}
+
+// Revisa en segundo plano si los favoritos siguen disponibles en eBay.
+// Si un producto ya no aparece, se marca con fecha de "vendido" (soldAt) y se conserva
+// 30 días para que el cliente vea que existió — pasado ese plazo se elimina de favoritos.
+async function checkFavsAvailability(){
+  const THIRTY_DAYS=30*24*60*60*1000;
+  let changed=false;
+  for(const id of [...FAVS]){
+    const p=FAV_PRODS[id];
+    if(!p)continue;
+    // Ya marcado como vendido: revisar si pasó el plazo de 30 días
+    if(p.soldAt){
+      if(Date.now()-p.soldAt>THIRTY_DAYS){
+        FAVS=FAVS.filter(f=>f!==id);
+        delete FAV_PRODS[id];
+        changed=true;
+      }
+      continue;
+    }
+    // No marcado aún: verificar si sigue existiendo en eBay
+    try{
+      const res=await fetch('/api/item?id='+encodeURIComponent(id));
+      const d=await res.json();
+      if(!d.success||!d.item){
+        FAV_PRODS[id]={...p,soldAt:Date.now()};
+        changed=true;
+      }
+    }catch(e){/* si falla la consulta, no se marca como vendido por error de red */}
   }
-  openOv('favsOv');
+  if(changed){
+    if(USER){USER.favorites=FAVS;USER.favProds=FAV_PRODS;await persistUser();}
+    renderFavsList();
+    updateFavBadge();
+  }
 }
 
 // ORDERS
@@ -1262,11 +1313,37 @@ function buildAbout(rawInfo){
 }
 
 // ═══ CARRUSEL DE IMÁGENES DEL PRODUCTO ═══
+// ═══ VISOR DE IMAGEN AMPLIADA (zoom/pan) ═══
+let zoomScale=1,zoomLastTap=0;
+function openZoom(src){
+  const img=$('zoomImg');
+  img.src=src;
+  img.style.transform='scale(1)';
+  zoomScale=1;
+  openOv('zoomOv');
+}
+function closeZoom(){
+  closeOv('zoomOv');
+}
+document.addEventListener('DOMContentLoaded',()=>{
+  const img=$('zoomImg');
+  if(!img)return;
+  img.addEventListener('click',()=>{
+    const now=Date.now();
+    if(now-zoomLastTap<300){
+      // doble tap: alterna entre zoom 1x y 2.5x
+      zoomScale=zoomScale>1?1:2.5;
+      img.style.transform='scale('+zoomScale+')';
+    }
+    zoomLastTap=now;
+  });
+});
+
 function renderCarousel(images){
   const track=$('pImgCarousel');
   const dots=$('pImgDots');
   const imgs=images&&images.length?images:['https://images.unsplash.com/photo-1496181133206-80ce9b88a853?w=600'];
-  track.innerHTML=imgs.map(src=>`<div class="carousel-slide"><img src="${src}" draggable="false" oncontextmenu="return false" style="-webkit-touch-callout:none;-webkit-user-select:none;user-select:none;pointer-events:none" onerror="this.src='https://images.unsplash.com/photo-1496181133206-80ce9b88a853?w=600'"></div>`).join('');
+  track.innerHTML=imgs.map(src=>`<div class="carousel-slide"><img src="${src}" draggable="false" oncontextmenu="return false" onclick="openZoom('${src}')" style="-webkit-touch-callout:none;-webkit-user-select:none;user-select:none;cursor:zoom-in" onerror="this.src='https://images.unsplash.com/photo-1496181133206-80ce9b88a853?w=600'"></div>`).join('');
   track.scrollLeft=0;
   if(imgs.length>1){
     dots.innerHTML=imgs.map((_,i)=>`<div class="carousel-dot${i===0?' on':''}"></div>`).join('');
