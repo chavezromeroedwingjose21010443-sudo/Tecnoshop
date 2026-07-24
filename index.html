@@ -674,6 +674,7 @@ footer strong{color:rgba(255,255,255,.75)}
         <label class="fo"><input type="radio" name="fCond" value="" checked onchange="setFilterCond('')"><span class="fo-label">Todos</span></label>
         <label class="fo"><input type="radio" name="fCond" value="NEW" onchange="setFilterCond('NEW')"><span class="fo-label">Nuevo</span></label>
         <label class="fo"><input type="radio" name="fCond" value="USED" onchange="setFilterCond('USED')"><span class="fo-label">Usado</span></label>
+        <label class="fo"><input type="radio" name="fCond" value="PARTS" onchange="setFilterCond('PARTS')"><span class="fo-label">⚠️ Para repuestos o no funciona</span></label>
       </div>
 
       <div style="font-size:13px;font-weight:800;color:var(--text);margin-bottom:10px">Precio (USD)</div>
@@ -1001,7 +1002,28 @@ let curOffset=0,totalAvail=0,loadingPage=false,endReached=false;
 let curQuery='laptop';
 
 // Traducción de condiciones (nunca mostrar términos externos en inglés)
-const COND_ES={'New':'Nuevo','Used':'Usado','Refurbished':'Reacondicionado','Good - Refurbished':'Bueno - Reacondicionado','Very Good - Refurbished':'Muy Bueno - Reacondicionado','Excellent - Refurbished':'Excelente - Reacondicionado','Certified - Refurbished':'Certificado - Reacondicionado','Seller refurbished':'Reacondicionado','Open box':'Caja abierta','New other (see details)':'Nuevo (otro)','For parts or not working':'Para repuestos'};
+const COND_ES={
+  'New':'Nuevo',
+  'New other (see details)':'Nuevo (otro)',
+  'New with defects':'Nuevo con defectos',
+  'New with tags':'Nuevo con etiquetas',
+  'New without tags':'Nuevo sin etiquetas',
+  'Certified - Refurbished':'Certificado - Reacondicionado',
+  'Excellent - Refurbished':'Excelente - Reacondicionado',
+  'Very Good - Refurbished':'Muy Bueno - Reacondicionado',
+  'Good - Refurbished':'Bueno - Reacondicionado',
+  'Manufacturer refurbished':'Reacondicionado de fábrica',
+  'Seller refurbished':'Reacondicionado',
+  'Refurbished':'Reacondicionado',
+  'Like New':'Como nuevo',
+  'Open box':'Caja abierta',
+  'Used':'Usado',
+  'Pre-owned':'Usado',
+  'Very Good':'Muy bueno',
+  'Good':'Bueno',
+  'Acceptable':'Aceptable',
+  'For parts or not working':'⚠️ Para repuestos o no funciona'
+};
 
 // ═══ FILTRO DE MARCA: elimina cualquier mención a eBay/USA/Estados Unidos ═══
 // Se aplica a TODO texto que provenga del API antes de mostrarse en pantalla.
