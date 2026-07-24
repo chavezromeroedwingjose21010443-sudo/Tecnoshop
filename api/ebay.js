@@ -87,7 +87,10 @@ module.exports = async (req, res) => {
     // 2. Construir filtros combinados — SIEMPRE incluye el filtro de vendedores de confianza
     const filterParts = ['sellers:{' + TRUSTED_SELLERS.join('|') + '}'];
     if (buying) filterParts.push('buyingOptions:{' + buying + '}');
-    if (condition) filterParts.push('conditionIds:{' + (condition === 'NEW' ? '1000' : '3000') + '}');
+    if (condition) {
+      const condMap = { NEW: '1000', USED: '3000', PARTS: '7000' };
+      filterParts.push('conditionIds:{' + (condMap[condition] || '3000') + '}');
+    }
     if (priceMin || priceMax) {
       filterParts.push('price:[' + (priceMin || '0') + '..' + (priceMax || '') + ']');
       filterParts.push('priceCurrency:USD');
