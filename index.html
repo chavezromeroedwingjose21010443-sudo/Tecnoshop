@@ -210,9 +210,9 @@ nav{background:var(--white);border-bottom:1px solid var(--border2);padding:10px 
 /* OVERLAYS */
 .overlay{position:fixed;inset:0;z-index:600;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;padding:16px;opacity:0;pointer-events:none;transition:opacity .2s}
 .overlay.page-nav{background:var(--bg);padding:0;align-items:stretch;justify-content:stretch}
-.overlay.page-nav .sheet{max-width:100%;width:100%;height:100vh;max-height:100vh;border-radius:0;box-shadow:none;transform:translateX(24px)}
+.overlay.page-nav .sheet{max-width:100%!important;width:100%!important;height:100vh!important;max-height:100vh!important;border-radius:0!important;box-shadow:none!important;transform:translateX(24px);overflow-y:auto!important;display:flex;flex-direction:column}
 .overlay.page-nav.open .sheet{transform:none}
-.page-hd{background:var(--white);padding:12px 16px;display:flex;align-items:center;gap:14px;position:sticky;top:0;z-index:10;border-bottom:1px solid var(--border2)}
+.page-hd{background:var(--white);padding:16px 16px 14px;display:flex;align-items:center;gap:14px;position:sticky;top:0;z-index:50;border-bottom:1px solid var(--border2)}
 .page-back{background:none;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:50%;flex-shrink:0}
 .page-back:hover{background:var(--gray3)}
 .page-back svg{width:22px;height:22px;stroke:var(--text);fill:none;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
@@ -436,7 +436,7 @@ footer strong{color:rgba(255,255,255,.75)}
 <!-- APP -->
 <div id="app" style="display:none">
 <nav>
-  <a class="brand" href="#"><div class="brand-text">Tecno<em>Shop</em></div></a>
+  <a class="brand" href="#" onclick="event.preventDefault();goHome()"><div class="brand-text">Tecno<em>Shop</em></div></a>
   <div class="nav-search">
     <input type="text" id="sq" placeholder="Buscar productos, marcas, modelos..." onkeydown="if(event.key==='Enter')doSearch()">
     <button class="search-btn" onclick="doSearch()">
@@ -1115,6 +1115,17 @@ async function fetchPage(q,offset){
   const data=await res.json();
   QCACHE[key]={t:Date.now(),data};
   return data;
+}
+
+// Regresa a la página principal: cierra cualquier vista abierta y recarga el catálogo por defecto
+function goHome(){
+  document.querySelectorAll('.overlay.open').forEach(ov=>ov.classList.remove('open'));
+  document.body.style.overflow='';
+  closeUD();
+  window.scrollTo(0,0);
+  $('sq').value='';
+  resetFilters();
+  loadProducts('laptop');
 }
 
 async function loadProducts(q='laptop'){
