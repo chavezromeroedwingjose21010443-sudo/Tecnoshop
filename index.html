@@ -230,7 +230,7 @@ nav{background:var(--white);border-bottom:1px solid var(--border2);padding:10px 
 .x-btn svg{width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:2.2;stroke-linecap:round}
 
 /* PRODUCT DETAIL */
-.pd-img{height:280px;background:var(--gray3);overflow:hidden;position:relative;border-radius:var(--r12) var(--r12) 0 0}
+.pd-img{height:280px;background:var(--gray3);overflow:hidden;position:relative;z-index:1}
 @media(min-width:641px){.pd-img{height:420px}}
 .pd-img img{width:100%;height:100%;object-fit:contain;padding:16px}
 .carousel-slide{flex:0 0 100%;scroll-snap-align:center;display:flex;align-items:center;justify-content:center;height:100%}
@@ -988,7 +988,7 @@ function openOrderDetail(idx){
     </div>
   `;
   closeOv('ordersOv');
-  openOv('orderDetailOv');
+  setTimeout(()=>openOv('orderDetailOv'),50);
 }
 
 // APP INIT
