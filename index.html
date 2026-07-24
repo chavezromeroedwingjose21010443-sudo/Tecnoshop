@@ -7,6 +7,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
 <script>emailjs.init('_81stFKr1MC_2-4-a');</script>
+<script src="https://www.paypal.com/sdk/js?client-id=AUpMXVVoftSHTeKBSRq_Jj8P2ueG7Qn2pzVdq3mKTo29zw61vApURb7N53kzzaNpTb5EAv-uWB99rhVk&currency=USD&intent=capture"></script>
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged, sendPasswordResetEmail, updatePassword, EmailAuthProvider, reauthenticateWithCredential } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
@@ -1788,12 +1789,24 @@ function updateCkAddrPreview(){
   if(idx===''){prev.textContent='';return}
   const a=(USER.addresses||[])[idx];
   if(a)prev.textContent=a.address+' · '+a.city+' · C.P. '+a.zip+' · 📞 '+(a.phone||'—')+(a.desc?' · '+a.desc:'');
+  const isTransfer=document.querySelector('input[name="pay"]:checked')?.value==='transfer';
+  if(!isTransfer)renderPaypalButton();
 }
 
 function toggleTransferProof(){
   const isTransfer=document.querySelector('input[name="pay"]:checked')?.value==='transfer';
   const block=$('transferProofBlock');
   if(block)block.style.display=isTransfer?'block':'none';
+  const transferBtn=$('transferConfirmBtn');
+  const paypalWrap=$('paypalButtonWrap');
+  if(transferBtn)transferBtn.style.display=isTransfer?'block':'none';
+  if(paypalWrap){
+    if(isTransfer){
+      paypalWrap.innerHTML='';
+    }else{
+      renderPaypalButton();
+    }
+  }
 }
 
 let transferImgBase64=null;
@@ -1871,13 +1884,76 @@ function openCheckout(){
       ${cart.map(i=>`<div class="om-row"><span>${i.prod.title.substring(0,38)}...</span><span>${fmt(i.total)}</span></div>`).join('')}
       <div class="om-row tot"><span>Total</span><span>${fmt(total)}</span></div>
     </div>
-    <button class="btn-place" onclick="placeOrder()">Confirmar pedido · ${fmt(total)}</button>
+    <div id="paypalButtonWrap" style="margin-top:6px"></div>
+    <button class="btn-place" id="transferConfirmBtn" style="display:none" onclick="placeOrder()">Confirmar pedido · ${fmt(total)}</button>
     <button class="abtn" style="background:var(--gray3);color:var(--text);margin-top:8px" onclick="closeOv('ckOv')">Cancelar</button>
   </div>`;
   openOv('ckOv');
+  toggleTransferProof(); // decide si mostrar el botón de PayPal o el de transferencia
 }
 
-async function placeOrder(){
+// ═══ BOTÓN REAL DE PAYPAL (cobro automático) ═══
+function renderPaypalButton(){
+  const wrap=$('paypalButtonWrap');
+  if(!wrap||typeof paypal==='undefined')return;
+  wrap.innerHTML='';
+
+  // Validar dirección ANTES de mostrar el botón de pago
+  const addrIdx=$('ckAddrSel')?.value;
+  if((!addrIdx&&addrIdx!==0)||!USER?.addresses?.[addrIdx]){
+    wrap.innerHTML='<div style="font-size:12px;color:var(--text3);text-align:center;padding:10px">Selecciona una dirección de entrega para continuar con el pago</div>';
+    return;
+  }
+
+  paypal.Buttons({
+    style:{layout:'vertical',color:'blue',shape:'pill',label:'paypal'},
+    createOrder: async function(){
+      const total=cart.reduce((s,i)=>s+i.total,0);
+      try{
+        const res=await fetch('/api/paypal-create-order',{
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({total})
+        });
+        const data=await res.json();
+        if(!data.success||!data.orderId){
+          toast('⚠️ No se pudo iniciar el pago con PayPal');
+          throw new Error('create-order failed');
+        }
+        return data.orderId;
+      }catch(e){
+        toast('⚠️ Error al conectar con PayPal');
+        throw e;
+      }
+    },
+    onApprove: async function(data){
+      try{
+        const res=await fetch('/api/paypal-capture-order',{
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({orderId:data.orderID})
+        });
+        const result=await res.json();
+        if(!result.success){
+          toast('⚠️ El pago no pudo confirmarse. Intenta de nuevo.');
+          return;
+        }
+        toast('✅ Pago confirmado con PayPal');
+        await placeOrder(result);
+      }catch(e){
+        toast('⚠️ Error al confirmar el pago');
+      }
+    },
+    onError: function(err){
+      toast('⚠️ Ocurrió un error con PayPal. Intenta de nuevo.');
+    },
+    onCancel: function(){
+      toast('Pago cancelado');
+    }
+  }).render('#paypalButtonWrap');
+}
+
+async function placeOrder(paypalCapture){
   const fn=USER?.first||'',ln=USER?.last||'';
   const addrIdx=$('ckAddrSel')?.value;
   if(!addrIdx&&addrIdx!==0){toast('Selecciona una dirección de entrega');return}
@@ -1885,7 +1961,7 @@ async function placeOrder(){
   if(!savedAddr){toast('Selecciona una dirección de entrega');return}
   const ref='TS-'+Date.now().toString(36).toUpperCase().slice(-8);
   const total=cart.reduce((s,i)=>s+i.total,0);
-  const payMethod=document.querySelector('input[name="pay"]:checked')?.value||'paypal';
+  const payMethod=paypalCapture?'paypal':(document.querySelector('input[name="pay"]:checked')?.value||'paypal');
 
   // Validación del comprobante de transferencia
   let transferData=null;
@@ -1904,8 +1980,9 @@ async function placeOrder(){
     transferData={amount,auth,image:transferImgBase64,expectedTotal:total,matched:!autoCancel};
   }
 
-  const order={id:ref,uid:USER?.uid||'',date:new Date().toISOString(),items:[...cart],total,payMethod,status:autoCancel?'cancelled':'pending',
+  const order={id:ref,uid:USER?.uid||'',date:new Date().toISOString(),items:[...cart],total,payMethod,status:autoCancel?'cancelled':(paypalCapture?'confirmed':'pending'),
     transferData,
+    paypalData:paypalCapture?{orderId:paypalCapture.orderId,captureId:paypalCapture.captureId,status:paypalCapture.status}:null,
     customer:{name:fn+' '+ln,phone:savedAddr.phone||USER?.phone||'',address:savedAddr.address+', '+savedAddr.city+' (C.P. '+savedAddr.zip+')'+(savedAddr.desc?' — '+savedAddr.desc:'')}};
   ORDERS.unshift(order);
   try{
