@@ -116,14 +116,21 @@ const SPEC_NAMES = {
 };
 
 const CONDITIONS = {
-  'New': 'Nuevo', 'Used': 'Usado', 'Refurbished': 'Reacondicionado',
+  'New': 'Nuevo', 'New with defects': 'Nuevo con defectos',
+  'New with tags': 'Nuevo con etiquetas', 'New without tags': 'Nuevo sin etiquetas',
+  'Certified - Refurbished': 'Certificado - Reacondicionado',
   'Excellent - Refurbished': 'Excelente - Reacondicionado',
   'Very Good - Refurbished': 'Muy Bueno - Reacondicionado',
   'Good - Refurbished': 'Bueno - Reacondicionado',
-  'Certified - Refurbished': 'Certificado - Reacondicionado',
+  'Manufacturer refurbished': 'Reacondicionado de fábrica',
   'Seller refurbished': 'Reacondicionado por el vendedor',
-  'For parts or not working': 'Para repuestos o no funciona',
-  'Open box': 'Caja abierta', 'New (Other)': 'Nuevo (Otro)', 'New other (see details)': 'Nuevo (ver detalles)'
+  'Refurbished': 'Reacondicionado',
+  'Like New': 'Como nuevo',
+  'Open box': 'Caja abierta',
+  'Used': 'Usado', 'Pre-owned': 'Usado',
+  'Very Good': 'Muy bueno', 'Good': 'Bueno', 'Acceptable': 'Aceptable',
+  'For parts or not working': '⚠️ Para repuestos o no funciona',
+  'New (Other)': 'Nuevo (Otro)', 'New other (see details)': 'Nuevo (ver detalles)'
 };
 
 module.exports = async (req, res) => {
