@@ -364,7 +364,7 @@ footer strong{color:rgba(255,255,255,.75)}
 .foot-links a:hover{color:rgba(255,255,255,.7)}
 
 @media(max-width:900px){.page{grid-template-columns:1fr}.filters{display:none}}
-@media(max-width:640px){nav{padding:8px 10px;gap:6px}.tags-bar{padding:10px 12px}.page{padding:14px 10px 40px}.grid{grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px}.ck-2{grid-template-columns:1fr}.brand-text{font-size:18px}.search-btn-label,.filter-btn-label,#navNm{display:none}.search-btn{padding:0 14px}.filter-btn{padding:9px 11px}}
+@media(max-width:640px){nav{padding:8px 10px;gap:6px}.tags-bar{padding:10px 12px}.page{padding:14px 10px 40px}.grid{grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px}.ck-2{grid-template-columns:1fr}.brand-text{font-size:18px}.search-btn-label,.filter-btn-label,#navNm{display:none}.search-btn{padding:0 14px}.filter-btn{padding:9px 11px}.zoom-nav-arrow{display:none}}
 </style>
 </head>
 <body>
@@ -622,10 +622,13 @@ footer strong{color:rgba(255,255,255,.75)}
 <!-- ZOOM OVERLAY (imagen ampliada) -->
 <div class="overlay" id="zoomOv" style="background:rgba(0,0,0,.92);z-index:2100;padding:0">
   <button class="page-back" onclick="closeZoom()" style="position:fixed;top:16px;right:16px;background:rgba(255,255,255,.15);z-index:2101"><svg viewBox="0 0 24 24" stroke="white"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+  <button class="page-back zoom-nav-arrow" onclick="zoomPrev()" style="position:fixed;left:16px;top:50%;transform:translateY(-50%);background:rgba(255,255,255,.15);z-index:2101"><svg viewBox="0 0 24 24" stroke="white"><polyline points="15 18 9 12 15 6"/></svg></button>
+  <button class="page-back zoom-nav-arrow" onclick="zoomNext()" style="position:fixed;right:16px;top:50%;transform:translateY(-50%);background:rgba(255,255,255,.15);z-index:2101"><svg viewBox="0 0 24 24" stroke="white"><polyline points="9 18 15 12 9 6"/></svg></button>
   <div id="zoomImgWrap" style="width:100vw;height:100vh;overflow:hidden;display:flex;align-items:center;justify-content:center;position:relative">
-    <img id="zoomImg" src="" alt="" style="width:auto;height:auto;max-width:94vw;max-height:94vh;object-fit:contain;transform-origin:center center;transition:transform .1s ease-out;user-select:none;-webkit-user-select:none">
+    <img id="zoomImg" src="" alt="" draggable="false" oncontextmenu="return false" style="width:auto;height:auto;max-width:94vw;max-height:94vh;object-fit:contain;transform-origin:center center;transition:transform .1s ease-out;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none">
 
   </div>
+  <div id="zoomDots" style="position:fixed;bottom:20px;left:0;right:0;display:flex;justify-content:center;gap:6px;z-index:2101"></div>
 </div>
 
 <div class="overlay" id="favsOv">
@@ -1317,7 +1320,16 @@ function buildAbout(rawInfo){
 // ═══ VISOR DE IMAGEN AMPLIADA (zoom real con pinch de 2 dedos + arrastre) ═══
 let zoomState={scale:1,x:0,y:0,startDist:0,startScale:1,startX:0,startY:0,panStartX:0,panStartY:0,lastTap:0,panning:false};
 
-function openZoom(src){
+let zoomIndex=0;
+function openZoom(idx){
+  zoomIndex=idx;
+  loadZoomImg();
+  openOv('zoomOv');
+}
+function loadZoomImg(){
+  const imgs=window.curCarouselImgs||[];
+  const src=imgs[zoomIndex];
+  if(!src)return;
   const img=$('zoomImg');
   // eBay sirve imágenes en varias resoluciones cambiando el sufijo "s-lXXX" en la URL.
   // Pedimos la versión más grande disponible (s-l1600) para que el zoom se vea nítido.
@@ -1325,7 +1337,21 @@ function openZoom(src){
   img.src=hiRes;
   img.onerror=()=>{img.src=src}; // si la versión grande no existe, usa la original
   resetZoom();
-  openOv('zoomOv');
+  updateZoomDots();
+}
+function zoomNext(){
+  const imgs=window.curCarouselImgs||[];
+  if(zoomIndex<imgs.length-1){zoomIndex++;loadZoomImg()}
+}
+function zoomPrev(){
+  if(zoomIndex>0){zoomIndex--;loadZoomImg()}
+}
+function updateZoomDots(){
+  const imgs=window.curCarouselImgs||[];
+  const wrap=$('zoomDots');
+  if(!wrap)return;
+  if(imgs.length<=1){wrap.innerHTML='';return}
+  wrap.innerHTML=imgs.map((_,i)=>`<div style="width:6px;height:6px;border-radius:50%;background:${i===zoomIndex?'white':'rgba(255,255,255,.4)'}"></div>`).join('');
 }
 function closeZoom(){
   closeOv('zoomOv');
@@ -1361,15 +1387,19 @@ document.addEventListener('DOMContentLoaded',()=>{
     zoomState.lastTap=now;
   });
 
-  // Pinch de 2 dedos para escalar libremente
+  // Pinch de 2 dedos para escalar libremente + swipe horizontal para cambiar de imagen
   wrap.addEventListener('touchstart',e=>{
     if(e.touches.length===2){
       zoomState.startDist=zoomDist(e.touches);
       zoomState.startScale=zoomState.scale;
-    }else if(e.touches.length===1&&zoomState.scale>1){
-      zoomState.panning=true;
-      zoomState.panStartX=e.touches[0].clientX-zoomState.x;
-      zoomState.panStartY=e.touches[0].clientY-zoomState.y;
+    }else if(e.touches.length===1){
+      if(zoomState.scale>1){
+        zoomState.panning=true;
+        zoomState.panStartX=e.touches[0].clientX-zoomState.x;
+        zoomState.panStartY=e.touches[0].clientY-zoomState.y;
+      }else{
+        zoomState.swipeStartX=e.touches[0].clientX;
+      }
     }
   },{passive:true});
 
@@ -1391,7 +1421,14 @@ document.addEventListener('DOMContentLoaded',()=>{
   wrap.addEventListener('touchend',e=>{
     if(e.touches.length<2)zoomState.startDist=0;
     if(e.touches.length===0){
+      // Swipe horizontal para cambiar de imagen (solo si no está ampliado)
+      if(!zoomState.panning&&zoomState.scale<=1&&zoomState.swipeStartX!=null&&e.changedTouches[0]){
+        const dx=e.changedTouches[0].clientX-zoomState.swipeStartX;
+        if(dx<-50)zoomNext();
+        else if(dx>50)zoomPrev();
+      }
       zoomState.panning=false;
+      zoomState.swipeStartX=null;
       if(zoomState.scale<=1){zoomState.scale=1;zoomState.x=0;zoomState.y=0;applyZoomTransform()}
     }
   });
@@ -1401,7 +1438,8 @@ function renderCarousel(images){
   const track=$('pImgCarousel');
   const dots=$('pImgDots');
   const imgs=images&&images.length?images:['https://images.unsplash.com/photo-1496181133206-80ce9b88a853?w=600'];
-  track.innerHTML=imgs.map(src=>`<div class="carousel-slide"><img src="${src}" draggable="false" oncontextmenu="return false" onclick="openZoom('${src}')" style="-webkit-touch-callout:none;-webkit-user-select:none;user-select:none;cursor:zoom-in" onerror="this.src='https://images.unsplash.com/photo-1496181133206-80ce9b88a853?w=600'"></div>`).join('');
+  window.curCarouselImgs=imgs; // guardado para navegación dentro del zoom
+  track.innerHTML=imgs.map((src,i)=>`<div class="carousel-slide"><img src="${src}" draggable="false" oncontextmenu="return false" onclick="openZoom(${i})" style="-webkit-touch-callout:none;-webkit-user-select:none;user-select:none;cursor:zoom-in" onerror="this.src='https://images.unsplash.com/photo-1496181133206-80ce9b88a853?w=600'"></div>`).join('');
   track.scrollLeft=0;
   if(imgs.length>1){
     dots.innerHTML=imgs.map((_,i)=>`<div class="carousel-dot${i===0?' on':''}"></div>`).join('');
