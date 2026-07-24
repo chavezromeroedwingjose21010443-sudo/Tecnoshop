@@ -620,10 +620,11 @@ footer strong{color:rgba(255,255,255,.75)}
 </div>
 
 <!-- ZOOM OVERLAY (imagen ampliada) -->
-<div class="overlay" id="zoomOv" style="background:rgba(0,0,0,.92);z-index:2100">
+<div class="overlay" id="zoomOv" style="background:rgba(0,0,0,.92);z-index:2100;padding:0">
   <button class="page-back" onclick="closeZoom()" style="position:fixed;top:16px;right:16px;background:rgba(255,255,255,.15);z-index:2101"><svg viewBox="0 0 24 24" stroke="white"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
-  <div id="zoomImgWrap" style="width:100%;height:100%;overflow:hidden;display:flex;align-items:center;justify-content:center;position:relative">
-    <img id="zoomImg" src="" alt="" style="max-width:100%;max-height:100%;object-fit:contain;transform-origin:center center;transition:transform .1s ease-out;user-select:none;-webkit-user-select:none">
+  <div id="zoomImgWrap" style="width:100vw;height:100vh;overflow:hidden;display:flex;align-items:center;justify-content:center;position:relative">
+    <img id="zoomImg" src="" alt="" style="width:auto;height:auto;max-width:94vw;max-height:94vh;object-fit:contain;transform-origin:center center;transition:transform .1s ease-out;user-select:none;-webkit-user-select:none">
+
   </div>
 </div>
 
@@ -1318,7 +1319,11 @@ let zoomState={scale:1,x:0,y:0,startDist:0,startScale:1,startX:0,startY:0,panSta
 
 function openZoom(src){
   const img=$('zoomImg');
-  img.src=src;
+  // eBay sirve imágenes en varias resoluciones cambiando el sufijo "s-lXXX" en la URL.
+  // Pedimos la versión más grande disponible (s-l1600) para que el zoom se vea nítido.
+  const hiRes=src.replace(/s-l\d+/,'s-l1600');
+  img.src=hiRes;
+  img.onerror=()=>{img.src=src}; // si la versión grande no existe, usa la original
   resetZoom();
   openOv('zoomOv');
 }
