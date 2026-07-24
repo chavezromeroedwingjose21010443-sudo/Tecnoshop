@@ -619,11 +619,11 @@ footer strong{color:rgba(255,255,255,.75)}
   </div>
 </div>
 
-<!-- FAVS OVERLAY -->
+<!-- ZOOM OVERLAY (imagen ampliada) -->
 <div class="overlay" id="zoomOv" style="background:rgba(0,0,0,.92);z-index:2100">
   <button class="page-back" onclick="closeZoom()" style="position:fixed;top:16px;right:16px;background:rgba(255,255,255,.15);z-index:2101"><svg viewBox="0 0 24 24" stroke="white"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
-  <div id="zoomImgWrap" style="width:100%;height:100%;overflow:auto;display:flex;align-items:center;justify-content:center;touch-action:pinch-zoom pan-x pan-y">
-    <img id="zoomImg" src="" alt="" style="max-width:none;transition:transform .15s;touch-action:pinch-zoom">
+  <div id="zoomImgWrap" style="width:100%;height:100%;overflow:hidden;display:flex;align-items:center;justify-content:center;position:relative">
+    <img id="zoomImg" src="" alt="" style="max-width:100%;max-height:100%;object-fit:contain;transform-origin:center center;transition:transform .1s ease-out;user-select:none;-webkit-user-select:none">
   </div>
 </div>
 
@@ -1313,29 +1313,82 @@ function buildAbout(rawInfo){
 }
 
 // ═══ CARRUSEL DE IMÁGENES DEL PRODUCTO ═══
-// ═══ VISOR DE IMAGEN AMPLIADA (zoom/pan) ═══
-let zoomScale=1,zoomLastTap=0;
+// ═══ VISOR DE IMAGEN AMPLIADA (zoom real con pinch de 2 dedos + arrastre) ═══
+let zoomState={scale:1,x:0,y:0,startDist:0,startScale:1,startX:0,startY:0,panStartX:0,panStartY:0,lastTap:0,panning:false};
+
 function openZoom(src){
   const img=$('zoomImg');
   img.src=src;
-  img.style.transform='scale(1)';
-  zoomScale=1;
+  resetZoom();
   openOv('zoomOv');
 }
 function closeZoom(){
   closeOv('zoomOv');
 }
-document.addEventListener('DOMContentLoaded',()=>{
+function resetZoom(){
+  zoomState.scale=1;zoomState.x=0;zoomState.y=0;
+  applyZoomTransform();
+}
+function applyZoomTransform(){
   const img=$('zoomImg');
-  if(!img)return;
-  img.addEventListener('click',()=>{
+  if(img)img.style.transform='translate('+zoomState.x+'px,'+zoomState.y+'px) scale('+zoomState.scale+')';
+}
+function zoomDist(t){
+  const dx=t[0].clientX-t[1].clientX,dy=t[0].clientY-t[1].clientY;
+  return Math.sqrt(dx*dx+dy*dy);
+}
+
+document.addEventListener('DOMContentLoaded',()=>{
+  const wrap=$('zoomImgWrap'),img=$('zoomImg');
+  if(!wrap||!img)return;
+
+  // Doble toque: alterna entre 1x y 2.5x, centrado en el punto tocado
+  img.addEventListener('click',e=>{
     const now=Date.now();
-    if(now-zoomLastTap<300){
-      // doble tap: alterna entre zoom 1x y 2.5x
-      zoomScale=zoomScale>1?1:2.5;
-      img.style.transform='scale('+zoomScale+')';
+    if(now-zoomState.lastTap<300){
+      if(zoomState.scale>1){
+        resetZoom();
+      }else{
+        zoomState.scale=2.5;
+        applyZoomTransform();
+      }
     }
-    zoomLastTap=now;
+    zoomState.lastTap=now;
+  });
+
+  // Pinch de 2 dedos para escalar libremente
+  wrap.addEventListener('touchstart',e=>{
+    if(e.touches.length===2){
+      zoomState.startDist=zoomDist(e.touches);
+      zoomState.startScale=zoomState.scale;
+    }else if(e.touches.length===1&&zoomState.scale>1){
+      zoomState.panning=true;
+      zoomState.panStartX=e.touches[0].clientX-zoomState.x;
+      zoomState.panStartY=e.touches[0].clientY-zoomState.y;
+    }
+  },{passive:true});
+
+  wrap.addEventListener('touchmove',e=>{
+    if(e.touches.length===2){
+      e.preventDefault();
+      const newDist=zoomDist(e.touches);
+      const factor=newDist/zoomState.startDist;
+      zoomState.scale=Math.min(Math.max(zoomState.startScale*factor,1),4);
+      applyZoomTransform();
+    }else if(e.touches.length===1&&zoomState.panning){
+      e.preventDefault();
+      zoomState.x=e.touches[0].clientX-zoomState.panStartX;
+      zoomState.y=e.touches[0].clientY-zoomState.panStartY;
+      applyZoomTransform();
+    }
+  },{passive:false});
+
+  wrap.addEventListener('touchend',e=>{
+    if(e.touches.length<2)zoomState.startDist=0;
+    if(e.touches.length===0){
+      zoomState.panning=false;
+      if(zoomState.scale<=1){zoomState.scale=1;zoomState.x=0;zoomState.y=0;applyZoomTransform()}
+    }
   });
 });
 
@@ -1380,10 +1433,10 @@ function viewOrderProduct(id,savedProd){
   const favBtn=$('pdFavBtn');favBtn.classList.toggle('saved',FAVS.includes(curProd.id));
 
   const total=calcTotal(curProd.price,'free');
-  const dr=deliveryRanges(curProd.maxDelivery);
 
   if(!stillActive){
-    // Vista de solo lectura: ya no se puede comprar/ofertar, solo consultar qué era
+    // Vista de solo lectura: ya no se puede comprar/ofertar, solo consultar qué era.
+    // pdAbout se incluye DENTRO del mismo bloque (antes se destruía al sobrescribir pdBuyBlock).
     $('pdBuyBlock').innerHTML=`
       <div style="background:#fef3c7;border:1px solid #fde68a;border-radius:var(--r8);padding:12px 14px;margin-bottom:14px;font-size:12px;color:#92400e">
         Este producto ya no está disponible en la tienda. Esta es la información de lo que compraste.
@@ -1391,14 +1444,23 @@ function viewOrderProduct(id,savedProd){
       <div style="background:var(--gray3);border-radius:var(--r8);padding:14px;margin-bottom:14px">
         <div style="font-size:20px;font-weight:800;color:var(--text)">${fmt(curProd.price?total:(savedProd?.total||0))}</div>
       </div>
+      <div id="pdAbout" style="margin-bottom:14px"><div style="font-size:12px;color:var(--text3);text-align:center;padding:14px">Cargando información del producto…</div></div>
     `;
-  }else{
-    openProd(id);
+    // Intenta traer descripción y especificaciones reales desde eBay (item.js);
+    // si ya no existe ahí tampoco, usa lo que se guardó al momento de la compra/favorito.
+    fetch('/api/item?id='+encodeURIComponent(id)).then(r=>r.json()).then(d=>{
+      if(d.success&&d.item){
+        $('pdAbout').innerHTML=buildAbout(d.item);
+      }else{
+        $('pdAbout').innerHTML=buildAbout({condition:curProd.cond,description:curProd.description||'',specs:curProd.specs||[]});
+      }
+    }).catch(()=>{
+      $('pdAbout').innerHTML=buildAbout({condition:curProd.cond,description:curProd.description||'',specs:curProd.specs||[]});
+    });
+    openOv('prodOv');
     return;
   }
-  const pdAbout=$('pdAbout');
-  if(pdAbout)pdAbout.innerHTML=buildAbout({condition:curProd.cond,description:curProd.description||''});
-  openOv('prodOv');
+  openProd(id);
 }
 
 function openProd(id){
