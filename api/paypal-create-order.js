@@ -9,7 +9,13 @@ function request(options, body) {
     const req = https.request(options, (res) => {
       let d = '';
       res.on('data', c => d += c);
-      res.on('end', () => { try { resolve(JSON.parse(d)); } catch (e) { reject(e); } });
+      res.on('end', () => {
+        try {
+          resolve({ status: res.statusCode, data: JSON.parse(d) });
+        } catch (e) {
+          resolve({ status: res.statusCode, data: null, raw: d });
+        }
+      });
     });
     req.on('error', reject);
     if (body) req.write(body);
@@ -27,7 +33,7 @@ async function getAccessToken() {
   const SECRET = process.env.PAYPAL_CLIENT_SECRET;
   const creds = Buffer.from(ID + ':' + SECRET).toString('base64');
   const body = 'grant_type=client_credentials';
-  const res = await request({
+  const { status, data, raw } = await request({
     hostname: getHost(),
     path: '/v1/oauth2/token',
     method: 'POST',
@@ -37,7 +43,13 @@ async function getAccessToken() {
       'Content-Length': Buffer.byteLength(body)
     }
   }, body);
-  return res.access_token;
+
+  if (status !== 200 || !data || !data.access_token) {
+    // Devolvemos el error REAL que PayPal envió, en vez de esconderlo
+    const reason = (data && (data.error_description || data.error)) || raw || ('HTTP ' + status);
+    return { token: null, error: reason };
+  }
+  return { token: data.access_token, error: null };
 }
 
 module.exports = async (req, res) => {
@@ -51,15 +63,17 @@ module.exports = async (req, res) => {
 
   const ID = process.env.PAYPAL_CLIENT_ID;
   const SECRET = process.env.PAYPAL_CLIENT_SECRET;
-  if (!ID || !SECRET) return res.status(500).json({ success: false, error: 'Missing PayPal credentials' });
+  if (!ID || !SECRET) return res.status(500).json({ success: false, error: 'Faltan las credenciales de PayPal en el servidor (variables de entorno no configuradas)' });
 
   try {
     const { total } = req.body || {};
     const amount = parseFloat(total);
     if (!amount || amount <= 0) return res.status(400).json({ success: false, error: 'Monto inválido' });
 
-    const accessToken = await getAccessToken();
-    if (!accessToken) return res.status(500).json({ success: false, error: 'No se pudo autenticar con PayPal' });
+    const { token: accessToken, error: tokenError } = await getAccessToken();
+    if (!accessToken) {
+      return res.status(500).json({ success: false, error: 'PayPal rechazó la autenticación', detail: tokenError });
+    }
 
     const orderBody = JSON.stringify({
       intent: 'CAPTURE',
@@ -69,7 +83,7 @@ module.exports = async (req, res) => {
       }]
     });
 
-    const order = await request({
+    const { status: orderStatus, data: order, raw: orderRaw } = await request({
       hostname: getHost(),
       path: '/v2/checkout/orders',
       method: 'POST',
@@ -80,7 +94,10 @@ module.exports = async (req, res) => {
       }
     }, orderBody);
 
-    if (!order.id) return res.status(500).json({ success: false, error: 'No se pudo crear la orden de PayPal' });
+    if (!order || !order.id) {
+      const reason = (order && (order.message || order.details)) || orderRaw || ('HTTP ' + orderStatus);
+      return res.status(500).json({ success: false, error: 'PayPal no pudo crear la orden', detail: typeof reason === 'string' ? reason : JSON.stringify(reason) });
+    }
 
     return res.status(200).json({ success: true, orderId: order.id });
   } catch (e) {
