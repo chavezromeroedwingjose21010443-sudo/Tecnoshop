@@ -5,13 +5,21 @@
 
 const https = require('https');
 
-// ── VENDEDORES DE CONFIANZA (app de prueba) ──
-// Ajusta esta lista si agregas o quitas vendedores verificados.
+// ── VENDEDORES DE CONFIANZA (laptops + proveedores de piezas) ──
 const TRUSTED_SELLERS = [
+  // Laptops (originales)
   'discounttechdirect',
   'merresale',
   'paymore_doraville',
-  'dtd_electronicsplus'
+  'dtd_electronicsplus',
+  // Piezas y repuestos (nuevos)
+  'firesale-deals',
+  'miller_sells_it_llc',
+  'vvanmenghangzhouchua_0',
+  'omaha_blue',
+  'spcpart',
+  'lakemichigancomputers',
+  'champion-laptop-battery-store'
 ];
 
 function request(options, body) {
@@ -25,6 +33,49 @@ function request(options, body) {
     if (body) req.write(body);
     req.end();
   });
+}
+
+// ═══ MOTOR DE PRECIOS POR CATEGORÍA ═══
+// Detecta el tipo de producto por palabras clave del título y devuelve
+// el precio final de venta ya calculado según las reglas de negocio de TecnoShop.
+const MARKUP_DEFAULT = 105; // laptop individual normal
+
+function detectCategoryAndPrice(title, cost) {
+  const t = (title || '').toUpperCase();
+
+  // 1. LOTES: "LOT OF 2", "LOT OF 3", etc. — precio fijo escalonado, ignora costo eBay
+  const lotMatch = t.match(/LOT\s+OF\s+(\d+)/);
+  if (lotMatch) {
+    const qty = parseInt(lotMatch[1], 10);
+    if (qty >= 2) {
+      const price = 155 + Math.max(0, qty - 2) * 20; // 2=155, 3=175, 4=195...
+      return { category: 'lot', label: 'Lote de ' + qty, price: Math.round(price * 100) / 100 };
+    }
+  }
+
+  // 2. TARJETA MADRE: costo + 150%
+  if (/MOTHERBOARD|MOTHER\s*BOARD|SYSTEM\s*BOARD|MAINBOARD/.test(t)) {
+    return { category: 'motherboard', label: 'Tarjeta madre', price: Math.round(cost * 2.5 * 100) / 100 };
+  }
+
+  // 3. BATERÍA: distingue genuina/OEM (más cara) vs genérica
+  if (/BATTERY|BATTERIA/.test(t)) {
+    const isGenuine = /GENUINE|OEM|ORIGINAL/.test(t);
+    const multiplier = isGenuine ? 2.5 : 1.75; // genuina costo+150%, genérica costo+75%
+    return {
+      category: 'battery',
+      label: isGenuine ? 'Batería original/OEM' : 'Batería genérica',
+      price: Math.round(cost * multiplier * 100) / 100
+    };
+  }
+
+  // 4. TECLADO: costo + 100%
+  if (/KEYBOARD/.test(t)) {
+    return { category: 'keyboard', label: 'Teclado', price: Math.round(cost * 2 * 100) / 100 };
+  }
+
+  // 5. Producto normal (laptop individual, etc.): costo + markup fijo
+  return { category: 'standard', label: '', price: Math.round((cost + MARKUP_DEFAULT) * 100) / 100 };
 }
 
 module.exports = async (req, res) => {
@@ -108,10 +159,16 @@ module.exports = async (req, res) => {
       // "Hacer oferta" solo aparece si el listado acepta BEST_OFFER en eBay
       const listingType = (item.buyingOptions || []).includes('BEST_OFFER') ? 'offer' : 'buy';
 
+      const cost = item.price ? parseFloat(item.price.value) : 0;
+      const pricing = detectCategoryAndPrice(item.title, cost);
+
       return {
         id: item.itemId,
         title: item.title,
-        price: item.price ? parseFloat(item.price.value) : 0,
+        price: cost, // costo real en eBay (base para ofertas y cálculos internos)
+        finalPrice: pricing.price, // precio de venta ya calculado según categoría
+        category: pricing.category,
+        categoryLabel: pricing.label,
         condition: item.condition || 'Used',
         listingType,
         image: mainImage,
