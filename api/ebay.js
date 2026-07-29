@@ -107,7 +107,7 @@ function detectCategoryAndPrice(title, cost, condition) {
   // 5. NO FUNCIONA / PARA REPUESTOS: se decide por la CONDICIÓN REAL de eBay
   // (el estado que aparece en "Acerca de este artículo"), nunca por palabras del título.
   if (condition === 'For parts or not working') {
-    return { category: 'parts', label: '⚠️ Para repuestos o no funciona', price: Math.round((cost + MARKUP_DEFAULT) * 100) / 100 };
+    return { category: 'parts', label: '⚠️ Dañados, no funcionan', price: Math.round((cost + MARKUP_DEFAULT) * 100) / 100 };
   }
 
   // 5. Producto normal (laptop individual, etc.): costo + markup fijo
