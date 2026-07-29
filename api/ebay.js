@@ -73,23 +73,32 @@ const MARKUP_DEFAULT = 105; // laptop individual normal
 function detectCategoryAndPrice(title, cost, condition) {
   const t = (title || '').toUpperCase();
 
-  // 1. LOTES: "LOT OF 2", "LOT OF 3", etc. — precio fijo escalonado, ignora costo eBay
+  // Detecta si una palabra de pieza va precedida de una negación (NO/SIN/WITHOUT/MISSING),
+  // lo que significa que el producto NO INCLUYE esa pieza (ej: laptop "Sin batería"),
+  // en vez de ser la pieza misma a la venta. Evita clasificar mal esos casos.
+  function isNegated(word) {
+    const re = new RegExp('(NO|SIN|WITHOUT|MISSING|N/A|NOT\\s+INCLUDED)\\s+' + word, 'i');
+    return re.test(t);
+  }
+
+  // 1. LOTES: "LOT OF 2", "LOT OF 3", etc. — costo real de eBay + margen ($155 base + $20 por CADA unidad del lote)
   const lotMatch = t.match(/LOT\s+OF\s+(\d+)/);
   if (lotMatch) {
     const qty = parseInt(lotMatch[1], 10);
     if (qty >= 2) {
-      const price = 155 + Math.max(0, qty - 2) * 20; // 2=155, 3=175, 4=195...
+      const margin = 155 + qty * 20; // lote de 2 = 155+40=195, lote de 7 = 155+140=295...
+      const price = cost + margin; // precio final = costo real en eBay + margen del lote
       return { category: 'lot', label: 'Lote de ' + qty, price: Math.round(price * 100) / 100 };
     }
   }
 
-  // 2. TARJETA MADRE: costo + 150%
-  if (/MOTHERBOARD|MOTHER\s*BOARD|SYSTEM\s*BOARD|MAINBOARD/.test(t)) {
+  // 2. TARJETA MADRE: costo + 150% (solo si NO está negada, ej: excluye "No Motherboard")
+  if (/MOTHERBOARD|MOTHER\s*BOARD|SYSTEM\s*BOARD|MAINBOARD/.test(t) && !isNegated('MOTHERBOARD|MOTHER\\s*BOARD|SYSTEM\\s*BOARD|MAINBOARD')) {
     return { category: 'motherboard', label: 'Tarjeta madre', price: Math.round(cost * 2.5 * 100) / 100 };
   }
 
-  // 3. BATERÍA: distingue genuina/OEM (más cara) vs genérica
-  if (/BATTERY|BATTERIA/.test(t)) {
+  // 3. BATERÍA: distingue genuina/OEM (más cara) vs genérica (solo si NO está negada, ej: excluye "Sin batería")
+  if (/BATTERY|BATTERIA/.test(t) && !isNegated('BATTERY|BATTERIA')) {
     const isGenuine = /GENUINE|OEM|ORIGINAL/.test(t);
     const multiplier = isGenuine ? 2.5 : 1.75; // genuina costo+150%, genérica costo+75%
     return {
@@ -99,8 +108,8 @@ function detectCategoryAndPrice(title, cost, condition) {
     };
   }
 
-  // 4. TECLADO: costo + 100%
-  if (/KEYBOARD/.test(t)) {
+  // 4. TECLADO: costo + 100% (solo si NO está negado, ej: excluye "No Keyboard")
+  if (/KEYBOARD/.test(t) && !isNegated('KEYBOARD')) {
     return { category: 'keyboard', label: 'Teclado', price: Math.round(cost * 2 * 100) / 100 };
   }
 
