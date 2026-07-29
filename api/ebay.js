@@ -81,9 +81,12 @@ function detectCategoryAndPrice(title, cost, condition) {
     return re.test(t);
   }
 
-  // 1. LOTES: "LOT OF 2", "LOT OF 3", etc. — costo real de eBay + margen ($155 base + $20 por CADA unidad del lote)
+  // 1. LOTES: "LOT OF 2", "LOT OF 3", etc. — SOLO aplica a lotes de LAPTOPS COMPLETAS.
+  // Si el lote es de piezas sueltas (baterías, teclados, tarjetas madre), esta fórmula
+  // NO se usa — el producto sigue evaluándose por las reglas de esa pieza más abajo.
+  const isPartsLot = /MOTHERBOARD|MOTHER\s*BOARD|SYSTEM\s*BOARD|MAINBOARD|BATTERY|BATTERIA|KEYBOARD/.test(t);
   const lotMatch = t.match(/LOT\s+OF\s+(\d+)/);
-  if (lotMatch) {
+  if (lotMatch && !isPartsLot) {
     const qty = parseInt(lotMatch[1], 10);
     if (qty >= 2) {
       const margin = 155 + qty * 20; // lote de 2 = 155+40=195, lote de 7 = 155+140=295...
@@ -165,7 +168,9 @@ module.exports = async (req, res) => {
 
     // 2. Construir filtros combinados — SIEMPRE incluye el filtro de vendedores de confianza
     const filterParts = ['sellers:{' + TRUSTED_SELLERS.join('|') + '}'];
-    if (buying) filterParts.push('buyingOptions:{' + buying + '}');
+    // Las subastas se excluyen SIEMPRE (TecnoShop no vende por subasta) — si el cliente
+    // elige un formato específico, se respeta ese; si no, se muestra Cómpralo ahora + Mejor oferta.
+    filterParts.push('buyingOptions:{' + (buying || 'FIXED_PRICE|BEST_OFFER') + '}');
     if (condition) {
       const condMap = { NEW: '1000', USED: '3000', PARTS: '7000' };
       filterParts.push('conditionIds:{' + (condMap[condition] || '3000') + '}');
