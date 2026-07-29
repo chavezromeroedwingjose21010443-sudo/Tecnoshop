@@ -12,7 +12,6 @@ const TRUSTED_SELLERS = [
   'merresale',
   'paymore_doraville',
   'dtd_electronicsplus',
-  // Piezas y repuestos (nuevos)
   'firesale-deals',
   'miller_sells_it_llc',
   'vvanmenghangzhouchua_0',
