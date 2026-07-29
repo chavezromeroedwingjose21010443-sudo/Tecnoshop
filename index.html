@@ -492,14 +492,11 @@ footer strong{color:rgba(255,255,255,.75)}
 
 <section class="tags-bar">
   <div class="popular-tags">
-    <span class="ptag" onclick="setQ('Dell laptop')">Dell</span>
-    <span class="ptag" onclick="setQ('HP laptop')">HP</span>
-    <span class="ptag" onclick="setQ('MacBook')">MacBook</span>
-    <span class="ptag" onclick="setQ('gaming laptop')">Gaming</span>
-    <span class="ptag" onclick="setQ('i7 16GB laptop')">i7 16GB</span>
-    <span class="ptag" onclick="setQ('RTX laptop')">RTX</span>
-    <span class="ptag" onclick="setQ('Lenovo ThinkPad')">ThinkPad</span>
-    <span class="ptag" onclick="setQ('budget laptop')">Económico</span>
+    <span class="ptag" onclick="setQ('motherboard laptop')">Tarjetas madre</span>
+    <span class="ptag" onclick="setQ('battery laptop')">Baterías</span>
+    <span class="ptag" onclick="setQ('keyboard laptop')">Teclados</span>
+    <span class="ptag" onclick="setQ('open box laptop')">Caja abierta</span>
+    <span class="ptag" onclick="setQ('for parts laptop')">No funciona / Repuestos</span>
   </div>
 </section>
 
@@ -711,10 +708,17 @@ footer strong{color:rgba(255,255,255,.75)}
 const $=id=>document.getElementById(id);
 const fmt=n=>'$'+Number(n).toFixed(2);
 // Shipping: Prioritario +$50, Gratis +$22
-const MARKUP=105; // ganancia general aplicada a todos los productos
+const MARKUP=105; // ganancia general para productos estándar (laptops individuales)
 const SHIP={priority:45,free:0};
 const dispPrice=p=>p+MARKUP;
 const calcTotal=(price,ship)=>price+MARKUP+(SHIP[ship]||0);
+// Igual que calcTotal, pero respeta el precio final ya calculado por categoría
+// (lotes, tarjetas madre, baterías, teclados) cuando el producto lo trae del backend.
+// Para productos estándar, se comporta exactamente igual que calcTotal.
+const calcTotalProd=(prod,ship)=>{
+  const base=(prod&&prod.finalPrice!=null)?prod.finalPrice:((prod&&prod.price)||0)+MARKUP;
+  return base+(SHIP[ship]||0);
+};
 const LS={g:k=>{try{return JSON.parse(localStorage.getItem(k))}catch{return null}},s:(k,v)=>localStorage.setItem(k,JSON.stringify(v))};
 
 // STATE
@@ -921,7 +925,7 @@ function renderFavsList(){
         <img src="${p.img}" style="width:100%;height:120px;object-fit:cover;${sold?'filter:grayscale(.5)':''}" onerror="this.src='https://images.unsplash.com/photo-1496181133206-80ce9b88a853?w=400'">
         <div style="padding:9px">
           <div style="font-size:11px;font-weight:600;color:var(--text);margin-bottom:4px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">${p.title}</div>
-          <div style="font-size:13px;font-weight:800;color:${sold?'var(--text3)':'var(--blue)'}">${fmt(calcTotal(p.price,'free'))}</div>
+          <div style="font-size:13px;font-weight:800;color:${sold?'var(--text3)':'var(--blue)'}">${fmt(calcTotalProd(p,'free'))}</div>
         </div>
       </div>`;
     }).join('')+'</div>';
@@ -1121,6 +1125,9 @@ function cleanBrandDeep(obj){
 function mapProds(list){
   return list.map(p=>({
     id:String(p.id),title:cleanBrand(p.title),price:Number(p.price)||0,
+    finalPrice:Number(p.finalPrice)||undefined, // precio de venta ya calculado por categoría (backend)
+    category:p.category||'standard',
+    categoryLabel:p.categoryLabel||'',
     cond:COND_ES[p.condition]||p.condition||'Usado',
     type:p.listingType||'buy',
     img:p.image||'https://images.unsplash.com/photo-1496181133206-80ce9b88a853?w=600',
@@ -1237,9 +1244,10 @@ const DEMO=[
 function renderSkel(){$('grid').innerHTML='<div class="skel-g">'+Array(8).fill('<div class="skel-c"><div class="skel-i"></div><div class="skel-b"><div class="skel-l p"></div><div class="skel-l"></div><div class="skel-l s"></div></div></div>').join('')+'</div>'}
 
 function cardHTML(p,i){
-  const total=calcTotal(p.price,'free');
+  const total=calcTotalProd(p,'free');
   const isFav=FAVS.includes(p.id);
   const badge=p.type==='offer'?'<span class="card-type-badge ctb-offer">Oferta especial</span>':'<span class="card-type-badge ctb-buy">Disponible</span>';
+  const catBadge=(p.category&&p.category!=='standard'&&p.categoryLabel)?`<span class="card-type-badge" style="background:var(--gray2);color:var(--text2)">${p.categoryLabel}</span>`:'';
   return `<div class="card" style="animation-delay:${(i%12)*.04}s" onclick="openProd('${p.id}')">
     <div class="card-img">
       <img src="${p.img}" alt="" loading="lazy" draggable="false" oncontextmenu="return false" style="-webkit-touch-callout:none;-webkit-user-select:none;user-select:none" onerror="this.src='https://images.unsplash.com/photo-1496181133206-80ce9b88a853?w=600'">
@@ -1248,7 +1256,7 @@ function cardHTML(p,i){
     <div class="card-body">
       <div class="card-price"><span class="currency">$</span>${total.toFixed(2)}</div>
       <div class="card-price-note">Envío Gratis incluido</div>
-      <div>${badge}</div>
+      <div>${badge}${catBadge}</div>
       <div class="card-name">${p.title}</div>
       <div class="card-cond">${p.cond}</div>
       <div class="card-ship">🚚 Entrega en Managua, León y Chinandega</div>
@@ -1285,7 +1293,7 @@ function setQ(q){$('sq').value=q;loadProducts(q)}
 function fCatR(cat){const q={all:'laptop',laptop:'laptop',gaming:'gaming laptop',apple:'MacBook Apple'};loadProducts(q[cat]||'laptop')}
 function applyLocalF(){
   const mn=parseFloat($('pMin').value)||0,mx=parseFloat($('pMax').value)||Infinity;
-  renderProds(allProds.filter(p=>calcTotal(p.price,'free')>=mn&&calcTotal(p.price,'free')<=mx));
+  renderProds(allProds.filter(p=>calcTotalProd(p,'free')>=mn&&calcTotalProd(p,'free')<=mx));
 }
 function doSort(v){
   const s=[...allProds];
@@ -1476,7 +1484,7 @@ function viewOrderProduct(id,savedProd){
   }
   const favBtn=$('pdFavBtn');favBtn.classList.toggle('saved',FAVS.includes(curProd.id));
 
-  const total=calcTotal(curProd.price,'free');
+  const total=calcTotalProd(curProd,'free');
 
   if(!stillActive){
     // Vista de solo lectura: ya no se puede comprar/ofertar, solo consultar qué era.
@@ -1517,7 +1525,7 @@ function openProd(id){
   else{tb.className='card-type-badge ctb-buy';tb.textContent='Disponible'}
   const favBtn=$('pdFavBtn');favBtn.classList.toggle('saved',FAVS.includes(curProd.id));
 
-  const total=calcTotal(curProd.price,'free');
+  const total=calcTotalProd(curProd,'free');
   const dr=deliveryRanges(curProd.maxDelivery);
 
   $('pdBuyBlock').innerHTML=`
@@ -1577,7 +1585,7 @@ function selectShip(type){
   selShip=type;
   document.querySelectorAll('.ship-opt').forEach(o=>o.classList.remove('on'));
   $(type==='priority'?'sOpt1':'sOpt2').classList.add('on');
-  const total=calcTotal(curProd.price,type);
+  const total=calcTotalProd(curProd,type);
   const pt=$('pTotal');if(pt)pt.textContent=fmt(total);
   const bt=$('brkTotal');if(bt)bt.textContent=fmt(total);
   const sa=$('shipAmt');if(sa)sa.textContent=type==='priority'?fmt(SHIP.priority):'Gratis';
@@ -1588,7 +1596,7 @@ function selectShip(type){
 function addCart(){
   if(!curProd)return;
   if(cart.some(i=>String(i.prod.id)===String(curProd.id))){toast('⚠️ Este artículo ya está en tu carrito (unidad única)');return}
-  const total=calcTotal(curProd.price,selShip);
+  const total=calcTotalProd(curProd,selShip);
   cart.push({uid:Date.now(),prod:curProd,ship:selShip,total});
   updBadge();closeOv('prodOv');toast('🛒 Agregado al carrito');
 }
@@ -1596,14 +1604,14 @@ function addCart(){
 function quickAdd(id){
   const p=findProd(id);if(!p)return;
   if(cart.some(i=>String(i.prod.id)===String(p.id))){toast('⚠️ Este artículo ya está en tu carrito (unidad única)');return}
-  cart.push({uid:Date.now(),prod:p,ship:'free',total:calcTotal(p.price,'free')});
+  cart.push({uid:Date.now(),prod:p,ship:'free',total:calcTotalProd(p,'free')});
   updBadge();toast('🛒 Agregado al carrito');
 }
 
 function buyNow(id){
   const p=findProd(id);if(!p)return;
   if(!cart.some(i=>String(i.prod.id)===String(p.id))){
-    cart.push({uid:Date.now(),prod:p,ship:'free',total:calcTotal(p.price,'free')});
+    cart.push({uid:Date.now(),prod:p,ship:'free',total:calcTotalProd(p,'free')});
     updBadge();
   }
   openCheckout();
@@ -1616,8 +1624,8 @@ function openOffer(id){
   curOfferProd=findProd(id);if(!curOfferProd)return;
   offerShip='free'; // la oferta se calcula siempre sobre el precio con Envío Gratis;
                      // el cliente elige el tipo de envío después, al facturar, si le aceptan la oferta
-  $('offerCurP').textContent=fmt(calcTotal(curOfferProd.price,offerShip));
-  $('offerMinHint').textContent='Oferta mínima aceptada: '+fmt(calcTotal(curOfferProd.price,offerShip)*0.95);
+  $('offerCurP').textContent=fmt(calcTotalProd(curOfferProd,offerShip));
+  $('offerMinHint').textContent='Oferta mínima aceptada: '+fmt(calcTotalProd(curOfferProd,offerShip)*0.95);
   $('offerVal').value='';
   $('offerErr').classList.remove('show');
   // Cuentas antiguas sin cédula guardada: se les pide UNA sola vez, luego queda bloqueada
@@ -1679,7 +1687,7 @@ async function submitOffer(){
   if(!phone){err.textContent='Tu cuenta no tiene un celular registrado. Contacta soporte.';err.classList.add('show');return}
   if(!v||v<=0){err.textContent='Ingresa una oferta válida';err.classList.add('show');return}
 
-  const publishedPrice=calcTotal(curOfferProd.price,offerShip); // precio con Envío Gratis (base de toda oferta)
+  const publishedPrice=calcTotalProd(curOfferProd,offerShip); // precio con Envío Gratis (base de toda oferta)
   const minAllowed=publishedPrice*0.95; // monto mínimo permitido para ofertar: 95% del precio publicado
   if(v<minAllowed){
     err.textContent='La oferta no puede ser menor a '+fmt(minAllowed)+' (el monto mínimo permitido es el 95% del precio)';
@@ -1691,7 +1699,8 @@ async function submitOffer(){
   const diff=publishedPrice-v; // cuánto está pidiendo de descuento
   // La diferencia se resta del PRECIO DE EBAY (costo real), nunca de la ganancia TecnoShop
   const newEbayCost=curOfferProd.price-diff;
-  const gananciaTecnoShop=MARKUP; // se mantiene intacta siempre
+  // Ganancia real de TecnoShop en este producto: precio de venta (sin envío) menos el costo eBay
+  const gananciaTecnoShop=(curOfferProd.finalPrice!=null?curOfferProd.finalPrice:curOfferProd.price+MARKUP)-curOfferProd.price;
 
   // Guardar la oferta en Firestore, vinculada al panel de administración
   const offerId='OF-'+Date.now().toString(36).toUpperCase().slice(-8);
@@ -1917,12 +1926,12 @@ function renderPaypalButton(){
         });
         const data=await res.json();
         if(!data.success||!data.orderId){
-          toast('⚠️ No se pudo iniciar el pago con PayPal');
-          throw new Error('create-order failed');
+          toast('⚠️ '+(data.error||'')+' '+(data.detail||''),8000);
+          throw new Error('create-order failed: '+JSON.stringify(data));
         }
         return data.orderId;
       }catch(e){
-        toast('⚠️ Error al conectar con PayPal');
+        toast('⚠️ Error al conectar: '+(e?.message||e),8000);
         throw e;
       }
     },
@@ -1935,17 +1944,17 @@ function renderPaypalButton(){
         });
         const result=await res.json();
         if(!result.success){
-          toast('⚠️ El pago no pudo confirmarse. Intenta de nuevo.');
+          toast('⚠️ '+(result.error||'El pago no pudo confirmarse')+' '+(result.detail||''),8000);
           return;
         }
         toast('✅ Pago confirmado con PayPal');
         await placeOrder(result);
       }catch(e){
-        toast('⚠️ Error al confirmar el pago');
+        toast('⚠️ Error al confirmar el pago: '+(e?.message||e),8000);
       }
     },
     onError: function(err){
-      toast('⚠️ Ocurrió un error con PayPal. Intenta de nuevo.');
+      toast('⚠️ Error PayPal: '+(err?.message||err),8000);
     },
     onCancel: function(){
       toast('Pago cancelado');
