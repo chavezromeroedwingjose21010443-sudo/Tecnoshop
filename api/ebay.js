@@ -12,6 +12,7 @@ const TRUSTED_SELLERS = [
   'merresale',
   'paymore_doraville',
   'dtd_electronicsplus',
+  // Piezas y repuestos (nuevos)
   'firesale-deals',
   'miller_sells_it_llc',
   'vvanmenghangzhouchua_0',
@@ -69,7 +70,7 @@ function translateTitle(text) {
 // el precio final de venta ya calculado según las reglas de negocio de TecnoShop.
 const MARKUP_DEFAULT = 105; // laptop individual normal
 
-function detectCategoryAndPrice(title, cost) {
+function detectCategoryAndPrice(title, cost, condition) {
   const t = (title || '').toUpperCase();
 
   // 1. LOTES: "LOT OF 2", "LOT OF 3", etc. — precio fijo escalonado, ignora costo eBay
@@ -101,6 +102,12 @@ function detectCategoryAndPrice(title, cost) {
   // 4. TECLADO: costo + 100%
   if (/KEYBOARD/.test(t)) {
     return { category: 'keyboard', label: 'Teclado', price: Math.round(cost * 2 * 100) / 100 };
+  }
+
+  // 5. NO FUNCIONA / PARA REPUESTOS: se decide por la CONDICIÓN REAL de eBay
+  // (el estado que aparece en "Acerca de este artículo"), nunca por palabras del título.
+  if (condition === 'For parts or not working') {
+    return { category: 'parts', label: '⚠️ Para repuestos o no funciona', price: Math.round((cost + MARKUP_DEFAULT) * 100) / 100 };
   }
 
   // 5. Producto normal (laptop individual, etc.): costo + markup fijo
@@ -176,6 +183,25 @@ module.exports = async (req, res) => {
 
     const items = searchRes.itemSummaries || [];
 
+    // Mapa de conditionId (código numérico que eBay SIEMPRE incluye) a texto legible,
+    // usado como respaldo confiable cuando "condition" (texto) no viene en la respuesta.
+    const CONDITION_ID_MAP = {
+      '1000': 'New',
+      '1500': 'New other (see details)',
+      '1750': 'New with defects',
+      '2000': 'Certified - Refurbished',
+      '2010': 'Excellent - Refurbished',
+      '2020': 'Very Good - Refurbished',
+      '2030': 'Good - Refurbished',
+      '2500': 'Seller refurbished',
+      '2750': 'Like New',
+      '3000': 'Used',
+      '4000': 'Very Good',
+      '5000': 'Good',
+      '6000': 'Acceptable',
+      '7000': 'For parts or not working'
+    };
+
     const products = items.map(item => {
       // imagen principal
       const mainImage = (item.image && item.image.imageUrl) || '';
@@ -189,7 +215,12 @@ module.exports = async (req, res) => {
       const listingType = (item.buyingOptions || []).includes('BEST_OFFER') ? 'offer' : 'buy';
 
       const cost = item.price ? parseFloat(item.price.value) : 0;
-      const pricing = detectCategoryAndPrice(item.title, cost);
+
+      // La condición en texto no siempre viene en la búsqueda; usamos conditionId como respaldo real
+      // en vez de asumir "Used" por defecto, que era la causa de que todo apareciera como usado.
+      const condition = item.condition || CONDITION_ID_MAP[item.conditionId] || 'Used';
+
+      const pricing = detectCategoryAndPrice(item.title, cost, condition);
 
       return {
         id: item.itemId,
@@ -198,7 +229,7 @@ module.exports = async (req, res) => {
         finalPrice: pricing.price, // precio de venta ya calculado según categoría
         category: pricing.category,
         categoryLabel: pricing.label,
-        condition: item.condition || 'Used',
+        condition,
         listingType,
         image: mainImage,
         images: allImages, // array completo para el carrusel
