@@ -142,10 +142,6 @@ nav{background:var(--white);border-bottom:1px solid var(--border2);padding:10px 
 .cbadge{background:var(--red);color:white;font-size:10px;font-weight:800;min-width:18px;height:18px;border-radius:9px;display:flex;align-items:center;justify-content:center;padding:0 4px}
 
 /* HERO */
-.tags-bar{background:var(--white);border-bottom:1px solid var(--border2);padding:14px 24px}
-.popular-tags{display:flex;gap:8px;justify-content:flex-start;flex-wrap:wrap;max-width:1240px;margin:0 auto}
-.ptag{background:var(--gray3);border:1px solid var(--border2);border-radius:var(--pill);padding:6px 16px;font-size:13px;color:var(--text2);cursor:pointer;transition:all .13s;font-weight:600}
-.ptag:hover{background:var(--blue-l);border-color:var(--blue);color:var(--blue)}
 
 /* LAYOUT */
 .page{max-width:1240px;margin:0 auto;padding:20px 16px 60px;display:grid;grid-template-columns:220px 1fr;gap:20px}
@@ -365,7 +361,7 @@ footer strong{color:rgba(255,255,255,.75)}
 .foot-links a:hover{color:rgba(255,255,255,.7)}
 
 @media(max-width:900px){.page{grid-template-columns:1fr}.filters{display:none}}
-@media(max-width:640px){nav{padding:8px 10px;gap:6px}.tags-bar{padding:10px 12px}.page{padding:14px 10px 40px}.grid{grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px}.ck-2{grid-template-columns:1fr}.brand-text{font-size:18px}.search-btn-label,.filter-btn-label,#navNm{display:none}.search-btn{padding:0 14px}.filter-btn{padding:9px 11px}.zoom-nav-arrow{display:none}}
+@media(max-width:640px){nav{padding:8px 10px;gap:6px}.page{padding:14px 10px 40px}.grid{grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px}.ck-2{grid-template-columns:1fr}.brand-text{font-size:18px}.search-btn-label,.filter-btn-label,#navNm{display:none}.search-btn{padding:0 14px}.filter-btn{padding:9px 11px}.zoom-nav-arrow{display:none}}
 </style>
 </head>
 <body>
@@ -653,6 +649,16 @@ footer strong{color:rgba(255,255,255,.75)}
       </div>
     </div>
     <div style="padding:18px 20px;max-height:540px;overflow-y:auto">
+
+      <div style="font-size:13px;font-weight:800;color:var(--text);margin-bottom:10px">Categoría</div>
+      <div style="display:flex;flex-direction:column;gap:2px;margin-bottom:20px" id="filterCategoryGroup">
+        <label class="fo"><input type="radio" name="fCategory" value="" checked onchange="setFilterCategory('','')"><span class="fo-label">Todas (laptops)</span></label>
+        <label class="fo"><input type="radio" name="fCategory" value="motherboard" onchange="setFilterCategory('motherboard laptop','motherboard')"><span class="fo-label">Tarjetas madre</span></label>
+        <label class="fo"><input type="radio" name="fCategory" value="battery" onchange="setFilterCategory('battery laptop','battery')"><span class="fo-label">Baterías</span></label>
+        <label class="fo"><input type="radio" name="fCategory" value="keyboard" onchange="setFilterCategory('keyboard laptop','keyboard')"><span class="fo-label">Teclados</span></label>
+        <label class="fo"><input type="radio" name="fCategory" value="openbox" onchange="setFilterCategory('open box laptop','')"><span class="fo-label">Caja abierta</span></label>
+        <label class="fo"><input type="radio" name="fCategory" value="parts" onchange="setFilterCategory('for parts laptop','')"><span class="fo-label">No funciona / Repuestos</span></label>
+      </div>
 
       <div style="font-size:13px;font-weight:800;color:var(--text);margin-bottom:10px">Ordenar por</div>
       <div style="display:flex;flex-direction:column;gap:2px;margin-bottom:20px" id="filterSortGroup">
@@ -1127,18 +1133,23 @@ function mapProds(list){
 }
 
 // ═══ FILTROS (panel deslizante conectado a la API de eBay) ═══
-let activeFilters={sort:'',buying:'',condition:'',priceMin:'',priceMax:''};
+let activeFilters={sort:'',buying:'',condition:'',priceMin:'',priceMax:'',categoryQuery:'',categoryCond:''};
 
 function openFilterPanel(){openOv('filterOv')}
 function setFilterSort(v){activeFilters.sort=v}
 function setFilterBuying(v){activeFilters.buying=v}
 function setFilterCond(v){activeFilters.condition=v}
+function setFilterCategory(query,condTag){
+  activeFilters.categoryQuery=query;
+  activeFilters.categoryCond=condTag; // referencia interna, no se usa como filtro de eBay
+}
 
 function resetFilters(){
-  activeFilters={sort:'',buying:'',condition:'',priceMin:'',priceMax:''};
+  activeFilters={sort:'',buying:'',condition:'',priceMin:'',priceMax:'',categoryQuery:'',categoryCond:''};
   document.querySelectorAll('#filterSortGroup input[value=""]')[0].checked=true;
   document.querySelectorAll('#filterBuyingGroup input[value=""]')[0].checked=true;
   document.querySelectorAll('#filterCondGroup input[value=""]')[0].checked=true;
+  document.querySelectorAll('#filterCategoryGroup input[value=""]')[0].checked=true;
   $('fPriceMin').value='';$('fPriceMax').value='';
 }
 
@@ -1146,7 +1157,9 @@ function applyFilters(){
   activeFilters.priceMin=$('fPriceMin').value.trim();
   activeFilters.priceMax=$('fPriceMax').value.trim();
   closeOv('filterOv');
-  loadProducts(curQuery);
+  // Si se eligió una categoría de repuestos, esa búsqueda reemplaza el término actual
+  const q=activeFilters.categoryQuery||curQuery;
+  loadProducts(q);
 }
 
 function filterQueryString(){
@@ -1185,6 +1198,7 @@ function goHome(){
 
 async function loadProducts(q='laptop'){
   curQuery=q;curOffset=0;endReached=false;allProds=[];
+  const sq=$('sq');if(sq)sq.value=q==='laptop'?'':q;
   renderSkel();
   await loadNextPage(true);
 }
