@@ -35,6 +35,36 @@ function request(options, body) {
   });
 }
 
+// ── TRADUCCIÓN AUTOMÁTICA DE TÍTULOS (Google Translate gratuito) ──
+// Traduce cada título de inglés a español. Si falla, devuelve el texto original
+// para nunca romper el listado por un error de traducción puntual.
+function translateTitle(text) {
+  return new Promise((resolve) => {
+    if (!text || !text.trim()) return resolve(text);
+    const q = encodeURIComponent(text.slice(0, 300));
+    const path = '/translate_a/single?client=gtx&sl=en&tl=es&dt=t&q=' + q;
+    const req = https.request({
+      hostname: 'translate.googleapis.com',
+      path,
+      method: 'GET',
+      headers: { 'User-Agent': 'Mozilla/5.0' }
+    }, (res) => {
+      let d = '';
+      res.on('data', c => d += c);
+      res.on('end', () => {
+        try {
+          const parsed = JSON.parse(d);
+          const translated = (parsed[0] || []).map(seg => seg[0]).join('');
+          resolve(translated || text);
+        } catch (e) { resolve(text); }
+      });
+    });
+    req.on('error', () => resolve(text));
+    req.setTimeout(3000, () => { req.destroy(); resolve(text); }); // no bloquear el listado si tarda
+    req.end();
+  });
+}
+
 // ═══ MOTOR DE PRECIOS POR CATEGORÍA ═══
 // Detecta el tipo de producto por palabras clave del título y devuelve
 // el precio final de venta ya calculado según las reglas de negocio de TecnoShop.
@@ -177,6 +207,13 @@ module.exports = async (req, res) => {
         itemWebUrl: '' // nunca se expone el enlace de origen
       };
     });
+
+    // Traducir todos los títulos en paralelo (con timeout individual de 3s por título,
+    // así una traducción lenta nunca bloquea el listado completo)
+    await Promise.all(products.map(async (p) => {
+      p.titleEn = p.title; // se conserva el original en inglés por si se necesita
+      p.title = await translateTitle(p.title);
+    }));
 
     return res.status(200).json({
       success: true,
