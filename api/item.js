@@ -129,7 +129,7 @@ const CONDITIONS = {
   'Open box': 'Caja abierta',
   'Used': 'Usado', 'Pre-owned': 'Usado',
   'Very Good': 'Muy bueno', 'Good': 'Bueno', 'Acceptable': 'Aceptable',
-  'For parts or not working': '⚠️ Para repuestos o no funciona',
+  'For parts or not working': '⚠️ Dañados, no funcionan',
   'New (Other)': 'Nuevo (Otro)', 'New other (see details)': 'Nuevo (ver detalles)'
 };
 
