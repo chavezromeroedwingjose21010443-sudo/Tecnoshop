@@ -657,7 +657,7 @@ footer strong{color:rgba(255,255,255,.75)}
         <label class="fo"><input type="radio" name="fCategory" value="battery" onchange="setFilterCategory('battery laptop','battery')"><span class="fo-label">Baterías</span></label>
         <label class="fo"><input type="radio" name="fCategory" value="keyboard" onchange="setFilterCategory('keyboard laptop','keyboard')"><span class="fo-label">Teclados</span></label>
         <label class="fo"><input type="radio" name="fCategory" value="openbox" onchange="setFilterCategory('open box laptop','')"><span class="fo-label">Caja abierta</span></label>
-        <label class="fo"><input type="radio" name="fCategory" value="parts" onchange="setFilterCategory('for parts laptop','')"><span class="fo-label">No funciona / Repuestos</span></label>
+        <label class="fo"><input type="radio" name="fCategory" value="parts" onchange="setFilterCategory('laptop','parts')"><span class="fo-label">⚠️ Dañados, no funcionan</span></label>
       </div>
 
       <div style="font-size:13px;font-weight:800;color:var(--text);margin-bottom:10px">Ordenar por</div>
@@ -681,7 +681,7 @@ footer strong{color:rgba(255,255,255,.75)}
         <label class="fo"><input type="radio" name="fCond" value="" checked onchange="setFilterCond('')"><span class="fo-label">Todos</span></label>
         <label class="fo"><input type="radio" name="fCond" value="NEW" onchange="setFilterCond('NEW')"><span class="fo-label">Nuevo</span></label>
         <label class="fo"><input type="radio" name="fCond" value="USED" onchange="setFilterCond('USED')"><span class="fo-label">Usado</span></label>
-        <label class="fo"><input type="radio" name="fCond" value="PARTS" onchange="setFilterCond('PARTS')"><span class="fo-label">⚠️ Para repuestos o no funciona</span></label>
+        <label class="fo"><input type="radio" name="fCond" value="PARTS" onchange="setFilterCond('PARTS')"><span class="fo-label">⚠️ Dañados, no funcionan</span></label>
       </div>
 
       <div style="font-size:13px;font-weight:800;color:var(--text);margin-bottom:10px">Precio (USD)</div>
@@ -1080,7 +1080,7 @@ const COND_ES={
   'Very Good':'Muy bueno',
   'Good':'Bueno',
   'Acceptable':'Aceptable',
-  'For parts or not working':'⚠️ Para repuestos o no funciona'
+  'For parts or not working':'⚠️ Dañados, no funcionan'
 };
 
 // ═══ FILTRO DE MARCA: elimina cualquier mención a eBay/USA/Estados Unidos ═══
@@ -1133,7 +1133,7 @@ function mapProds(list){
 }
 
 // ═══ FILTROS (panel deslizante conectado a la API de eBay) ═══
-let activeFilters={sort:'',buying:'',condition:'',priceMin:'',priceMax:'',categoryQuery:'',categoryCond:''};
+let activeFilters={sort:'',buying:'',condition:'',priceMin:'',priceMax:'',categoryQuery:''};
 
 function openFilterPanel(){openOv('filterOv')}
 function setFilterSort(v){activeFilters.sort=v}
@@ -1141,11 +1141,20 @@ function setFilterBuying(v){activeFilters.buying=v}
 function setFilterCond(v){activeFilters.condition=v}
 function setFilterCategory(query,condTag){
   activeFilters.categoryQuery=query;
-  activeFilters.categoryCond=condTag; // referencia interna, no se usa como filtro de eBay
+  // "Dañados, no funcionan" no es una palabra de búsqueda confiable — usamos el filtro
+  // REAL de condición de eBay (conditionId 7000), igual que el filtro de Estado.
+  if(condTag==='parts'){
+    activeFilters.condition='PARTS';
+    document.querySelectorAll('#filterCondGroup input').forEach(i=>i.checked=(i.value==='PARTS'));
+  }else if(!condTag){
+    // Al elegir otra categoría (o "Todas"), no forzamos ninguna condición específica
+    activeFilters.condition='';
+    document.querySelectorAll('#filterCondGroup input[value=""]')[0].checked=true;
+  }
 }
 
 function resetFilters(){
-  activeFilters={sort:'',buying:'',condition:'',priceMin:'',priceMax:'',categoryQuery:'',categoryCond:''};
+  activeFilters={sort:'',buying:'',condition:'',priceMin:'',priceMax:'',categoryQuery:''};
   document.querySelectorAll('#filterSortGroup input[value=""]')[0].checked=true;
   document.querySelectorAll('#filterBuyingGroup input[value=""]')[0].checked=true;
   document.querySelectorAll('#filterCondGroup input[value=""]')[0].checked=true;
@@ -1157,8 +1166,10 @@ function applyFilters(){
   activeFilters.priceMin=$('fPriceMin').value.trim();
   activeFilters.priceMax=$('fPriceMax').value.trim();
   closeOv('filterOv');
-  // Si se eligió una categoría de repuestos, esa búsqueda reemplaza el término actual
-  const q=activeFilters.categoryQuery||curQuery;
+  // "Dañados, no funcionan" siempre busca sobre "laptop" (término neutro y amplio);
+  // lo que realmente filtra los resultados dañados es la condición PARTS (conditionId 7000),
+  // no la palabra de búsqueda — así no se mezclan resultados por coincidencia de texto.
+  const q=(activeFilters.condition==='PARTS')?'laptop':(activeFilters.categoryQuery||curQuery);
   loadProducts(q);
 }
 
@@ -1219,11 +1230,11 @@ async function loadNextPage(first){
       if(first)renderProds(allProds);else appendProds(allProds.slice(prevLen));
       $('rCount').textContent=allProds.length+(totalAvail>allProds.length?' de '+totalAvail:'');
     }else{
-      if(first){allProds=DEMO.filter(p=>!SOLD.includes(p.id));renderProds(allProds)}
+      if(first){allProds=[];renderProds(allProds)}
       endReached=true;
     }
   }catch(e){
-    if(first){allProds=DEMO.filter(p=>!SOLD.includes(p.id));renderProds(allProds)}
+    if(first){allProds=[];renderProds(allProds)}
     endReached=true;
   }
   loadingPage=false;
@@ -1235,15 +1246,6 @@ const _io=new IntersectionObserver(entries=>{
   if(entries[0].isIntersecting&&!loadingPage&&!endReached)loadNextPage(false);
 },{rootMargin:'800px'});
 setTimeout(()=>{const s=$('scrollSentinel');if(s)_io.observe(s)},500);
-
-const DEMO=[
-  {id:'d1',title:'Dell Latitude 5410 Core i5-10310U 8GB RAM 256GB SSD Windows 11 Pro',price:100,cond:'Reacondicionado',type:'buy',img:'https://images.unsplash.com/photo-1593642632559-0c6d3fc62b89?w=600',description:'Laptop empresarial Dell en excelente estado. Incluye cargador original.',specs:[{name:'Procesador',value:'Intel Core i5-10310U'},{name:'RAM',value:'8GB DDR4'},{name:'Almacenamiento',value:'256GB SSD'},{name:'Sistema Operativo',value:'Windows 11 Pro'},{name:'Pantalla',value:'14" FHD'},{name:'Marca',value:'Dell'}]},
-  {id:'d2',title:'HP EliteBook 840 G7 Core i7-10510U 16GB RAM 512GB SSD Touch FHD',price:185,cond:'Reacondicionado',type:'offer',img:'https://images.unsplash.com/photo-1588872657578-7efd1f1555ed?w=600',description:'HP EliteBook premium con pantalla táctil Full HD. Ideal para profesionales.',specs:[{name:'Procesador',value:'Intel Core i7-10510U'},{name:'RAM',value:'16GB DDR4'},{name:'Almacenamiento',value:'512GB SSD'},{name:'Pantalla',value:'14" FHD Touch'},{name:'Marca',value:'HP'}]},
-  {id:'d3',title:'Apple MacBook Air M1 2020 8GB RAM 256GB SSD Space Gray Retina',price:520,cond:'Reacondicionado',type:'offer',img:'https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=600',description:'MacBook Air con chip M1. Hasta 18 horas de batería.',specs:[{name:'Chip',value:'Apple M1'},{name:'RAM',value:'8GB Unificada'},{name:'Almacenamiento',value:'256GB SSD'},{name:'Pantalla',value:'13.3" Retina'},{name:'Marca',value:'Apple'}]},
-  {id:'d4',title:'ASUS ROG Strix G15 Ryzen 7 5800H RTX 3060 16GB 512GB 144Hz',price:780,cond:'Nuevo',type:'buy',img:'https://images.unsplash.com/photo-1603302576837-37561b2e2302?w=600',description:'Laptop gaming de alto rendimiento con pantalla 144Hz y GPU RTX 3060.',specs:[{name:'Procesador',value:'AMD Ryzen 7 5800H'},{name:'GPU',value:'NVIDIA RTX 3060 6GB'},{name:'RAM',value:'16GB DDR4'},{name:'Almacenamiento',value:'512GB SSD'},{name:'Pantalla',value:'15.6" FHD 144Hz'}]},
-  {id:'d5',title:'Lenovo ThinkPad T490 Core i5-8265U 8GB 256GB SSD FHD IPS',price:149,cond:'Reacondicionado',type:'buy',img:'https://images.unsplash.com/photo-1496181133206-80ce9b88a853?w=600',description:'ThinkPad confiable para profesionales. Diseño compacto y resistente.',specs:[{name:'Procesador',value:'Intel Core i5-8265U'},{name:'RAM',value:'8GB DDR4'},{name:'Almacenamiento',value:'256GB SSD'},{name:'Pantalla',value:'14" FHD IPS'},{name:'Marca',value:'Lenovo'}]},
-  {id:'d6',title:'Acer Aspire 5 Core i3-1215U 8GB 256GB SSD 15.6 FHD Windows 11',price:260,cond:'Nuevo',type:'buy',img:'https://images.unsplash.com/photo-1593642634315-48f5414c3ad9?w=600',description:'Laptop nueva con gran relación calidad-precio para uso diario.',specs:[{name:'Procesador',value:'Intel Core i3-1215U'},{name:'RAM',value:'8GB DDR4'},{name:'Almacenamiento',value:'256GB SSD'},{name:'Pantalla',value:'15.6" FHD'},{name:'Marca',value:'Acer'}]},
-];
 
 function renderSkel(){$('grid').innerHTML='<div class="skel-g">'+Array(8).fill('<div class="skel-c"><div class="skel-i"></div><div class="skel-b"><div class="skel-l p"></div><div class="skel-l"></div><div class="skel-l s"></div></div></div>').join('')+'</div>'}
 
@@ -1305,7 +1307,7 @@ function doSort(v){
   if(v==='desc')s.sort((a,b)=>calcTotal(b.price,'free')-calcTotal(a.price,'free'));
   renderProds(s);
 }
-function findProd(id){return allProds.find(p=>String(p.id)===String(id))||DEMO.find(p=>String(p.id)===String(id))}
+function findProd(id){return allProds.find(p=>String(p.id)===String(id))}
 
 // PRODUCT DETAIL
 function addDays(d,n){const x=new Date(d);x.setDate(x.getDate()+n);return x}
