@@ -109,11 +109,34 @@ const SPEC_NAMES = {
   'GPU': 'GPU', 'Graphics Processing Type': 'Tipo de gráficos',
   'Maximum Resolution': 'Resolución máxima', 'Condition': 'Estado',
   'Connectivity': 'Conectividad', 'Item Height': 'Altura', 'Item Width': 'Ancho',
+  'Item Length': 'Longitud', 'Item Weight': 'Peso',
   'Release Year': 'Año de lanzamiento', 'Product Line': 'Línea de producto',
   'Manufacturer Warranty': 'Garantía del fabricante', 'Unit Type': 'Tipo de unidad',
   'Country/Region of Manufacture': 'País de fabricación', 'MPN': 'Número de parte',
-  'Battery Life': 'Duración de batería', 'Webcam': 'Cámara web', 'Touchscreen': 'Pantalla táctil'
+  'Battery Life': 'Duración de batería', 'Webcam': 'Cámara web', 'Touchscreen': 'Pantalla táctil',
+  // ── Piezas: baterías, tarjetas madre, teclados ──
+  'Compatible Brand': 'Marca compatible', 'Compatible Model': 'Modelo compatible',
+  'Compatible Product Line': 'Línea de producto compatible',
+  'Battery Type': 'Tipo de batería', 'Battery Capacity': 'Capacidad de batería',
+  'Voltage': 'Voltaje', 'Capacity': 'Capacidad', 'Cell Type': 'Tipo de celda',
+  'California Prop 65 Warning': 'Advertencia California Prop 65',
+  'Interface': 'Interfaz', 'Chipset': 'Chipset', 'Socket Type': 'Tipo de zócalo',
+  'Form Factor': 'Factor de forma', 'Compatible CPU Brand': 'Marca de CPU compatible',
+  'Keyboard Layout': 'Distribución de teclado', 'Backlit': 'Retroiluminado',
+  'Language': 'Idioma', 'Number of Keys': 'Número de teclas',
+  'Custom Bundle': 'Paquete personalizado', 'Material': 'Material',
+  'Compatible Screen Size': 'Tamaño de pantalla compatible',
+  'Non-Domestic Product': 'Producto no doméstico'
 };
+
+// Traduce valores de texto libre (no números/códigos) usando el mismo traductor gratuito.
+// Se salta valores que son solo números, medidas o códigos, para no romperlos ni gastar tiempo.
+function shouldTranslateValue(v) {
+  if (!v || typeof v !== 'string') return false;
+  if (/^[\d.,\s]+$/.test(v)) return false; // solo números
+  if (/^\d+(\.\d+)?\s*(IN|CM|MM|V|W|WH|MAH|GB|TB|MHZ|GHZ|OZ|LB|KG)$/i.test(v.trim())) return false; // medida con unidad
+  return true;
+}
 
 const CONDITIONS = {
   'New': 'Nuevo', 'New with defects': 'Nuevo con defectos',
@@ -193,12 +216,13 @@ module.exports = async (req, res) => {
       descEn ? translate(descEn, 1800) : Promise.resolve('')
     ]);
 
-    // 6. Traducir estado y nombres de specs con diccionario
+    // 6. Traducir estado, nombres de specs (diccionario) y VALORES de texto libre (traductor)
     const conditionEs = CONDITIONS[item.condition] || item.condition || 'Usado';
-    const specs = (item.localizedAspects || []).map(a => ({
+    const rawSpecs = (item.localizedAspects || []).slice(0, 20); // límite razonable de specs a traducir
+    const specs = await Promise.all(rawSpecs.map(async a => ({
       name: SPEC_NAMES[a.name] || a.name,
-      value: a.value
-    }));
+      value: shouldTranslateValue(a.value) ? await translate(a.value, 200) : a.value
+    })));
 
     // Imagen principal + todas las imágenes adicionales del producto (para carrusel)
     const mainImage = (item.image && item.image.imageUrl) || '';
