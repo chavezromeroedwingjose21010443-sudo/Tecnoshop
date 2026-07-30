@@ -66,7 +66,7 @@ module.exports = async (req, res) => {
   if (!ID || !SECRET) return res.status(500).json({ success: false, error: 'Faltan las credenciales de PayPal en el servidor (variables de entorno no configuradas)' });
 
   try {
-    const { total } = req.body || {};
+    const { total, savedPaymentTokenId } = req.body || {};
     const amount = parseFloat(total);
     if (!amount || amount <= 0) return res.status(400).json({ success: false, error: 'Monto inválido' });
 
@@ -75,13 +75,30 @@ module.exports = async (req, res) => {
       return res.status(500).json({ success: false, error: 'PayPal rechazó la autenticación', detail: tokenError });
     }
 
-    const orderBody = JSON.stringify({
+    const orderPayload = {
       intent: 'CAPTURE',
       purchase_units: [{
         amount: { currency_code: 'USD', value: amount.toFixed(2) },
         description: 'Pedido TecnoShop'
       }]
-    });
+    };
+
+    // Si el cliente tiene un método de pago guardado y lo eligió, la orden se paga
+    // directamente con ese token — el cliente solo confirma (Face ID / huella / código),
+    // sin volver a mostrar el flujo completo de PayPal.
+    if (savedPaymentTokenId) {
+      orderPayload.payment_source = {
+        paypal: {
+          vault_id: savedPaymentTokenId,
+          experience_context: {
+            return_url: 'https://tecnoshop-theta.vercel.app',
+            cancel_url: 'https://tecnoshop-theta.vercel.app'
+          }
+        }
+      };
+    }
+
+    const orderBody = JSON.stringify(orderPayload);
 
     const { status: orderStatus, data: order, raw: orderRaw } = await request({
       hostname: getHost(),
@@ -99,7 +116,11 @@ module.exports = async (req, res) => {
       return res.status(500).json({ success: false, error: 'PayPal no pudo crear la orden', detail: typeof reason === 'string' ? reason : JSON.stringify(reason) });
     }
 
-    return res.status(200).json({ success: true, orderId: order.id });
+    // Si se pagó con token guardado, PayPal puede completar el pago de inmediato (status COMPLETED)
+    // sin necesitar el paso de aprobación/captura por separado.
+    const alreadyCompleted = order.status === 'COMPLETED';
+
+    return res.status(200).json({ success: true, orderId: order.id, alreadyCompleted });
   } catch (e) {
     return res.status(500).json({ success: false, error: 'Fallo al crear orden', detail: String(e) });
   }
