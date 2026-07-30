@@ -7,7 +7,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
 <script>emailjs.init('_81stFKr1MC_2-4-a');</script>
-<script src="https://www.paypal.com/sdk/js?client-id=AUpMXVVoftSHTeKBSRq_Jj8P2ueG7Qn2pzVdq3mKTo29zw61vApURb7N53kzzaNpTb5EAv-uWB99rhVk&currency=USD&intent=capture"></script>
+<script src="https://www.paypal.com/sdk/js?client-id=AUpMXVVoftSHTeKBSRq_Jj8P2ueG7Qn2pzVdq3mKTo29zw61vApURb7N53kzzaNpTb5EAv-uWB99rhVk&currency=USD&intent=capture&locale=es_NI"></script>
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged, sendPasswordResetEmail, updatePassword, EmailAuthProvider, reauthenticateWithCredential } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
@@ -1947,7 +1947,10 @@ async function trySavePaypalMethod(){
       body:JSON.stringify({action:'create-setup-token',customerId:USER.uid})
     });
     const setupData=await setupRes.json();
-    if(!setupData.success||!setupData.setupTokenId)return; // falla silenciosa, no molesta al cliente
+    if(!setupData.success||!setupData.setupTokenId){
+      toast('⚠️ No se pudo preparar el guardado del método de pago: '+(setupData.error||'')+' '+(setupData.detail||''),8000);
+      return;
+    }
     const payRes=await fetch('/api/paypal-setup-token',{
       method:'POST',
       headers:{'Content-Type':'application/json'},
@@ -1958,8 +1961,12 @@ async function trySavePaypalMethod(){
       USER.paypalTokenId=payData.paymentTokenId;
       await persistUser();
       toast('💳 Método de pago guardado para tus próximas compras');
+    }else{
+      toast('⚠️ No se pudo guardar el método de pago: '+(payData.error||'')+' '+(payData.detail||''),8000);
     }
-  }catch(e){/* si falla, simplemente no se guarda esta vez — no afecta el pedido */}
+  }catch(e){
+    toast('⚠️ Error al guardar método de pago: '+(e?.message||e),8000);
+  }
 }
 
 function renderPaypalButton(){
