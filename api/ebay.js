@@ -106,8 +106,11 @@ function detectCategoryAndPrice(title, cost, condition) {
   // Detecta si una palabra de pieza va precedida de una negación (NO/SIN/WITHOUT/MISSING),
   // lo que significa que el producto NO INCLUYE esa pieza (ej: laptop "Sin batería"),
   // en vez de ser la pieza misma a la venta. Evita clasificar mal esos casos.
+  // Cubre también listas separadas por "/" o "," después de la negación,
+  // ej: "No HDD/OS/Battery" o "Sin RAM, SSD, Batería".
   function isNegated(word) {
-    const re = new RegExp('(NO|SIN|WITHOUT|MISSING|N/A|NOT\\s+INCLUDED)\\s+' + word, 'i');
+    const re = new RegExp('(NO|SIN|WITHOUT|MISSING|N/A|NOT\\s+INCLUDED)\\s+' +
+      '(?:[A-Z0-9]+[\\s/,]+)*(' + word + ')', 'i');
     return re.test(t);
   }
 
