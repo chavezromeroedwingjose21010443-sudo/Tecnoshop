@@ -65,6 +65,36 @@ function translateTitle(text) {
   });
 }
 
+// Traduce el TÉRMINO DE BÚSQUEDA que escribe el cliente, de español a inglés,
+// para que coincida con los títulos en inglés que usa eBay. Si el cliente ya
+// escribe en inglés, la traducción resulta casi idéntica y no afecta la búsqueda.
+function translateQuery(text) {
+  return new Promise((resolve) => {
+    if (!text || !text.trim()) return resolve(text);
+    const q = encodeURIComponent(text.slice(0, 150));
+    const path = '/translate_a/single?client=gtx&sl=es&tl=en&dt=t&q=' + q;
+    const req = https.request({
+      hostname: 'translate.googleapis.com',
+      path,
+      method: 'GET',
+      headers: { 'User-Agent': 'Mozilla/5.0' }
+    }, (res) => {
+      let d = '';
+      res.on('data', c => d += c);
+      res.on('end', () => {
+        try {
+          const parsed = JSON.parse(d);
+          const translated = (parsed[0] || []).map(seg => seg[0]).join('');
+          resolve(translated || text);
+        } catch (e) { resolve(text); }
+      });
+    });
+    req.on('error', () => resolve(text));
+    req.setTimeout(2500, () => { req.destroy(); resolve(text); }); // no bloquear la búsqueda si tarda
+    req.end();
+  });
+}
+
 // ═══ MOTOR DE PRECIOS POR CATEGORÍA ═══
 // Detecta el tipo de producto por palabras clave del título y devuelve
 // el precio final de venta ya calculado según las reglas de negocio de TecnoShop.
@@ -150,19 +180,22 @@ module.exports = async (req, res) => {
   const priceMax = req.query.priceMax || '';
 
   try {
-    // 1. Token OAuth
+    // 1. Token OAuth + traducción del término de búsqueda (en paralelo, para no perder tiempo)
     const creds = Buffer.from(ID + ':' + SECRET).toString('base64');
     const body = 'grant_type=client_credentials&scope=https://api.ebay.com/oauth/api_scope';
-    const token = await request({
-      hostname: 'api.ebay.com',
-      path: '/identity/v1/oauth2/token',
-      method: 'POST',
-      headers: {
-        'Authorization': 'Basic ' + creds,
-        'Content-Type': 'application/x-www-form-urlencoded',
-        'Content-Length': Buffer.byteLength(body)
-      }
-    }, body);
+    const [token, translatedQ] = await Promise.all([
+      request({
+        hostname: 'api.ebay.com',
+        path: '/identity/v1/oauth2/token',
+        method: 'POST',
+        headers: {
+          'Authorization': 'Basic ' + creds,
+          'Content-Type': 'application/x-www-form-urlencoded',
+          'Content-Length': Buffer.byteLength(body)
+        }
+      }, body),
+      translateQuery(q)
+    ]);
 
     if (!token.access_token) return res.status(500).json({ success: false, error: 'Token failed' });
 
@@ -180,7 +213,9 @@ module.exports = async (req, res) => {
       filterParts.push('priceCurrency:USD');
     }
 
-    let searchPath = '/buy/browse/v1/item_summary/search?q=' + encodeURIComponent(q) +
+    // Se busca con el término TRADUCIDO al inglés (los títulos de eBay están en inglés);
+    // si la traducción falla, translateQuery ya devuelve el texto original como respaldo.
+    let searchPath = '/buy/browse/v1/item_summary/search?q=' + encodeURIComponent(translatedQ) +
       '&limit=' + limit + '&offset=' + offset +
       '&filter=' + encodeURIComponent(filterParts.join(','));
     if (sort) searchPath += '&sort=' + encodeURIComponent(sort);
