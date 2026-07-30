@@ -1553,7 +1553,7 @@ function openProd(id){
       </div>
     </div>
     <div class="breakdown">
-      <div class="brow"><span class="bl">Precio del producto</span><span class="bv">${fmt(dispPrice(curProd.price))}</span></div>
+      <div class="brow"><span class="bl">Precio del producto</span><span class="bv">${fmt(calcTotalProd(curProd,'free')-SHIP.free)}</span></div>
       <div class="brow"><span class="bl" id="shipLbl">Envío Gratis</span><span class="bv" id="shipAmt">Gratis</span></div>
       <div class="bdiv"></div>
       <div class="btot"><span class="btot-l">Total</span><span class="btot-v" id="brkTotal">${fmt(total)}</span></div>
