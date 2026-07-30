@@ -7,7 +7,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
 <script>emailjs.init('_81stFKr1MC_2-4-a');</script>
-<script src="https://www.paypal.com/sdk/js?client-id=AUpMXVVoftSHTeKBSRq_Jj8P2ueG7Qn2pzVdq3mKTo29zw61vApURb7N53kzzaNpTb5EAv-uWB99rhVk&currency=USD&intent=capture&locale=es_NI"></script>
+<script src="https://www.paypal.com/sdk/js?client-id=AcFIard9lHj9fQfNR1eNny3FmP4mcJsylTeDprtR8mtkTHASbXb4p6lnG_NiIGqe2gbK24Lk7HyBc9p5&currency=USD&intent=capture&locale=es_NI"></script>
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged, sendPasswordResetEmail, updatePassword, EmailAuthProvider, reauthenticateWithCredential } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
@@ -1938,6 +1938,8 @@ function openCheckout(){
 // ═══ BOTÓN REAL DE PAYPAL (cobro automático) ═══
 // Intenta guardar el método de pago de PayPal después de una compra exitosa.
 // Es en segundo plano y nunca bloquea ni afecta el pedido ya confirmado si falla.
+// Intenta guardar el método de pago de PayPal después de una compra exitosa.
+// Es en segundo plano y nunca bloquea ni afecta el pedido ya confirmado si falla.
 async function trySavePaypalMethod(){
   if(!USER?.uid)return;
   try{
@@ -2080,7 +2082,6 @@ async function payWithSavedMethod(){
       toast('✅ Pago confirmado con PayPal');
       await placeOrder({orderId:data.orderId,status:'COMPLETED',captureId:data.orderId});
     }else{
-      // Algunos pagos con token guardado igual requieren captura explícita
       const capRes=await fetch('/api/paypal-capture-order',{
         method:'POST',
         headers:{'Content-Type':'application/json'},
@@ -2100,11 +2101,10 @@ async function payWithSavedMethod(){
 }
 
 function useOtherPaymentMethod(){
-  // Oculta temporalmente el token guardado para esta sesión de checkout y muestra el flujo normal
   const savedToken=USER.paypalTokenId;
   USER.paypalTokenId=null;
   renderPaypalButton();
-  USER.paypalTokenId=savedToken; // se conserva en el perfil, solo se ignora para este checkout
+  USER.paypalTokenId=savedToken;
 }
 
 async function placeOrder(paypalCapture){
@@ -2120,7 +2120,7 @@ async function placeOrder(paypalCapture){
   // Si el cliente pagó con PayPal y marcó "Guardar este método de pago", se registra
   // en su perfil (solo el ID del token, nunca datos reales de la cuenta/tarjeta).
   if(paypalCapture&&$('savePaypalOpt')?.checked&&!USER.paypalTokenId){
-    trySavePaypalMethod(paypalCapture.orderId);
+    trySavePaypalMethod();
   }
 
   // Validación del comprobante de transferencia
