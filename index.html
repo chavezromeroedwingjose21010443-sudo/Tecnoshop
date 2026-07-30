@@ -717,7 +717,7 @@ const calcTotalProd=(prod,ship)=>{
 const LS={g:k=>{try{return JSON.parse(localStorage.getItem(k))}catch{return null}},s:(k,v)=>localStorage.setItem(k,JSON.stringify(v))};
 
 // STATE
-let darkMode=false,cart=[],curProd=null,selShip='priority',allProds=[],curOfferProd=null,offerShip='free';
+let darkMode=false,cart=[],curProd=null,selShip='priority',allProds=[],curOfferProd=null,offerShip='free',curQty=1;
 let USER=null,ORDERS=[],FAVS=[],FAV_PRODS={};
 let SOLD=LS.g('ts_sold')||[]; // artículos ya vendidos (unidad única)
 
@@ -1532,8 +1532,22 @@ function openProd(id){
 
   const total=calcTotalProd(curProd,'free');
   const dr=deliveryRanges(curProd.maxDelivery);
+  curQty=1; // se reinicia cada vez que se abre un producto
+
+  const isPieceCategory=['battery','motherboard','keyboard'].includes(curProd.category);
+  const qtySelectorHtml=isPieceCategory?`
+    <div style="background:var(--gray3);border-radius:var(--r8);padding:12px 14px;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between">
+      <span style="font-size:13px;font-weight:700;color:var(--text)">Cantidad</span>
+      <div style="display:flex;align-items:center;gap:12px">
+        <button onclick="changeQty(-1)" style="width:30px;height:30px;border-radius:50%;border:1.5px solid var(--border);background:var(--white);font-size:16px;font-weight:700;cursor:pointer">−</button>
+        <span id="qtyVal" style="font-size:15px;font-weight:800;min-width:20px;text-align:center">1</span>
+        <button onclick="changeQty(1)" style="width:30px;height:30px;border-radius:50%;border:1.5px solid var(--border);background:var(--white);font-size:16px;font-weight:700;cursor:pointer">+</button>
+      </div>
+    </div>
+  `:'';
 
   $('pdBuyBlock').innerHTML=`
+    ${qtySelectorHtml}
     <div style="background:var(--gray3);border-radius:var(--r8);padding:14px;margin-bottom:14px">
       <div style="font-size:26px;font-weight:800;color:var(--text)" id="pTotal">${fmt(total)}</div>
       <div style="font-size:11px;color:var(--text3);margin-top:2px" id="pNote">Envío Gratis incluido</div>
@@ -1590,19 +1604,34 @@ function selectShip(type){
   selShip=type;
   document.querySelectorAll('.ship-opt').forEach(o=>o.classList.remove('on'));
   $(type==='priority'?'sOpt1':'sOpt2').classList.add('on');
-  const total=calcTotalProd(curProd,type);
-  const pt=$('pTotal');if(pt)pt.textContent=fmt(total);
-  const bt=$('brkTotal');if(bt)bt.textContent=fmt(total);
+  updateProdTotal();
   const sa=$('shipAmt');if(sa)sa.textContent=type==='priority'?fmt(SHIP.priority):'Gratis';
   const sl=$('shipLbl');if(sl)sl.textContent=type==='priority'?'Envío Prioritario':'Envío Gratis';
   const pn=$('pNote');if(pn)pn.textContent=type==='priority'?'Envío Prioritario incluido':'Envío Gratis incluido';
 }
 
+// Cambia la cantidad de piezas (baterías, tarjetas madre, teclados) y recalcula el total:
+// (precio unitario × cantidad) + envío (el envío es un costo fijo, no por unidad)
+function changeQty(delta){
+  curQty=Math.max(1,Math.min(20,curQty+delta));
+  const qv=$('qtyVal');if(qv)qv.textContent=curQty;
+  updateProdTotal();
+}
+
+function updateProdTotal(){
+  const unitPrice=calcTotalProd(curProd,selShip)-(SHIP[selShip]||0); // precio del producto sin envío
+  const total=unitPrice*curQty+(SHIP[selShip]||0);
+  const pt=$('pTotal');if(pt)pt.textContent=fmt(total);
+  const bt=$('brkTotal');if(bt)bt.textContent=fmt(total);
+  const bv=document.querySelector('.breakdown .brow .bv');if(bv)bv.textContent=fmt(unitPrice*curQty);
+}
+
 function addCart(){
   if(!curProd)return;
-  if(cart.some(i=>String(i.prod.id)===String(curProd.id))){toast('⚠️ Este artículo ya está en tu carrito (unidad única)');return}
-  const total=calcTotalProd(curProd,selShip);
-  cart.push({uid:Date.now(),prod:curProd,ship:selShip,total});
+  if(cart.some(i=>String(i.prod.id)===String(curProd.id))){toast('⚠️ Este artículo ya está en tu carrito. Ajusta la cantidad desde el carrito.');return}
+  const unitPrice=calcTotalProd(curProd,selShip)-(SHIP[selShip]||0);
+  const total=unitPrice*curQty+(SHIP[selShip]||0);
+  cart.push({uid:Date.now(),prod:curProd,ship:selShip,qty:curQty,total});
   updBadge();closeOv('prodOv');toast('🛒 Agregado al carrito');
 }
 
@@ -1788,7 +1817,7 @@ function renderCart(){
   const total=cart.reduce((s,i)=>s+i.total,0);
   cl.innerHTML=cart.map(i=>`<div class="ci">
     <img src="${i.prod.img}" onerror="this.src='https://images.unsplash.com/photo-1496181133206-80ce9b88a853?w=600'">
-    <div class="ci-info"><div class="ci-name">${i.prod.title}</div><div class="ci-ship">${i.ship==='priority'?'⚡ Envío Prioritario':'🎁 Envío Gratis'}</div></div>
+    <div class="ci-info"><div class="ci-name">${i.prod.title}</div><div class="ci-ship">${i.ship==='priority'?'⚡ Envío Prioritario':'🎁 Envío Gratis'}${i.qty>1?' · Cantidad: '+i.qty:''}</div></div>
     <div class="ci-r"><div class="ci-price">${fmt(i.total)}</div><button class="ci-del" onclick="removeCart(${i.uid})"><svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a1 1 0 011-1h4a1 1 0 011 1v2"/></svg></button></div>
   </div>`).join('');
   cf.innerHTML=`<div class="cart-foot"><div class="ct-row"><span class="ct-lbl">Total</span><span class="ct-val">${fmt(total)}</span></div><button class="btn-ck" onclick="openCheckout()">Proceder al pago →</button></div>`;
