@@ -2479,6 +2479,7 @@ async function placeOrder(paypalCapture){
     (needsManualVerification?'awaiting_verification':
     (payMethod==='credit'?'credit_active':(paypalCapture?'confirmed':'pending')));
   const order={id:ref,uid:USER?.uid||'',date:new Date().toISOString(),items:[...cart],total,payMethod,status:orderStatus,
+    country:getUserCountry(),
     transferData,
     creditPlan,
     paypalData:paypalCapture?{orderId:paypalCapture.orderId,captureId:paypalCapture.captureId,status:paypalCapture.status}:null,
