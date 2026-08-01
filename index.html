@@ -354,7 +354,7 @@ nav{background:var(--white);border-bottom:1px solid var(--border2);padding:10px 
 .ord-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:7px}
 .ord-id{font-family:monospace;font-weight:700;color:var(--blue);font-size:12px}
 .ord-st{font-size:10px;font-weight:700;padding:2px 8px;border-radius:var(--pill);color:white}
-.st-pending{background:var(--orange)}.st-confirmed{background:var(--blue)}.st-processing{background:#7c3aed}.st-shipped{background:#0891b2}.st-delivered{background:var(--green)}.st-cancelled{background:var(--red)}.st-credit_active{background:#7c3aed}.st-awaiting_verification{background:#d97706}
+.st-pending{background:var(--orange)}.st-confirmed{background:var(--blue)}.st-processing{background:#7c3aed}.st-shipped{background:#0891b2}.st-delivered{background:var(--green)}.st-cancelled{background:var(--red)}.st-awaiting_verification{background:#d97706}
 
 /* TOAST */
 .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(40px);background:#111820;color:white;padding:10px 20px;border-radius:var(--pill);font-size:13px;font-weight:600;box-shadow:var(--sh2);opacity:0;transition:all .28s cubic-bezier(.34,1.4,.64,1);z-index:9999;white-space:nowrap;pointer-events:none}
@@ -797,25 +797,6 @@ const calcTotalProd=(prod,ship)=>{
   return calcTotalProdCountry(prod,ship,getUserCountry());
 };
 
-// ═══ PLAN DE CRÉDITO (3 pagos) ═══
-const CREDIT_MIN_AMOUNT=150; // monto mínimo del pedido para ser elegible
-const CREDIT_SPLIT=[0.50,0.25,0.25]; // 50% / 25% / 25%
-const CREDIT_INSTALLMENT_DAYS=15; // días entre el pago 2 y el pago 3
-
-function isCreditEligible(total){
-  return total>=CREDIT_MIN_AMOUNT;
-}
-
-// Calcula los 3 montos exactos de las cuotas, asegurando que sumen exactamente el total
-// (ajusta centavos de redondeo en la última cuota para evitar diferencias de $0.01).
-function calcCreditInstallments(total){
-  const amounts=CREDIT_SPLIT.map(pct=>Math.round(total*pct*100)/100);
-  const sum=amounts[0]+amounts[1]+amounts[2];
-  const diff=Math.round((total-sum)*100)/100;
-  amounts[2]=Math.round((amounts[2]+diff)*100)/100; // el ajuste de centavos va en la 3ra cuota
-  return amounts;
-}
-
 const LS={g:k=>{try{return JSON.parse(localStorage.getItem(k))}catch{return null}},s:(k,v)=>localStorage.setItem(k,JSON.stringify(v))};
 
 // STATE
@@ -1129,7 +1110,7 @@ function openOrders(){
   if(!ORDERS.length){
     el.innerHTML='<div style="text-align:center;padding:50px;color:var(--text3)"><p style="font-size:14px;font-weight:600">No tienes pedidos aún</p></div>';
   }else{
-    const stLbl={pending:'Pendiente',confirmed:'Confirmado',processing:'Procesando',shipped:'Enviado',delivered:'Entregado',cancelled:'Cancelado',credit_active:'Plan de crédito activo',awaiting_verification:'Verificando pago'};
+    const stLbl={pending:'Pendiente',confirmed:'Confirmado',processing:'Procesando',shipped:'Enviado',delivered:'Entregado',cancelled:'Cancelado',awaiting_verification:'Verificando pago'};
     el.innerHTML=ORDERS.map((o,idx)=>{
       const firstItem=(o.items||[])[0];
       const thumb=firstItem?.prod?.img||'https://images.unsplash.com/photo-1496181133206-80ce9b88a853?w=200';
@@ -1149,85 +1130,10 @@ function openOrders(){
   openOv('ordersOv');
 }
 
-// Abre el flujo de pago de la siguiente cuota pendiente del plan de crédito
-let curInstallmentOrder=null,curInstallmentN=null;
-function payNextInstallment(orderId,n){
-  const o=ORDERS.find(x=>x.id===orderId);
-  if(!o||!o.creditPlan)return;
-  const inst=o.creditPlan.installments.find(i=>i.n===n);
-  if(!inst)return;
-  curInstallmentOrder=orderId;curInstallmentN=n;
-  transferImgBase64=null;
-  $('orderDetailTitle').textContent='Pago '+n+' de 3';
-  $('orderDetailBody').innerHTML=`
-    <div style="max-width:640px;margin:0 auto;padding:4px">
-      <div style="background:var(--blue-l);border:1px solid var(--blue);border-radius:var(--r8);padding:14px;margin-bottom:16px;text-align:center">
-        <div style="font-size:12px;color:var(--blue);font-weight:700">Monto de esta cuota</div>
-        <div style="font-size:28px;font-weight:800;color:var(--text)">${fmt(inst.amount)}</div>
-      </div>
-      <div class="cf"><label>Monto total debitado (USD)</label><input type="number" id="ckTransferAmount" step="0.01" placeholder="${inst.amount.toFixed(2)}"></div>
-      <div class="cf"><label>Número de autorización / referencia</label><input id="ckTransferAuth" placeholder="Ej: 0004821193"></div>
-      <div class="cf">
-        <label>Imagen del comprobante</label>
-        <input type="file" id="ckTransferImg" accept="image/*" onchange="previewTransferImg(this)" style="width:100%;border:1.5px solid var(--border);border-radius:var(--r4);padding:8px;font-size:13px">
-        <div id="transferImgPreview" style="margin-top:8px"></div>
-      </div>
-      <div class="msg msg-e" id="transferErr"></div>
-      <button class="btn-place" onclick="confirmInstallmentPayment()">Confirmar pago de cuota</button>
-      <button class="abtn" style="background:var(--gray3);color:var(--text);margin-top:8px" onclick="closeOv('orderDetailOv');openOrders()">Cancelar</button>
-    </div>
-  `;
-  openOv('orderDetailOv');
-}
-
-async function confirmInstallmentPayment(){
-  const o=ORDERS.find(x=>x.id===curInstallmentOrder);
-  if(!o||!o.creditPlan)return;
-  const inst=o.creditPlan.installments.find(i=>i.n===curInstallmentN);
-  if(!inst)return;
-
-  const amount=parseFloat($('ckTransferAmount')?.value);
-  const auth=$('ckTransferAuth')?.value.trim();
-  const err=$('transferErr');
-  err.classList.remove('show');
-  if(!amount||amount<=0){err.textContent='Ingresa el monto depositado';err.classList.add('show');return}
-  if(!auth){err.textContent='Ingresa el número de autorización';err.classList.add('show');return}
-  if(!transferImgBase64){err.textContent='Sube la imagen del comprobante';err.classList.add('show');return}
-
-  const diff=Math.abs(amount-inst.amount);
-  if(diff>0.01){
-    err.textContent='El monto no coincide con la cuota ('+fmt(inst.amount)+'). Verifica e intenta de nuevo.';
-    err.classList.add('show');
-    return;
-  }
-
-  inst.status='paid';
-  inst.paidAt=new Date().toISOString();
-  inst.transferData={amount,auth,image:transferImgBase64};
-
-  // Si queda una cuota pendiente, se le asigna fecha límite ahora que esta se pagó
-  const nextInst=o.creditPlan.installments.find(i=>i.n===curInstallmentN+1);
-  if(nextInst&&curInstallmentN===2){
-    const DAY=24*60*60*1000;
-    nextInst.dueDate=new Date(Date.now()+CREDIT_INSTALLMENT_DAYS*DAY).toISOString();
-  }
-
-  const allPaid=o.creditPlan.installments.every(i=>i.status==='paid');
-  if(allPaid)o.status='confirmed';
-
-  try{
-    await window._fb.setDoc(window._fb.doc(window._fb.db,'orders',o.id),o);
-  }catch(e){toast('⚠️ No se pudo sincronizar el pago con la nube');}
-
-  toast('✅ Pago registrado correctamente');
-  closeOv('orderDetailOv');
-  openOrders();
-}
-
 function openOrderDetail(idx){
   const o=ORDERS[idx];
   if(!o)return;
-  const stLbl={pending:'Pendiente',confirmed:'Confirmado',processing:'Procesando',shipped:'Enviado',delivered:'Entregado',cancelled:'Cancelado',credit_active:'Plan de crédito activo',awaiting_verification:'Verificando pago'};
+  const stLbl={pending:'Pendiente',confirmed:'Confirmado',processing:'Procesando',shipped:'Enviado',delivered:'Entregado',cancelled:'Cancelado',awaiting_verification:'Verificando pago'};
   const stSteps=['pending','confirmed','processing','shipped','delivered'];
   const curStepIdx=stSteps.indexOf(o.status||'pending');
   $('orderDetailTitle').textContent='Pedido '+o.id;
@@ -1249,24 +1155,6 @@ function openOrderDetail(idx){
         </div>
       `).join('')}
     </div>`:''}
-    ${o.creditPlan?`
-    <div style="font-size:12px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.4px;margin-bottom:12px">Plan de pago — 3 cuotas</div>
-    ${o.creditPlan.installments.map(inst=>{
-      const isPaid=inst.status==='paid';
-      const isNext=!isPaid&&o.creditPlan.installments.filter(x=>x.status==='paid').length===inst.n-1;
-      return `
-      <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 14px;background:${isPaid?'#f0fdf4':(isNext?'var(--blue-l)':'var(--gray3))')};border-radius:var(--r8);margin-bottom:8px">
-        <div>
-          <div style="font-size:13px;font-weight:700;color:var(--text)">Pago ${inst.n} de 3 ${isPaid?'✅':''}</div>
-          <div style="font-size:11px;color:var(--text3)">${inst.note||(isPaid?'Pagado':'')}${inst.dueDate?' · Vence: '+new Date(inst.dueDate).toLocaleDateString('es-NI'):''}</div>
-        </div>
-        <div style="text-align:right">
-          <div style="font-size:14px;font-weight:800;color:var(--text)">${fmt(inst.amount)}</div>
-          ${isNext?`<button onclick="closeOv('orderDetailOv');payNextInstallment('${o.id}',${inst.n})" style="background:var(--blue);color:white;border:none;border-radius:var(--pill);padding:5px 12px;font-size:11px;font-weight:700;margin-top:4px;cursor:pointer">Pagar ahora</button>`:''}
-        </div>
-      </div>`;
-    }).join('')}
-    `:''}
     <div style="font-size:12px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.4px;margin-bottom:12px">Productos</div>
     ${(o.items||[]).map(i=>{
       const pid=i.prod?.id;
@@ -1520,7 +1408,7 @@ function cardHTML(p,i){
       <div>${badge}${catBadge}</div>
       <div class="card-name">${p.title}</div>
       <div class="card-cond">${p.cond}</div>
-      <div class="card-ship">🚚 Entrega en Managua, León y Chinandega</div>
+      <div class="card-ship">🚚 Entrega en ${getCities().join(', ').replace(/, ([^,]*)$/,' y $1')}</div>
       <div class="card-acts">
         <button class="btn-main" onclick="event.stopPropagation();buyNow('${p.id}')">Comprar ahora</button>
       </div>
@@ -2136,7 +2024,6 @@ function updateCkAddrPreview(){
 function toggleTransferProof(){
   const payMethod=document.querySelector('input[name="pay"]:checked')?.value;
   const isTransfer=payMethod==='transfer';
-  const isCredit=payMethod==='credit';
   const isWhatsapp=payMethod==='whatsapp';
   const block=$('transferProofBlock');
   if(block)block.style.display=isTransfer?'block':'none';
@@ -2144,14 +2031,9 @@ function toggleTransferProof(){
   if(whatsappBlock)whatsappBlock.style.display=isWhatsapp?'block':'none';
   const transferBtn=$('transferConfirmBtn');
   const paypalWrap=$('paypalButtonWrap');
-  const creditBlock=$('creditPlanBlock');
   if(transferBtn){
-    transferBtn.style.display=(isTransfer||isCredit||isWhatsapp)?'block':'none';
-    if(isCredit){
-      const total=cart.reduce((s,i)=>s+i.total,0);
-      const firstPay=calcCreditInstallments(total)[0];
-      transferBtn.textContent='Confirmar pedido · Pagar 1er cuota '+fmt(firstPay);
-    }else if(isTransfer){
+    transferBtn.style.display=(isTransfer||isWhatsapp)?'block':'none';
+    if(isTransfer){
       const total=cart.reduce((s,i)=>s+i.total,0);
       transferBtn.textContent='Confirmar pedido · '+fmt(total);
     }else if(isWhatsapp){
@@ -2159,32 +2041,13 @@ function toggleTransferProof(){
       transferBtn.textContent='Confirmar y continuar por WhatsApp · '+fmt(total);
     }
   }
-  if(creditBlock){
-    creditBlock.style.display=isCredit?'block':'none';
-    if(isCredit)renderCreditInstallmentsPreview();
-  }
   if(paypalWrap){
-    if(isTransfer||isCredit||isWhatsapp){
+    if(isTransfer||isWhatsapp){
       paypalWrap.innerHTML='';
     }else{
       renderPaypalButton();
     }
   }
-}
-
-// Muestra el desglose de las 3 cuotas antes de confirmar el pedido
-function renderCreditInstallmentsPreview(){
-  const total=cart.reduce((s,i)=>s+i.total,0);
-  const amounts=calcCreditInstallments(total);
-  const wrap=$('creditInstallmentsPreview');
-  if(!wrap)return;
-  const labels=['1er pago — al confirmar el pedido','2do pago — cerca de la entrega','3er pago — 15 días después del 2do pago'];
-  wrap.innerHTML=amounts.map((amt,i)=>`
-    <div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--gray3)">
-      <span style="font-size:12px;color:var(--text2)">${labels[i]}</span>
-      <span style="font-size:14px;font-weight:800;color:var(--text)">${fmt(amt)}</span>
-    </div>
-  `).join('');
 }
 
 let transferImgBase64=null;
@@ -2209,7 +2072,7 @@ function openCheckout(){
     : '';
   $('ckContent').innerHTML=`<div class="ck-body">
     <div class="ck-sec">Información de entrega</div>
-    <div style="background:var(--blue-l);border-radius:var(--r4);padding:8px 12px;font-size:12px;color:var(--blue);font-weight:600;margin-bottom:12px">📍 Por el momento solo realizamos entregas en Managua, León y Chinandega</div>
+    <div style="background:var(--blue-l);border-radius:var(--r4);padding:8px 12px;font-size:12px;color:var(--blue);font-weight:600;margin-bottom:12px">📍 Por el momento solo realizamos entregas en ${getCities().join(', ').replace(/, ([^,]*)$/,' y $1')}</div>
     <div class="fg"><label>Nombre</label><div style="background:var(--gray3);border-radius:var(--r4);padding:10px 12px;font-size:14px;color:var(--text2)">${(u.first||'')+' '+(u.last||'')}</div></div>
     ${addrs.length?`
     <div class="cf"><label>Dirección de entrega</label>
@@ -2245,27 +2108,12 @@ function openCheckout(){
         <div><div class="popt-name">Transferencia bancaria</div><div class="popt-desc">BAC, Banpro, Lafise</div></div>
       </label>
       `}
-      ${isCreditEligible(total)?`
-      <label class="popt" onclick="this.closest('.pay-opts').querySelectorAll('.popt').forEach(p=>p.classList.remove('on'));this.classList.add('on');toggleTransferProof()">
-        <input type="radio" name="pay" value="credit">
-        <div class="popt-ico"><svg viewBox="0 0 24 24"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg></div>
-        <div><div class="popt-name">Pago en 3 cuotas</div><div class="popt-desc">50% ahora, 25% cerca de la entrega, 25% a los 15 días</div></div>
-      </label>
-      `:''}
     </div>
     <div id="whatsappPlanBlock" style="display:none;margin-top:14px">
       <div class="ck-sec">Pago Móvil / Transferencia — Venezuela</div>
       <div style="background:#dcfce7;border:1px solid #86efac;border-radius:var(--r8);padding:12px 14px;font-size:12px;color:#166534;line-height:1.6;margin-bottom:14px">
         Debido a la inflación, la tasa del día se coordina directamente por WhatsApp con atención al cliente. Al confirmar, se abrirá WhatsApp con los datos de tu pedido ya listos para enviar.
       </div>
-    </div>
-    <div id="creditPlanBlock" style="display:none;margin-top:14px">
-      <div class="ck-sec">Plan de pago en 3 cuotas</div>
-      <div style="background:var(--blue-l);border:1px solid var(--blue);border-radius:var(--r8);padding:12px 14px;font-size:12px;color:var(--blue);line-height:1.6;margin-bottom:14px">
-        Sin recargo — pagas exactamente lo mismo que al contado.<br>
-        Tu producto se envía después del 2do pago. El sistema te avisará cuándo pagar cada cuota.
-      </div>
-      <div id="creditInstallmentsPreview"></div>
     </div>
     <div id="transferProofBlock" style="display:none;margin-top:14px">
       <div class="ck-sec">Comprobante de transferencia</div>
@@ -2487,13 +2335,11 @@ async function placeOrder(paypalCapture){
     trySavePaypalMethod();
   }
 
-  // Validación del comprobante de transferencia (también aplica al 1er pago del plan de crédito)
+  // Validación del comprobante de transferencia
   let transferData=null;
   let autoCancel=false;
-  let creditPlan=null;
-  const firstPaymentAmount=(payMethod==='credit')?calcCreditInstallments(total)[0]:total;
 
-  if(payMethod==='transfer'||payMethod==='credit'){
+  if(payMethod==='transfer'){
     const amount=parseFloat($('ckTransferAmount')?.value);
     const auth=$('ckTransferAuth')?.value.trim();
     const err=$('transferErr');
@@ -2501,25 +2347,9 @@ async function placeOrder(paypalCapture){
     if(!amount||amount<=0){err.textContent='Ingresa el monto depositado';err.classList.add('show');return}
     if(!auth){err.textContent='Ingresa el número de autorización';err.classList.add('show');return}
     if(!transferImgBase64){err.textContent='Sube la imagen del comprobante';err.classList.add('show');return}
-    // Para transferencia normal se compara contra el total; para crédito, contra el 1er pago (50%)
-    const expectedAmount=payMethod==='credit'?firstPaymentAmount:total;
-    const diff=Math.abs(amount-expectedAmount);
+    const diff=Math.abs(amount-total);
     autoCancel=diff>0.01;
-    transferData={amount,auth,image:transferImgBase64,expectedTotal:expectedAmount,matched:!autoCancel};
-  }
-
-  if(payMethod==='credit'&&!autoCancel){
-    const installments=calcCreditInstallments(total);
-    const now=Date.now();
-    const DAY=24*60*60*1000;
-    creditPlan={
-      totalAmount:total,
-      installments:[
-        {n:1,amount:installments[0],status:'paid',dueDate:null,paidAt:new Date().toISOString()},
-        {n:2,amount:installments[1],status:'pending',dueDate:null,paidAt:null,note:'Se cobra cerca de la entrega'},
-        {n:3,amount:installments[2],status:'pending',dueDate:new Date(now+CREDIT_INSTALLMENT_DAYS*DAY).toISOString(),paidAt:null,note:'15 días después del 2do pago'}
-      ]
-    };
+    transferData={amount,auth,image:transferImgBase64,expectedTotal:total,matched:!autoCancel};
   }
 
   // Transferencia (Nicaragua) y WhatsApp (Venezuela) NUNCA se auto-confirman: quedan
@@ -2528,11 +2358,10 @@ async function placeOrder(paypalCapture){
   const needsManualVerification=(payMethod==='transfer'||payMethod==='whatsapp')&&!autoCancel;
   const orderStatus=autoCancel?'cancelled':
     (needsManualVerification?'awaiting_verification':
-    (payMethod==='credit'?'credit_active':(paypalCapture?'confirmed':'pending')));
+    (paypalCapture?'confirmed':'pending'));
   const order={id:ref,uid:USER?.uid||'',date:new Date().toISOString(),items:[...cart],total,payMethod,status:orderStatus,
     country:getUserCountry(),
     transferData,
-    creditPlan,
     paypalData:paypalCapture?{orderId:paypalCapture.orderId,captureId:paypalCapture.captureId,status:paypalCapture.status}:null,
     customer:{name:fn+' '+ln,phone:savedAddr.phone||USER?.phone||'',address:savedAddr.address+', '+savedAddr.city+' (C.P. '+savedAddr.zip+')'+(savedAddr.desc?' — '+savedAddr.desc:'')}};
   ORDERS.unshift(order);
@@ -2744,7 +2573,11 @@ function checkDevice(isRegister){
 }
 
 // ═══════════ PANEL DE CONFIGURACIÓN ═══════════
-const CITIES=['Managua','León','Chinandega'];
+const CITIES_NI=['Managua','León','Chinandega'];
+const CITIES_VE=['Caracas','Miranda'];
+function getCities(){
+  return getUserCountry()==='VE'?CITIES_VE:CITIES_NI;
+}
 
 // Prefijos telefónicos internacionales (código ISO, nombre, prefijo)
 const PHONE_CODES=[
@@ -2790,7 +2623,7 @@ function openAddAddress(){
     <div class="cf"><label>Nombre de la dirección</label><input id="naLabel" placeholder="Ej: Casa, Trabajo…"></div>
     <div class="cf"><label>Ciudad</label>
       <div style="display:flex;gap:8px">
-        ${CITIES.map(c=>`<button type="button" onclick="selectAddrCity(this,'${c}')" class="city-btn" style="flex:1;padding:10px;border:1.5px solid var(--border);border-radius:var(--r8);background:var(--white);font-size:13px;font-weight:600;color:var(--text);cursor:pointer">${c}</button>`).join('')}
+        ${getCities().map(c=>`<button type="button" onclick="selectAddrCity(this,'${c}')" class="city-btn" style="flex:1;padding:10px;border:1.5px solid var(--border);border-radius:var(--r8);background:var(--white);font-size:13px;font-weight:600;color:var(--text);cursor:pointer">${c}</button>`).join('')}
       </div>
       <input type="hidden" id="naCity" value="">
     </div>
