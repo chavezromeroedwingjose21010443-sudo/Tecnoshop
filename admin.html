@@ -256,7 +256,7 @@ const $=id=>document.getElementById(id);
 const fmt=n=>'$'+Number(n).toFixed(2);
 let ALL_ORDERS=[],ALL_OFFERS=[],ALL_USERS=[],curFilter='all',curOfferFilter='all',curSection='orders';
 
-const STATUS_LABELS={pending:'Pendiente',confirmed:'Confirmado',processing:'Procesando',shipped:'Enviado',delivered:'Entregado',cancelled:'Cancelado'};
+const STATUS_LABELS={pending:'Pendiente',confirmed:'Confirmado',processing:'Procesando',shipped:'Enviado',delivered:'Entregado',cancelled:'Cancelado',credit_active:'Crédito activo',awaiting_verification:'⏳ Verificando pago'};
 const OFFER_LABELS={pending:'Pendiente',accepted:'Aceptada',rejected:'Rechazada'};
 
 function seErr(m){const e=$('loginErr');e.textContent=m;e.classList.add('show')}
@@ -377,8 +377,16 @@ function renderOrders(){
       <div class="card-cust">
         <b>${o.customer?.name||'—'}</b> · ${o.customer?.phone||'—'}<br>
         📍 ${o.customer?.address||'—'}<br>
-        💳 ${o.payMethod==='paypal'?'PayPal':'Transferencia bancaria'}
+        💳 ${o.payMethod==='paypal'?'PayPal':(o.payMethod==='credit'?'Crédito (3 cuotas)':(o.payMethod==='whatsapp'?'Pago Móvil / WhatsApp (Venezuela)':'Transferencia bancaria'))}
       </div>
+      ${o.creditPlan?`
+      <div style="background:#f5f3ff;border:1px solid #ddd6fe;border-radius:var(--r8);padding:10px 12px;margin-bottom:10px;font-size:12px">
+        <b style="color:#7c3aed">📅 Plan de 3 cuotas</b><br>
+        ${o.creditPlan.installments.map(inst=>`
+          Pago ${inst.n}: ${fmt(inst.amount)} — ${inst.status==='paid'?'✅ Pagado':'⏳ Pendiente'}${inst.dueDate?' (vence '+new Date(inst.dueDate).toLocaleDateString('es-NI')+')':''}
+          ${inst.transferData?.image?`<br><img src="${inst.transferData.image}" style="max-width:140px;margin-top:4px;border-radius:6px;border:1px solid var(--border);cursor:pointer" onclick="window.open(this.src,'_blank')">`:''}
+        `).join('<br>')}
+      </div>`:''}
       ${o.transferData?`
       <div style="background:${o.transferData.matched?'#f0fdf4':'#fef2f2'};border:1px solid ${o.transferData.matched?'#bbf7d0':'#fecaca'};border-radius:var(--r8);padding:10px 12px;margin-bottom:10px;font-size:12px">
         <b style="color:${o.transferData.matched?'var(--green)':'var(--red)'}">${o.transferData.matched?'✅ Comprobante verificado':'⚠️ Monto no coincide'}</b><br>
