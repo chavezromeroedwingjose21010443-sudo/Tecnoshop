@@ -431,7 +431,7 @@ footer strong{color:rgba(255,255,255,.75)}
         <input type="tel" id="rPhone" placeholder="8888-0000" style="flex:1">
       </div>
     </div>
-    <div class="fg"><label>Cédula (formato NIC)</label><input id="rCedula" placeholder="000-000000-0000A" maxlength="17" oninput="formatCedula(this)"></div>
+    <div class="fg"><label id="rCedulaLabel">Cédula (formato NIC)</label><input id="rCedula" placeholder="000-000000-0000A" maxlength="17" oninput="formatCedula(this)"></div>
     <div style="font-size:11px;color:var(--text3);margin-top:-8px;margin-bottom:12px">⚠️ Este dato no podrá modificarse después de registrarte</div>
     <div class="fg"><label>Contraseña</label><input type="password" id="rPass" placeholder="Mínimo 8 caracteres"></div>
     <div class="fg"><label>Confirmar contraseña</label><input type="password" id="rPass2" placeholder="Repite tu contraseña"></div>
@@ -851,6 +851,24 @@ function handleCountrySelect(){
   // El código de teléfono se ajusta al país elegido (Nicaragua +505 / Venezuela +58)
   const sel=$('rPhoneCode');
   if(sel)sel.value=country==='VE'?'+58':'+505';
+  // El formato de cédula cambia por completo entre países: Nicaragua usa guiones
+  // (000-000000-0000A), Venezuela usa prefijo V/E/J + dígitos (V25973279).
+  const cedulaInput=$('rCedula');
+  const cedulaLabel=$('rCedulaLabel');
+  if(cedulaInput&&cedulaLabel){
+    cedulaInput.value='';
+    if(country==='VE'){
+      cedulaLabel.textContent='Cédula (formato Venezuela)';
+      cedulaInput.placeholder='V25973279';
+      cedulaInput.maxlength=10;
+      cedulaInput.setAttribute('oninput','formatCedulaVE(this)');
+    }else{
+      cedulaLabel.textContent='Cédula (formato NIC)';
+      cedulaInput.placeholder='000-000000-0000A';
+      cedulaInput.maxlength=17;
+      cedulaInput.setAttribute('oninput','formatCedula(this)');
+    }
+  }
 }
 
 let phoneCodeInitDone=false;
@@ -946,7 +964,9 @@ async function doRegister(){
   if(!first||!last||!email||!phoneCode||!phoneNum||!cedula||!pass){se('regErr','Completa todos los campos');return}
   const phone=phoneCode+' '+phoneNum;
   if(!/\S+@\S+\.\S+/.test(email)){se('regErr','Correo inválido');return}
-  if(!validCedula(cedula)){se('regErr','Cédula inválida. Formato: 000-000000-0000A');return}
+  const cedulaIsValid=country==='VE'?validCedulaVE(cedula):validCedula(cedula);
+  const cedulaFormatMsg=country==='VE'?'Cédula inválida. Formato: V25973279 (V/E/J + 7 a 9 dígitos)':'Cédula inválida. Formato: 000-000000-0000A';
+  if(!cedulaIsValid){se('regErr',cedulaFormatMsg);return}
   if(pass.length<8){se('regErr','Mínimo 8 caracteres');return}
   if(pass!==pass2){se('regErr','Las contraseñas no coinciden');return}
   const btn=document.querySelector('#scRegister .abtn');
@@ -1968,6 +1988,21 @@ function validCedula(c){
   // Formato Nicaragua flexible: 3 dígitos - 6 dígitos - 3 a 5 caracteres (dígitos + letra final)
   // Cubre variantes de 12 a 14 caracteres totales, ej: 081-141002-1004K
   return /^\d{3}-\d{6}-\d{3,4}[A-Z]$/.test(c);
+}
+
+// ── CÉDULA VENEZOLANA (V/E/J + 7 a 9 dígitos) ──
+// V = venezolano, E = extranjero, J = jurídica. Los 3 tipos aceptan entre 7 y 9 dígitos.
+function formatCedulaVE(input){
+  let v=input.value.toUpperCase().replace(/[^0-9VEJ]/g,'');
+  // Solo permite una letra (V/E/J) al inicio, seguida de dígitos
+  const letterMatch=v.match(/^[VEJ]/);
+  const letter=letterMatch?letterMatch[0]:'';
+  const digits=v.replace(/[VEJ]/g,'').slice(0,9);
+  input.value=letter+digits;
+}
+
+function validCedulaVE(c){
+  return /^[VEJ]\d{7,9}$/.test(c);
 }
 
 async function submitOffer(){
