@@ -108,6 +108,13 @@ input,select{font-family:inherit}
 
 /* NAV */
 nav{background:var(--white);border-bottom:1px solid var(--border2);padding:10px 24px;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:900;box-shadow:var(--sh);width:100%;box-sizing:border-box}
+.search-expand{position:fixed;top:0;left:0;right:0;background:var(--white);z-index:950;box-shadow:0 8px 20px rgba(0,0,0,.12);transform:translateY(-100%);transition:transform .22s ease;padding-top:56px}
+.search-expand.open{transform:translateY(0)}
+.search-expand-inner{max-width:640px;margin:0 auto;padding:16px 20px}
+.search-expand-row{display:flex;align-items:center;gap:10px;border:1.5px solid var(--blue);border-radius:var(--pill);padding:10px 16px;background:var(--white)}
+.search-expand-row input{flex:1;border:none;outline:none;font-size:15px;background:transparent;color:var(--text)}
+#searchExpandOverlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:940}
+#searchExpandOverlay.open{display:block}
 .brand{display:flex;align-items:center;text-decoration:none;flex-shrink:0}
 .nav-search{flex:1;min-width:0;max-width:640px;display:flex;border:2px solid var(--text);border-radius:var(--pill);overflow:hidden}
 .nav-search:focus-within{border-color:var(--blue)}
@@ -347,7 +354,7 @@ nav{background:var(--white);border-bottom:1px solid var(--border2);padding:10px 
 .ord-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:7px}
 .ord-id{font-family:monospace;font-weight:700;color:var(--blue);font-size:12px}
 .ord-st{font-size:10px;font-weight:700;padding:2px 8px;border-radius:var(--pill);color:white}
-.st-pending{background:var(--orange)}.st-confirmed{background:var(--blue)}.st-processing{background:#7c3aed}.st-shipped{background:#0891b2}.st-delivered{background:var(--green)}.st-cancelled{background:var(--red)}
+.st-pending{background:var(--orange)}.st-confirmed{background:var(--blue)}.st-processing{background:#7c3aed}.st-shipped{background:#0891b2}.st-delivered{background:var(--green)}.st-cancelled{background:var(--red)}.st-credit_active{background:#7c3aed}.st-awaiting_verification{background:#d97706}
 
 /* TOAST */
 .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(40px);background:#111820;color:white;padding:10px 20px;border-radius:var(--pill);font-size:13px;font-weight:600;box-shadow:var(--sh2);opacity:0;transition:all .28s cubic-bezier(.34,1.4,.64,1);z-index:9999;white-space:nowrap;pointer-events:none}
@@ -406,7 +413,13 @@ footer strong{color:rgba(255,255,255,.75)}
     <div class="fg"><label>Correo electrónico</label>
       <div class="iw"><span class="fi"><svg viewBox="0 0 24 24"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg></span>
       <input type="email" id="rEmail" placeholder="correo@ejemplo.com"></div></div>
-    <div class="fg"><label>Teléfono</label><input type="tel" id="rPhone" placeholder="8888-0000"></div>
+    <div class="fg"><label>Teléfono</label>
+      <div style="display:flex;gap:8px">
+        <select id="rPhoneCode" onchange="syncRegisterCountry()" style="width:110px;border:1.5px solid var(--border);border-radius:var(--r4);padding:10px 8px;font-size:13px;background:var(--white);color:var(--text)"></select>
+        <input type="tel" id="rPhone" placeholder="8888-0000" style="flex:1">
+      </div>
+      <div style="font-size:11px;color:var(--text3);margin-top:4px" id="rCountryHint">País detectado: Nicaragua</div>
+    </div>
     <div class="fg"><label>Cédula (formato NIC)</label><input id="rCedula" placeholder="000-000000-0000A" maxlength="17" oninput="formatCedula(this)"></div>
     <div style="font-size:11px;color:var(--text3);margin-top:-8px;margin-bottom:12px">⚠️ Este dato no podrá modificarse después de registrarte</div>
     <div class="fg"><label>Contraseña</label><input type="password" id="rPass" placeholder="Mínimo 8 caracteres"></div>
@@ -437,7 +450,7 @@ footer strong{color:rgba(255,255,255,.75)}
 <nav>
   <a class="brand" href="#" onclick="event.preventDefault();goHome()"><div class="brand-text">Tecno<em>Shop</em></div></a>
   <div class="nav-search">
-    <input type="text" id="sq" placeholder="Buscar productos, marcas, modelos..." onkeydown="if(event.key==='Enter')doSearch()">
+    <input type="text" id="sq" placeholder="Buscar productos, marcas, modelos..." onfocus="openSearchExpand()" onkeydown="if(event.key==='Enter')doSearch()" readonly>
     <button class="search-btn" onclick="doSearch()">
       <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><span class="search-btn-label">Buscar</span>
     </button>
@@ -485,6 +498,19 @@ footer strong{color:rgba(255,255,255,.75)}
     </button>
   </div>
 </nav>
+
+<!-- PANEL DE BÚSQUEDA EXPANDIDO: aparece debajo del nav al enfocar la barra -->
+<div id="searchExpandPanel" class="search-expand">
+  <div class="search-expand-inner">
+    <div class="search-expand-row">
+      <svg viewBox="0 0 24 24" width="18" height="18" style="flex-shrink:0"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input type="text" id="sqExpand" placeholder="Buscar productos, marcas, modelos..." onkeydown="if(event.key==='Enter')doSearch()" oninput="syncSearchExpand(this.value)">
+      <button onclick="closeSearchExpand()" style="background:none;border:none;padding:6px;cursor:pointer;flex-shrink:0"><svg viewBox="0 0 24 24" width="18" height="18" stroke="var(--text3)"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    </div>
+    <button class="abtn" style="margin-top:12px" onclick="doSearch()">Buscar</button>
+  </div>
+</div>
+<div id="searchExpandOverlay" onclick="closeSearchExpand()"></div>
 
 <div class="page">
   <aside class="filters">
@@ -680,7 +706,6 @@ footer strong{color:rgba(255,255,255,.75)}
         <label class="fo"><input type="radio" name="fCond" value="" checked onchange="setFilterCond('')"><span class="fo-label">Todos</span></label>
         <label class="fo"><input type="radio" name="fCond" value="NEW" onchange="setFilterCond('NEW')"><span class="fo-label">Nuevo</span></label>
         <label class="fo"><input type="radio" name="fCond" value="USED" onchange="setFilterCond('USED')"><span class="fo-label">Usado</span></label>
-        <label class="fo"><input type="radio" name="fCond" value="PARTS" onchange="setFilterCond('PARTS')"><span class="fo-label">⚠️ Dañados, no funcionan</span></label>
       </div>
 
       <div style="font-size:13px;font-weight:800;color:var(--text);margin-bottom:10px">Precio (USD)</div>
@@ -704,16 +729,81 @@ const $=id=>document.getElementById(id);
 const fmt=n=>'$'+Number(n).toFixed(2);
 // Shipping: Prioritario +$50, Gratis +$22
 const MARKUP=105; // ganancia general para productos estándar (laptops individuales)
-const SHIP={priority:45,free:0};
+const SHIP={priority:45,free:0}; // Nicaragua (default)
+const SHIP_VE={priority:65,free:0}; // Venezuela: prioritario cuesta más; "gratis" se sigue mostrando gratis
 const dispPrice=p=>p+MARKUP;
 const calcTotal=(price,ship)=>price+MARKUP+(SHIP[ship]||0);
-// Igual que calcTotal, pero respeta el precio final ya calculado por categoría
+// ═══ PRECIOS POR PAÍS ═══
+// Nicaragua usa los precios base normales. Venezuela tiene un recargo adicional:
+// +$25 sobre el markup de laptops estándar/lotes con envío prioritario (105 -> 130);
+// con envío "gratis" el margen sube a 165 (130+35) para absorber el costo logístico real
+// sin mostrarlo como cargo aparte. Piezas (batería/tarjeta madre/teclado): +40 puntos
+// porcentuales sobre el margen, sin importar el tipo de envío.
+function getUserCountry(){
+  return (USER&&USER.country)||'NI';
+}
+function getShipTable(country){
+  return country==='VE'?SHIP_VE:SHIP;
+}
+function getShipCost(ship,country){
+  country=country||getUserCountry();
+  return getShipTable(country)[ship]||0;
+}
+
+// Igual que calcTotalProd, pero aplica el recargo de país correspondiente sobre el margen
+// (nunca sobre el costo real de eBay, solo sobre la ganancia de TecnoShop).
+const calcTotalProdCountry=(prod,ship,country)=>{
+  country=country||getUserCountry();
+  const cost=(prod&&prod.price)||0;
+  const category=prod&&prod.category;
+  let base;
+  if(country==='VE'){
+    if(category==='motherboard'){ base=cost*2.5+cost*0.4; } // 150% -> 190%
+    else if(category==='keyboard'){ base=cost*2+cost*0.4; } // 100% -> 140%
+    else if(category==='battery'){
+      // finalPrice ya trae la distinción genuina/OEM (x2.5) vs genérica (x1.75) calculada en backend
+      const isGenuine=prod.categoryLabel&&prod.categoryLabel.includes('original');
+      base=isGenuine?(cost*2.5+cost*0.4):(cost*1.75+cost*0.4); // 150->190% / 75->115%
+    }else if(category==='lot'){
+      // El margen de lote ya viene calculado en finalPrice; se le suma el recargo de laptop
+      const lotMargin=(prod.finalPrice!=null?prod.finalPrice:cost+MARKUP)-cost;
+      base=cost+lotMargin+(ship==='free'?35:25); // prioritario +25, gratis +35 (absorbe logística)
+    }else{
+      base=cost+MARKUP+(ship==='free'?35:25); // laptop estándar: prioritario 130, gratis 165
+    }
+  }else{
+    base=(prod&&prod.finalPrice!=null)?prod.finalPrice:cost+MARKUP;
+  }
+  return base+getShipCost(ship,country);
+};
+
+// Igual que calcTotalProd, pero respeta el precio final ya calculado por categoría
 // (lotes, tarjetas madre, baterías, teclados) cuando el producto lo trae del backend.
 // Para productos estándar, se comporta exactamente igual que calcTotal.
+// Ahora también aplica el recargo por país del usuario logueado.
 const calcTotalProd=(prod,ship)=>{
-  const base=(prod&&prod.finalPrice!=null)?prod.finalPrice:((prod&&prod.price)||0)+MARKUP;
-  return base+(SHIP[ship]||0);
+  return calcTotalProdCountry(prod,ship,getUserCountry());
 };
+
+// ═══ PLAN DE CRÉDITO (3 pagos) ═══
+const CREDIT_MIN_AMOUNT=150; // monto mínimo del pedido para ser elegible
+const CREDIT_SPLIT=[0.50,0.25,0.25]; // 50% / 25% / 25%
+const CREDIT_INSTALLMENT_DAYS=15; // días entre el pago 2 y el pago 3
+
+function isCreditEligible(total){
+  return total>=CREDIT_MIN_AMOUNT;
+}
+
+// Calcula los 3 montos exactos de las cuotas, asegurando que sumen exactamente el total
+// (ajusta centavos de redondeo en la última cuota para evitar diferencias de $0.01).
+function calcCreditInstallments(total){
+  const amounts=CREDIT_SPLIT.map(pct=>Math.round(total*pct*100)/100);
+  const sum=amounts[0]+amounts[1]+amounts[2];
+  const diff=Math.round((total-sum)*100)/100;
+  amounts[2]=Math.round((amounts[2]+diff)*100)/100; // el ajuste de centavos va en la 3ra cuota
+  return amounts;
+}
+
 const LS={g:k=>{try{return JSON.parse(localStorage.getItem(k))}catch{return null}},s:(k,v)=>localStorage.setItem(k,JSON.stringify(v))};
 
 // STATE
@@ -725,7 +815,41 @@ let SOLD=LS.g('ts_sold')||[]; // artículos ya vendidos (unidad única)
 function toggleTheme(){darkMode=!darkMode;document.documentElement.setAttribute('data-theme',darkMode?'dark':'');$('themeBtn').textContent=darkMode?'☀️ Claro':'🌙 Oscuro'}
 
 // AUTH - Firebase Authentication + Firestore (seguro, con sesión en la nube)
-function ss(id){document.querySelectorAll('.auth-screen').forEach(s=>s.classList.remove('active'));$(id)&&$(id).classList.add('active')}
+function ss(id){document.querySelectorAll('.auth-screen').forEach(s=>s.classList.remove('active'));$(id)&&$(id).classList.add('active');if(id==='scRegister')initRegisterPhoneCode()}
+
+// Llena el selector de código telefónico con todos los países, y detecta por IP
+// si el usuario está en Venezuela o Nicaragua para preseleccionarlo automáticamente.
+// Si la detección falla (sin conexión, servicio caído), cae en Nicaragua por defecto.
+// Deriva el país de precios (Nicaragua/Venezuela) a partir del código telefónico elegido.
+// Cualquier código que no sea +58 (Venezuela) se trata como Nicaragua por defecto.
+function syncRegisterCountry(){
+  const sel=$('rPhoneCode');
+  const hint=$('rCountryHint');
+  if(!sel||!hint)return;
+  const isVE=sel.value==='+58';
+  hint.textContent='País detectado: '+(isVE?'Venezuela':'Nicaragua');
+}
+
+let phoneCodeInitDone=false;
+async function initRegisterPhoneCode(){
+  const sel=$('rPhoneCode');
+  if(!sel)return;
+  if(!phoneCodeInitDone){
+    sel.innerHTML=PHONE_CODES.map(([iso,name,code])=>`<option value="${code}" data-iso="${iso}">${code} ${name}</option>`).join('');
+    phoneCodeInitDone=true;
+  }
+  // Por defecto Nicaragua, mientras se resuelve (o si falla) la detección por IP
+  sel.value='+505';
+  try{
+    const res=await fetch('https://ipapi.co/json/');
+    const data=await res.json();
+    const cc=data&&data.country_code;
+    if(cc==='VE')sel.value='+58';
+    else if(cc==='NI')sel.value='+505';
+    // Cualquier otro país: se deja Nicaragua seleccionado por defecto (el cliente puede cambiarlo)
+  }catch(e){/* sin conexión al servicio de IP: se queda en Nicaragua por defecto */}
+  syncRegisterCountry();
+}
 
 // Se llama automáticamente cuando Firebase confirma que NO hay sesión activa
 window.showAuthScreen=function(){
@@ -800,10 +924,11 @@ async function doLogin(){
 
 async function doRegister(){
   const first=$('rFirst').value.trim(),last=$('rLast').value.trim(),
-        email=$('rEmail').value.trim(),phone=$('rPhone').value.trim(),
-        cedula=$('rCedula').value.trim(),
+        email=$('rEmail').value.trim(),phoneCode=$('rPhoneCode').value,phoneNum=$('rPhone').value.trim(),
+        cedula=$('rCedula').value.trim(),country=phoneCode==='+58'?'VE':'NI',
         pass=$('rPass').value,pass2=$('rPass2').value;
-  if(!first||!last||!email||!phone||!cedula||!pass){se('regErr','Completa todos los campos');return}
+  if(!first||!last||!email||!phoneCode||!phoneNum||!cedula||!pass){se('regErr','Completa todos los campos');return}
+  const phone=phoneCode+' '+phoneNum;
   if(!/\S+@\S+\.\S+/.test(email)){se('regErr','Correo inválido');return}
   if(!validCedula(cedula)){se('regErr','Cédula inválida. Formato: 000-000000-0000A');return}
   if(pass.length<8){se('regErr','Mínimo 8 caracteres');return}
@@ -812,8 +937,8 @@ async function doRegister(){
   if(btn){btn.disabled=true;btn.textContent='Creando cuenta...'}
   try{
     const cred=await window._fb.createUserWithEmailAndPassword(window._fb.auth,email,pass);
-    // cedula y phone quedan fijos permanentemente: no hay función de edición para ellos en el panel de Configuración
-    const newUser={uid:cred.user.uid,first,last,email,phone,cedula,city:'',address:'',favorites:[],favProds:{},linkedEmails:[],createdAt:window._fb.serverTimestamp()};
+    // cedula, phone y country quedan fijos permanentemente: no hay función de edición para ellos en el panel de Configuración
+    const newUser={uid:cred.user.uid,first,last,email,phone,cedula,country,city:'',address:'',favorites:[],favProds:{},linkedEmails:[],createdAt:window._fb.serverTimestamp()};
     await window._fb.setDoc(window._fb.doc(window._fb.db,'users',cred.user.uid),newUser);
     USER={...newUser};ORDERS=[];FAVS=[];FAV_PRODS={};cart=[];
     checkDevice(true);
@@ -968,7 +1093,7 @@ function openOrders(){
   if(!ORDERS.length){
     el.innerHTML='<div style="text-align:center;padding:50px;color:var(--text3)"><p style="font-size:14px;font-weight:600">No tienes pedidos aún</p></div>';
   }else{
-    const stLbl={pending:'Pendiente',confirmed:'Confirmado',processing:'Procesando',shipped:'Enviado',delivered:'Entregado',cancelled:'Cancelado'};
+    const stLbl={pending:'Pendiente',confirmed:'Confirmado',processing:'Procesando',shipped:'Enviado',delivered:'Entregado',cancelled:'Cancelado',credit_active:'Plan de crédito activo',awaiting_verification:'Verificando pago'};
     el.innerHTML=ORDERS.map((o,idx)=>{
       const firstItem=(o.items||[])[0];
       const thumb=firstItem?.prod?.img||'https://images.unsplash.com/photo-1496181133206-80ce9b88a853?w=200';
@@ -988,10 +1113,85 @@ function openOrders(){
   openOv('ordersOv');
 }
 
+// Abre el flujo de pago de la siguiente cuota pendiente del plan de crédito
+let curInstallmentOrder=null,curInstallmentN=null;
+function payNextInstallment(orderId,n){
+  const o=ORDERS.find(x=>x.id===orderId);
+  if(!o||!o.creditPlan)return;
+  const inst=o.creditPlan.installments.find(i=>i.n===n);
+  if(!inst)return;
+  curInstallmentOrder=orderId;curInstallmentN=n;
+  transferImgBase64=null;
+  $('orderDetailTitle').textContent='Pago '+n+' de 3';
+  $('orderDetailBody').innerHTML=`
+    <div style="max-width:640px;margin:0 auto;padding:4px">
+      <div style="background:var(--blue-l);border:1px solid var(--blue);border-radius:var(--r8);padding:14px;margin-bottom:16px;text-align:center">
+        <div style="font-size:12px;color:var(--blue);font-weight:700">Monto de esta cuota</div>
+        <div style="font-size:28px;font-weight:800;color:var(--text)">${fmt(inst.amount)}</div>
+      </div>
+      <div class="cf"><label>Monto total debitado (USD)</label><input type="number" id="ckTransferAmount" step="0.01" placeholder="${inst.amount.toFixed(2)}"></div>
+      <div class="cf"><label>Número de autorización / referencia</label><input id="ckTransferAuth" placeholder="Ej: 0004821193"></div>
+      <div class="cf">
+        <label>Imagen del comprobante</label>
+        <input type="file" id="ckTransferImg" accept="image/*" onchange="previewTransferImg(this)" style="width:100%;border:1.5px solid var(--border);border-radius:var(--r4);padding:8px;font-size:13px">
+        <div id="transferImgPreview" style="margin-top:8px"></div>
+      </div>
+      <div class="msg msg-e" id="transferErr"></div>
+      <button class="btn-place" onclick="confirmInstallmentPayment()">Confirmar pago de cuota</button>
+      <button class="abtn" style="background:var(--gray3);color:var(--text);margin-top:8px" onclick="closeOv('orderDetailOv');openOrders()">Cancelar</button>
+    </div>
+  `;
+  openOv('orderDetailOv');
+}
+
+async function confirmInstallmentPayment(){
+  const o=ORDERS.find(x=>x.id===curInstallmentOrder);
+  if(!o||!o.creditPlan)return;
+  const inst=o.creditPlan.installments.find(i=>i.n===curInstallmentN);
+  if(!inst)return;
+
+  const amount=parseFloat($('ckTransferAmount')?.value);
+  const auth=$('ckTransferAuth')?.value.trim();
+  const err=$('transferErr');
+  err.classList.remove('show');
+  if(!amount||amount<=0){err.textContent='Ingresa el monto depositado';err.classList.add('show');return}
+  if(!auth){err.textContent='Ingresa el número de autorización';err.classList.add('show');return}
+  if(!transferImgBase64){err.textContent='Sube la imagen del comprobante';err.classList.add('show');return}
+
+  const diff=Math.abs(amount-inst.amount);
+  if(diff>0.01){
+    err.textContent='El monto no coincide con la cuota ('+fmt(inst.amount)+'). Verifica e intenta de nuevo.';
+    err.classList.add('show');
+    return;
+  }
+
+  inst.status='paid';
+  inst.paidAt=new Date().toISOString();
+  inst.transferData={amount,auth,image:transferImgBase64};
+
+  // Si queda una cuota pendiente, se le asigna fecha límite ahora que esta se pagó
+  const nextInst=o.creditPlan.installments.find(i=>i.n===curInstallmentN+1);
+  if(nextInst&&curInstallmentN===2){
+    const DAY=24*60*60*1000;
+    nextInst.dueDate=new Date(Date.now()+CREDIT_INSTALLMENT_DAYS*DAY).toISOString();
+  }
+
+  const allPaid=o.creditPlan.installments.every(i=>i.status==='paid');
+  if(allPaid)o.status='confirmed';
+
+  try{
+    await window._fb.setDoc(window._fb.doc(window._fb.db,'orders',o.id),o);
+  }catch(e){toast('⚠️ No se pudo sincronizar el pago con la nube');}
+
+  toast('✅ Pago registrado correctamente');
+  closeOv('orderDetailOv');
+  openOrders();
+}
+
 function openOrderDetail(idx){
   const o=ORDERS[idx];
   if(!o)return;
-  const stLbl={pending:'Pendiente',confirmed:'Confirmado',processing:'Procesando',shipped:'Enviado',delivered:'Entregado',cancelled:'Cancelado'};
+  const stLbl={pending:'Pendiente',confirmed:'Confirmado',processing:'Procesando',shipped:'Enviado',delivered:'Entregado',cancelled:'Cancelado',credit_active:'Plan de crédito activo',awaiting_verification:'Verificando pago'};
   const stSteps=['pending','confirmed','processing','shipped','delivered'];
   const curStepIdx=stSteps.indexOf(o.status||'pending');
   $('orderDetailTitle').textContent='Pedido '+o.id;
@@ -1013,6 +1213,24 @@ function openOrderDetail(idx){
         </div>
       `).join('')}
     </div>`:''}
+    ${o.creditPlan?`
+    <div style="font-size:12px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.4px;margin-bottom:12px">Plan de pago — 3 cuotas</div>
+    ${o.creditPlan.installments.map(inst=>{
+      const isPaid=inst.status==='paid';
+      const isNext=!isPaid&&o.creditPlan.installments.filter(x=>x.status==='paid').length===inst.n-1;
+      return `
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 14px;background:${isPaid?'#f0fdf4':(isNext?'var(--blue-l)':'var(--gray3))')};border-radius:var(--r8);margin-bottom:8px">
+        <div>
+          <div style="font-size:13px;font-weight:700;color:var(--text)">Pago ${inst.n} de 3 ${isPaid?'✅':''}</div>
+          <div style="font-size:11px;color:var(--text3)">${inst.note||(isPaid?'Pagado':'')}${inst.dueDate?' · Vence: '+new Date(inst.dueDate).toLocaleDateString('es-NI'):''}</div>
+        </div>
+        <div style="text-align:right">
+          <div style="font-size:14px;font-weight:800;color:var(--text)">${fmt(inst.amount)}</div>
+          ${isNext?`<button onclick="closeOv('orderDetailOv');payNextInstallment('${o.id}',${inst.n})" style="background:var(--blue);color:white;border:none;border-radius:var(--pill);padding:5px 12px;font-size:11px;font-weight:700;margin-top:4px;cursor:pointer">Pagar ahora</button>`:''}
+        </div>
+      </div>`;
+    }).join('')}
+    `:''}
     <div style="font-size:12px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.4px;margin-bottom:12px">Productos</div>
     ${(o.items||[]).map(i=>{
       const pid=i.prod?.id;
@@ -1141,10 +1359,10 @@ function setFilterCond(v){activeFilters.condition=v}
 function setFilterCategory(query,condTag){
   activeFilters.categoryQuery=query;
   // "Dañados, no funcionan" no es una palabra de búsqueda confiable — usamos el filtro
-  // REAL de condición de eBay (conditionId 7000), igual que el filtro de Estado.
+  // REAL de condición de eBay (conditionId 7000), aplicado internamente (ya no hay
+  // radio duplicado en el filtro de Estado, esta es la única forma de activarlo).
   if(condTag==='parts'){
     activeFilters.condition='PARTS';
-    document.querySelectorAll('#filterCondGroup input').forEach(i=>i.checked=(i.value==='PARTS'));
   }else if(!condTag){
     // Al elegir otra categoría (o "Todas"), no forzamos ninguna condición específica
     activeFilters.condition='';
@@ -1208,7 +1426,9 @@ function goHome(){
 
 async function loadProducts(q='laptop'){
   curQuery=q;curOffset=0;endReached=false;allProds=[];
-  const sq=$('sq');if(sq)sq.value=q==='laptop'?'':q;
+  const sqVal=q==='laptop'?'':q;
+  const sq=$('sq');if(sq)sq.value=sqVal;
+  const sqe=$('sqExpand');if(sqe)sqe.value=sqVal;
   renderSkel();
   await loadNextPage(true);
 }
@@ -1293,8 +1513,28 @@ function handleFavCard(btn,id){
   toast(saved?'❤️ Guardado':'Eliminado de favoritos');
 }
 
-function doSearch(){const q=($('sq').value||'laptop').trim();if(!q)return;$('sq').value=q;loadProducts(q)}
-function setQ(q){$('sq').value=q;loadProducts(q)}
+function openSearchExpand(){
+  const panel=$('searchExpandPanel'),overlay=$('searchExpandOverlay');
+  $('sqExpand').value=$('sq').value;
+  panel.classList.add('open');overlay.classList.add('open');
+  setTimeout(()=>$('sqExpand').focus(),150);
+}
+function closeSearchExpand(){
+  const panel=$('searchExpandPanel'),overlay=$('searchExpandOverlay');
+  panel.classList.remove('open');overlay.classList.remove('open');
+  $('sqExpand').blur();
+}
+function syncSearchExpand(val){
+  $('sq').value=val; // mantiene sincronizado el campo real (oculto) del nav
+}
+function doSearch(){
+  const q=($('sqExpand').value||$('sq').value||'laptop').trim();
+  if(!q)return;
+  $('sq').value=q;$('sqExpand').value=q;
+  closeSearchExpand();
+  loadProducts(q);
+}
+function setQ(q){$('sq').value=q;const sqe=$('sqExpand');if(sqe)sqe.value=q;loadProducts(q)}
 function fCatR(cat){const q={all:'laptop',laptop:'laptop',gaming:'gaming laptop',apple:'MacBook Apple'};loadProducts(q[cat]||'laptop')}
 function applyLocalF(){
   const mn=parseFloat($('pMin').value)||0,mx=parseFloat($('pMax').value)||Infinity;
@@ -1314,6 +1554,10 @@ function fdate(d){return d.toLocaleDateString('es',{day:'numeric',month:'short'}
 function deliveryRanges(maxISO){
   // base = fecha máxima de entrega que da eBay (o hoy+7 si no hay dato)
   const base=maxISO?new Date(maxISO):addDays(new Date(),7);
+  const country=getUserCountry();
+  if(country==='VE'){
+    return{p:[addDays(base,10),addDays(base,20)],f:[addDays(base,30),addDays(base,50)]};
+  }
   return{p:[addDays(base,6),addDays(base,10)],f:[addDays(base,15),addDays(base,30)]};
 }
 
@@ -1605,7 +1849,7 @@ function selectShip(type){
   document.querySelectorAll('.ship-opt').forEach(o=>o.classList.remove('on'));
   $(type==='priority'?'sOpt1':'sOpt2').classList.add('on');
   updateProdTotal();
-  const sa=$('shipAmt');if(sa)sa.textContent=type==='priority'?fmt(SHIP.priority):'Gratis';
+  const sa=$('shipAmt');if(sa)sa.textContent=type==='priority'?fmt(getShipCost('priority')):'Gratis';
   const sl=$('shipLbl');if(sl)sl.textContent=type==='priority'?'Envío Prioritario':'Envío Gratis';
   const pn=$('pNote');if(pn)pn.textContent=type==='priority'?'Envío Prioritario incluido':'Envío Gratis incluido';
 }
@@ -1619,8 +1863,9 @@ function changeQty(delta){
 }
 
 function updateProdTotal(){
-  const unitPrice=calcTotalProd(curProd,selShip)-(SHIP[selShip]||0); // precio del producto sin envío
-  const total=unitPrice*curQty+(SHIP[selShip]||0);
+  const shipCost=getShipCost(selShip);
+  const unitPrice=calcTotalProd(curProd,selShip)-shipCost; // precio del producto sin envío
+  const total=unitPrice*curQty+shipCost;
   const pt=$('pTotal');if(pt)pt.textContent=fmt(total);
   const bt=$('brkTotal');if(bt)bt.textContent=fmt(total);
   const bv=document.querySelector('.breakdown .brow .bv');if(bv)bv.textContent=fmt(unitPrice*curQty);
@@ -1629,8 +1874,9 @@ function updateProdTotal(){
 function addCart(){
   if(!curProd)return;
   if(cart.some(i=>String(i.prod.id)===String(curProd.id))){toast('⚠️ Este artículo ya está en tu carrito. Ajusta la cantidad desde el carrito.');return}
-  const unitPrice=calcTotalProd(curProd,selShip)-(SHIP[selShip]||0);
-  const total=unitPrice*curQty+(SHIP[selShip]||0);
+  const shipCost=getShipCost(selShip);
+  const unitPrice=calcTotalProd(curProd,selShip)-shipCost;
+  const total=unitPrice*curQty+shipCost;
   cart.push({uid:Date.now(),prod:curProd,ship:selShip,qty:curQty,total});
   updBadge();closeOv('prodOv');toast('🛒 Agregado al carrito');
 }
@@ -1837,19 +2083,57 @@ function updateCkAddrPreview(){
 }
 
 function toggleTransferProof(){
-  const isTransfer=document.querySelector('input[name="pay"]:checked')?.value==='transfer';
+  const payMethod=document.querySelector('input[name="pay"]:checked')?.value;
+  const isTransfer=payMethod==='transfer';
+  const isCredit=payMethod==='credit';
+  const isWhatsapp=payMethod==='whatsapp';
   const block=$('transferProofBlock');
   if(block)block.style.display=isTransfer?'block':'none';
+  const whatsappBlock=$('whatsappPlanBlock');
+  if(whatsappBlock)whatsappBlock.style.display=isWhatsapp?'block':'none';
   const transferBtn=$('transferConfirmBtn');
   const paypalWrap=$('paypalButtonWrap');
-  if(transferBtn)transferBtn.style.display=isTransfer?'block':'none';
+  const creditBlock=$('creditPlanBlock');
+  if(transferBtn){
+    transferBtn.style.display=(isTransfer||isCredit||isWhatsapp)?'block':'none';
+    if(isCredit){
+      const total=cart.reduce((s,i)=>s+i.total,0);
+      const firstPay=calcCreditInstallments(total)[0];
+      transferBtn.textContent='Confirmar pedido · Pagar 1er cuota '+fmt(firstPay);
+    }else if(isTransfer){
+      const total=cart.reduce((s,i)=>s+i.total,0);
+      transferBtn.textContent='Confirmar pedido · '+fmt(total);
+    }else if(isWhatsapp){
+      const total=cart.reduce((s,i)=>s+i.total,0);
+      transferBtn.textContent='Confirmar y continuar por WhatsApp · '+fmt(total);
+    }
+  }
+  if(creditBlock){
+    creditBlock.style.display=isCredit?'block':'none';
+    if(isCredit)renderCreditInstallmentsPreview();
+  }
   if(paypalWrap){
-    if(isTransfer){
+    if(isTransfer||isCredit||isWhatsapp){
       paypalWrap.innerHTML='';
     }else{
       renderPaypalButton();
     }
   }
+}
+
+// Muestra el desglose de las 3 cuotas antes de confirmar el pedido
+function renderCreditInstallmentsPreview(){
+  const total=cart.reduce((s,i)=>s+i.total,0);
+  const amounts=calcCreditInstallments(total);
+  const wrap=$('creditInstallmentsPreview');
+  if(!wrap)return;
+  const labels=['1er pago — al confirmar el pedido','2do pago — cerca de la entrega','3er pago — 15 días después del 2do pago'];
+  wrap.innerHTML=amounts.map((amt,i)=>`
+    <div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--gray3)">
+      <span style="font-size:12px;color:var(--text2)">${labels[i]}</span>
+      <span style="font-size:14px;font-weight:800;color:var(--text)">${fmt(amt)}</span>
+    </div>
+  `).join('');
 }
 
 let transferImgBase64=null;
@@ -1897,11 +2181,40 @@ function openCheckout(){
         <div class="popt-ico"><svg viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg></div>
         <div><div class="popt-name">PayPal</div><div class="popt-desc">Pago seguro con PayPal</div></div>
       </label>
+      ${getUserCountry()==='VE'?`
+      <label class="popt" onclick="this.closest('.pay-opts').querySelectorAll('.popt').forEach(p=>p.classList.remove('on'));this.classList.add('on');toggleTransferProof()">
+        <input type="radio" name="pay" value="whatsapp">
+        <div class="popt-ico"><svg viewBox="0 0 24 24"><path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z"/></svg></div>
+        <div><div class="popt-name">Pago Móvil / Transferencia (Venezuela)</div><div class="popt-desc">Coordina la tasa del día por WhatsApp</div></div>
+      </label>
+      `:`
       <label class="popt" onclick="this.closest('.pay-opts').querySelectorAll('.popt').forEach(p=>p.classList.remove('on'));this.classList.add('on');toggleTransferProof()">
         <input type="radio" name="pay" value="transfer">
         <div class="popt-ico"><svg viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg></div>
         <div><div class="popt-name">Transferencia bancaria</div><div class="popt-desc">BAC, Banpro, Lafise</div></div>
       </label>
+      `}
+      ${isCreditEligible(total)?`
+      <label class="popt" onclick="this.closest('.pay-opts').querySelectorAll('.popt').forEach(p=>p.classList.remove('on'));this.classList.add('on');toggleTransferProof()">
+        <input type="radio" name="pay" value="credit">
+        <div class="popt-ico"><svg viewBox="0 0 24 24"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg></div>
+        <div><div class="popt-name">Pago en 3 cuotas</div><div class="popt-desc">50% ahora, 25% cerca de la entrega, 25% a los 15 días</div></div>
+      </label>
+      `:''}
+    </div>
+    <div id="whatsappPlanBlock" style="display:none;margin-top:14px">
+      <div class="ck-sec">Pago Móvil / Transferencia — Venezuela</div>
+      <div style="background:#dcfce7;border:1px solid #86efac;border-radius:var(--r8);padding:12px 14px;font-size:12px;color:#166534;line-height:1.6;margin-bottom:14px">
+        Debido a la inflación, la tasa del día se coordina directamente por WhatsApp con atención al cliente. Al confirmar, se abrirá WhatsApp con los datos de tu pedido ya listos para enviar.
+      </div>
+    </div>
+    <div id="creditPlanBlock" style="display:none;margin-top:14px">
+      <div class="ck-sec">Plan de pago en 3 cuotas</div>
+      <div style="background:var(--blue-l);border:1px solid var(--blue);border-radius:var(--r8);padding:12px 14px;font-size:12px;color:var(--blue);line-height:1.6;margin-bottom:14px">
+        Sin recargo — pagas exactamente lo mismo que al contado.<br>
+        Tu producto se envía después del 2do pago. El sistema te avisará cuándo pagar cada cuota.
+      </div>
+      <div id="creditInstallmentsPreview"></div>
     </div>
     <div id="transferProofBlock" style="display:none;margin-top:14px">
       <div class="ck-sec">Comprobante de transferencia</div>
@@ -2123,10 +2436,13 @@ async function placeOrder(paypalCapture){
     trySavePaypalMethod();
   }
 
-  // Validación del comprobante de transferencia
+  // Validación del comprobante de transferencia (también aplica al 1er pago del plan de crédito)
   let transferData=null;
   let autoCancel=false;
-  if(payMethod==='transfer'){
+  let creditPlan=null;
+  const firstPaymentAmount=(payMethod==='credit')?calcCreditInstallments(total)[0]:total;
+
+  if(payMethod==='transfer'||payMethod==='credit'){
     const amount=parseFloat($('ckTransferAmount')?.value);
     const auth=$('ckTransferAuth')?.value.trim();
     const err=$('transferErr');
@@ -2134,20 +2450,63 @@ async function placeOrder(paypalCapture){
     if(!amount||amount<=0){err.textContent='Ingresa el monto depositado';err.classList.add('show');return}
     if(!auth){err.textContent='Ingresa el número de autorización';err.classList.add('show');return}
     if(!transferImgBase64){err.textContent='Sube la imagen del comprobante';err.classList.add('show');return}
-    // Comparación exacta (con tolerancia mínima de centavos por redondeo)
-    const diff=Math.abs(amount-total);
+    // Para transferencia normal se compara contra el total; para crédito, contra el 1er pago (50%)
+    const expectedAmount=payMethod==='credit'?firstPaymentAmount:total;
+    const diff=Math.abs(amount-expectedAmount);
     autoCancel=diff>0.01;
-    transferData={amount,auth,image:transferImgBase64,expectedTotal:total,matched:!autoCancel};
+    transferData={amount,auth,image:transferImgBase64,expectedTotal:expectedAmount,matched:!autoCancel};
   }
 
-  const order={id:ref,uid:USER?.uid||'',date:new Date().toISOString(),items:[...cart],total,payMethod,status:autoCancel?'cancelled':(paypalCapture?'confirmed':'pending'),
+  if(payMethod==='credit'&&!autoCancel){
+    const installments=calcCreditInstallments(total);
+    const now=Date.now();
+    const DAY=24*60*60*1000;
+    creditPlan={
+      totalAmount:total,
+      installments:[
+        {n:1,amount:installments[0],status:'paid',dueDate:null,paidAt:new Date().toISOString()},
+        {n:2,amount:installments[1],status:'pending',dueDate:null,paidAt:null,note:'Se cobra cerca de la entrega'},
+        {n:3,amount:installments[2],status:'pending',dueDate:new Date(now+CREDIT_INSTALLMENT_DAYS*DAY).toISOString(),paidAt:null,note:'15 días después del 2do pago'}
+      ]
+    };
+  }
+
+  // Transferencia (Nicaragua) y WhatsApp (Venezuela) NUNCA se auto-confirman: quedan
+  // en verificación manual hasta que el admin marque "Pago recibido" en el panel.
+  // Solo se auto-cancelan si el monto de la transferencia no coincide (protección de fraude).
+  const needsManualVerification=(payMethod==='transfer'||payMethod==='whatsapp')&&!autoCancel;
+  const orderStatus=autoCancel?'cancelled':
+    (needsManualVerification?'awaiting_verification':
+    (payMethod==='credit'?'credit_active':(paypalCapture?'confirmed':'pending')));
+  const order={id:ref,uid:USER?.uid||'',date:new Date().toISOString(),items:[...cart],total,payMethod,status:orderStatus,
     transferData,
+    creditPlan,
     paypalData:paypalCapture?{orderId:paypalCapture.orderId,captureId:paypalCapture.captureId,status:paypalCapture.status}:null,
     customer:{name:fn+' '+ln,phone:savedAddr.phone||USER?.phone||'',address:savedAddr.address+', '+savedAddr.city+' (C.P. '+savedAddr.zip+')'+(savedAddr.desc?' — '+savedAddr.desc:'')}};
   ORDERS.unshift(order);
   try{
     await window._fb.setDoc(window._fb.doc(window._fb.db,'orders',ref),order);
   }catch(e){toast('⚠️ No se pudo sincronizar el pedido con la nube');}
+
+  // Pago Móvil / Transferencia Venezuela: se coordina la tasa del día por WhatsApp.
+  // El pedido ya quedó guardado como "awaiting_verification" — aquí solo abrimos el
+  // chat con el mensaje del pedido ya armado para que el cliente lo envíe.
+  if(payMethod==='whatsapp'){
+    const itemsText=order.items.map(i=>'• '+cleanBrand(i.prod.title).slice(0,60)+' — '+fmt(i.total)).join('\n');
+    const msg=`Hola, quiero coordinar el pago de mi pedido en TecnoShop:\n\nN° de pedido: ${ref}\nTotal: ${fmt(total)}\n\n${itemsText}\n\nDirección: ${order.customer.address}\n\n¿Podrían indicarme la tasa del día para el Pago Móvil / transferencia?`;
+    const waUrl='https://wa.me/584129223212?text='+encodeURIComponent(msg);
+    cart=[];updBadge();
+    $('ckContent').innerHTML=`<div class="success-view">
+      <div class="s-check" style="background:#dcfce7;border-color:#86efac"><svg viewBox="0 0 24 24" stroke="#166534"><path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z"/></svg></div>
+      <div class="s-title">Pedido registrado</div>
+      <div class="s-ref">${ref}</div>
+      <div class="s-detail">Ahora continúa por WhatsApp para coordinar la tasa del día y confirmar tu pago.</div>
+      <div style="font-size:17px;font-weight:800;color:var(--blue);margin-bottom:20px">${fmt(total)}</div>
+      <a href="${waUrl}" target="_blank" class="btn-cont" style="display:block;text-decoration:none;text-align:center;background:#25d366">Continuar en WhatsApp</a>
+      <button class="abtn" style="background:var(--gray3);color:var(--text);margin-top:10px" onclick="closeOv('ckOv')">Cerrar</button>
+    </div>`;
+    return;
+  }
 
   // Desglose por producto: Costo eBay + Ganancia TecnoShop + Envío = Total pagado
   const desgloseHtml=order.items.map(i=>{
