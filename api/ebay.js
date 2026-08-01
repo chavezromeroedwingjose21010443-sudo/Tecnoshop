@@ -18,7 +18,6 @@ const TRUSTED_SELLERS = [
   'vvanmenghangzhouchua_0',
   'omaha_blue',
   'spcpart',
-  'lakemichigancomputers',
   'champion-laptop-battery-store'
 ];
 
