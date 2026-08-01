@@ -213,10 +213,17 @@ input{font-family:inherit}
         <div id="sectionOrders">
           <div class="page-title">Pedidos</div>
           <div class="stats" id="stats"></div>
+          <div class="tabs" id="countryTabs">
+            <button class="tab on" onclick="filterCountry('all')">🌎 Todos los países</button>
+            <button class="tab" onclick="filterCountry('NI')">🇳🇮 Nicaragua</button>
+            <button class="tab" onclick="filterCountry('VE')">🇻🇪 Venezuela</button>
+          </div>
           <div class="tabs" id="tabs">
             <button class="tab on" onclick="filterStatus('all')">Todos</button>
             <button class="tab" onclick="filterStatus('pending')">Pendientes</button>
+            <button class="tab" onclick="filterStatus('awaiting_verification')">⏳ Verificando pago</button>
             <button class="tab" onclick="filterStatus('confirmed')">Confirmados</button>
+            <button class="tab" onclick="filterStatus('credit_active')">Crédito activo</button>
             <button class="tab" onclick="filterStatus('processing')">Procesando</button>
             <button class="tab" onclick="filterStatus('shipped')">Enviados</button>
             <button class="tab" onclick="filterStatus('delivered')">Entregados</button>
@@ -254,7 +261,22 @@ input{font-family:inherit}
 <script>
 const $=id=>document.getElementById(id);
 const fmt=n=>'$'+Number(n).toFixed(2);
-let ALL_ORDERS=[],ALL_OFFERS=[],ALL_USERS=[],curFilter='all',curOfferFilter='all',curSection='orders';
+let ALL_ORDERS=[],ALL_OFFERS=[],ALL_USERS=[],curFilter='all',curCountryFilter='all',curOfferFilter='all',curSection='orders';
+
+// Determina el país del pedido: usa el campo guardado si existe; si no (pedidos viejos,
+// antes de que este campo existiera), infiere por el método de pago (whatsapp = Venezuela).
+function getOrderCountry(o){
+  if(o.country)return o.country;
+  return o.payMethod==='whatsapp'?'VE':'NI';
+}
+
+function filterCountry(c){
+  curCountryFilter=c;
+  document.querySelectorAll('#countryTabs .tab').forEach(t=>t.classList.remove('on'));
+  event.target.classList.add('on');
+  renderStats();
+  renderOrders();
+}
 
 const STATUS_LABELS={pending:'Pendiente',confirmed:'Confirmado',processing:'Procesando',shipped:'Enviado',delivered:'Entregado',cancelled:'Cancelado',credit_active:'Crédito activo',awaiting_verification:'⏳ Verificando pago'};
 const OFFER_LABELS={pending:'Pendiente',accepted:'Aceptada',rejected:'Rechazada'};
@@ -331,10 +353,11 @@ async function loadOrders(){
 }
 
 function renderStats(){
-  const total=ALL_ORDERS.length;
-  const pending=ALL_ORDERS.filter(o=>o.status==='pending').length;
-  const revenue=ALL_ORDERS.reduce((s,o)=>s+(o.total||0),0);
-  const delivered=ALL_ORDERS.filter(o=>o.status==='delivered').length;
+  const base=curCountryFilter==='all'?ALL_ORDERS:ALL_ORDERS.filter(o=>getOrderCountry(o)===curCountryFilter);
+  const total=base.length;
+  const pending=base.filter(o=>o.status==='pending'||o.status==='awaiting_verification').length;
+  const revenue=base.reduce((s,o)=>s+(o.total||0),0);
+  const delivered=base.filter(o=>o.status==='delivered').length;
   $('stats').innerHTML=`
     <div class="stat-card"><div class="stat-num">${total}</div><div class="stat-lbl">Total de pedidos</div></div>
     <div class="stat-card"><div class="stat-num" style="color:var(--orange)">${pending}</div><div class="stat-lbl">Pendientes</div></div>
@@ -351,7 +374,8 @@ function filterStatus(s){
 }
 
 function renderOrders(){
-  const list=curFilter==='all'?ALL_ORDERS:ALL_ORDERS.filter(o=>o.status===curFilter);
+  let list=curFilter==='all'?ALL_ORDERS:ALL_ORDERS.filter(o=>o.status===curFilter);
+  if(curCountryFilter!=='all')list=list.filter(o=>getOrderCountry(o)===curCountryFilter);
   const el=$('ordersList');
   if(!list.length){el.innerHTML='<div class="empty">No hay pedidos en esta categoría</div>';return}
   el.innerHTML=list.map(o=>{
@@ -361,7 +385,7 @@ function renderOrders(){
     return `
     <div class="card">
       <div class="card-top">
-        <div><div class="card-id">${o.id}</div><div class="card-date">${new Date(o.date).toLocaleString('es-NI')}</div></div>
+        <div><div class="card-id">${getOrderCountry(o)==='VE'?'🇻🇪':'🇳🇮'} ${o.id}</div><div class="card-date">${new Date(o.date).toLocaleString('es-NI')}</div></div>
         <div style="text-align:right">
           <div class="card-total">${fmt(o.total)}</div>
           <select class="status-sel st-${o.status}" onchange="updateStatus('${o.id}',this.value,this)">
