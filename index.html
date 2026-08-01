@@ -852,14 +852,14 @@ function handleCountrySelect(){
   const sel=$('rPhoneCode');
   if(sel)sel.value=country==='VE'?'+58':'+505';
   // El formato de cédula cambia por completo entre países: Nicaragua usa guiones
-  // (000-000000-0000A), Venezuela usa prefijo V/E/J + dígitos (V12345678).
+  // (000-000000-0000A), Venezuela usa prefijo V/E/J + dígitos (V00000000).
   const cedulaInput=$('rCedula');
   const cedulaLabel=$('rCedulaLabel');
   if(cedulaInput&&cedulaLabel){
     cedulaInput.value='';
     if(country==='VE'){
       cedulaLabel.textContent='Cédula (formato Venezuela)';
-      cedulaInput.placeholder='V12345678';
+      cedulaInput.placeholder='V00000000';
       cedulaInput.maxlength=10;
       cedulaInput.setAttribute('oninput','formatCedulaVE(this)');
     }else{
@@ -965,7 +965,7 @@ async function doRegister(){
   const phone=phoneCode+' '+phoneNum;
   if(!/\S+@\S+\.\S+/.test(email)){se('regErr','Correo inválido');return}
   const cedulaIsValid=country==='VE'?validCedulaVE(cedula):validCedula(cedula);
-  const cedulaFormatMsg=country==='VE'?'Cédula inválida. Formato: V12345678 (V/E/J + 7 a 9 dígitos)':'Cédula inválida. Formato: 000-000000-0000A';
+  const cedulaFormatMsg=country==='VE'?'Cédula inválida. Formato: V00000000 (V/E/J + 7 a 9 dígitos)':'Cédula inválida. Formato: 000-000000-0000A';
   if(!cedulaIsValid){se('regErr',cedulaFormatMsg);return}
   if(pass.length<8){se('regErr','Mínimo 8 caracteres');return}
   if(pass!==pass2){se('regErr','Las contraseñas no coinciden');return}
